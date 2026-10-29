@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../../../../app/theme/app_colors.dart';
+import '../../../../core/constants/asset_paths.dart';
 
 /// First screen of the app: an ECG line draws in and turns into a job-search
 /// lens, surrounded by healthcare role chips. Calls [onFinished] when done.
@@ -295,23 +296,11 @@ class _BrandText extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        RichText(
-          text: const TextSpan(
-            style: TextStyle(
-              fontSize: 34,
-              fontWeight: FontWeight.w600,
-              letterSpacing: -0.6,
-              height: 1,
-              color: AppColors.logoNavy,
-            ),
-            children: [
-              TextSpan(text: 'Cure'),
-              TextSpan(
-                text: 'Jobs',
-                style: TextStyle(color: AppColors.logoViolet),
-              ),
-            ],
-          ),
+        Image.asset(
+          AssetPaths.logo,
+          width: 190,
+          fit: BoxFit.contain,
+          semanticLabel: 'CureJobs',
         ),
         const SizedBox(height: 12),
         const Text(
