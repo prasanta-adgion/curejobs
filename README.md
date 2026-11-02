@@ -4,6 +4,15 @@ A new Flutter project.
 
 ## Getting Started
 
+
+
+File	            Responsibility
+----------------------------------------------------------------------------------------
+main.dart	        Application entry point
+bootstrap.dart	    Initialize dependencies, storage, configuration, and application services
+app.dart	        Configure MaterialApp, themes, navigation, and global providers
+
+
 This project is a starting point for a Flutter application.
 
 A few resources to get you started if this is your first Flutter project:

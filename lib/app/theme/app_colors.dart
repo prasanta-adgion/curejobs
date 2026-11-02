@@ -1,125 +1,131 @@
-import 'dart:ui';
+import 'package:flutter/material.dart';
 
 abstract final class AppColors {
-  AppColors._();
+  // ───────────────────────────────
+  // BRAND
+  // ───────────────────────────────
 
-  // ─────────────────────────────────
-  // BRAND COLORS (CureJobs)
-  // ─────────────────────────────────
+  static const primary = Color(0xFF5145D9);
+  static const primaryDark = Color(0xFF4035B8);
+  static const primaryLight = Color(0xFFEEF0FF);
+  static const secondary = Color(0xFF766BF0);
 
-  static const Color primary = Color(0xFF5145D9);
-  static const Color primaryDark = Color(0xFF4035B8);
-  static const Color primaryLight = Color(0xFFEEF0FF);
-  static const Color secondary = Color(0xFF766BF0);
+  static const logoNavy = Color(0xFF141529);
+  static const logoViolet = Color(0xFF5145D9);
 
-  // Logo colors
-  static const Color logoNavy = Color(0xFF141529);
-  static const Color logoViolet = Color(0xFF5145D9);
+  // Dark theme brand
+  static const darkPrimary = Color(0xFFA69EFF);
+  static const darkPrimaryContainer = Color(0xFF30295C);
 
-  // ─────────────────────────────────
-  // BASIC COLORS
-  // ─────────────────────────────────
+  // ───────────────────────────────
+  // BASIC
+  // ───────────────────────────────
 
-  static const Color white = Color(0xFFFFFFFF);
-  static const Color black = Color(0xFF000000);
-  static const Color transparent = Color(0x00000000);
+  static const white = Color(0xFFFFFFFF);
+  static const black = Color(0xFF000000);
+  static const transparent = Color(0x00000000);
 
-  // ─────────────────────────────────
-  // BACKGROUND & SURFACE
-  // ─────────────────────────────────
+  // ───────────────────────────────
+  // LIGHT THEME
+  // ───────────────────────────────
 
-  static const Color background = Color(0xFFF8FAFC);
-  static const Color surface = Color(0xFFFFFFFF);
-  static const Color surfaceSecondary = Color(0xFFF1F5F9);
-  static const Color surfaceVariant = Color(0xFFEEF0FF);
+  static const lightBackground = Color(0xFFF8FAFC);
+  static const lightSurface = Color(0xFFFFFFFF);
+  static const lightSurfaceSecondary = Color(0xFFF1F5F9);
+  static const lightSurfaceVariant = Color(0xFFEEF0FF);
 
-  // ─────────────────────────────────
-  // TEXT COLORS
-  // ─────────────────────────────────
+  static const lightTextPrimary = Color(0xFF141529);
+  static const lightTextSecondary = Color(0xFF64748B);
+  static const lightTextTertiary = Color(0xFF94A3B8);
+  static const lightTextDisabled = Color(0xFFCBD5E1);
 
-  static const Color textPrimary = Color(0xFF141529);
-  static const Color textSecondary = Color(0xFF64748B);
-  static const Color textTertiary = Color(0xFF94A3B8);
-  static const Color textDisabled = Color(0xFFCBD5E1);
-  static const Color textOnPrimary = Color(0xFFFFFFFF);
-  static const Color textLink = Color(0xFF5145D9);
+  static const lightInputBackground = Color(0xFFFFFFFF);
+  static const lightInputBorder = Color(0xFFE2E8F0);
+  static const lightPlaceholder = Color(0xFF64748B);
 
-  // ─────────────────────────────────
-  // INPUT & FORM COLORS
-  // ─────────────────────────────────
+  static const lightBorder = Color(0xFFE2E8F0);
+  static const lightDivider = Color(0xFFE5E7EB);
 
-  static const Color placeholder = Color(0xFF94A3B8);
-  static const Color inputBackground = Color(0xFFF8FAFC);
-  static const Color inputBorder = Color(0xFFE2E8F0);
-  static const Color inputFocusedBorder = primary;
-  static const Color inputErrorBorder = Color(0xFFEF4444);
+  static const lightIconPrimary = Color(0xFF141529);
+  static const lightIconSecondary = Color(0xFF64748B);
 
-  // ─────────────────────────────────
-  // BORDER & DIVIDER
-  // ─────────────────────────────────
+  static const lightButtonDisabled = Color(0xFFE2E8F0);
+  static const lightButtonDisabledText = Color(0xFF64748B);
 
-  static const Color border = Color(0xFFE2E8F0);
-  static const Color borderLight = Color(0xFFF1F5F9);
-  static const Color divider = Color(0xFFE5E7EB);
+  static const lightShimmerBase = Color(0xFFE2E8F0);
+  static const lightShimmerHighlight = Color(0xFFF8FAFC);
 
-  // ─────────────────────────────────
-  // SEMANTIC / STATUS COLORS
-  // ─────────────────────────────────
+  // ───────────────────────────────
+  // DARK THEME
+  // ───────────────────────────────
 
-  static const Color success = Color(0xFF16A34A);
-  static const Color successLight = Color(0xFFDCFCE7);
+  static const darkBackground = Color(0xFF0D1020);
+  static const darkSurface = Color(0xFF191E32);
+  static const darkSurfaceSecondary = Color(0xFF22283D);
+  static const darkSurfaceVariant = Color(0xFF30295C);
 
-  static const Color error = Color(0xFFEF4444);
-  static const Color errorLight = Color(0xFFFEE2E2);
+  static const darkTextPrimary = Color(0xFFF8FAFC);
+  static const darkTextSecondary = Color(0xFFA5AEC4);
+  static const darkTextTertiary = Color(0xFF9AA5BB);
+  static const darkTextDisabled = Color(0xFF7D879C);
 
-  static const Color warning = Color(0xFFF59E0B);
-  static const Color warningLight = Color(0xFFFEF3C7);
+  static const darkInputBackground = Color(0xFF191E32);
+  static const darkInputBorder = Color(0xFF30364B);
+  static const darkPlaceholder = Color(0xFFA5AEC4);
 
-  static const Color info = Color(0xFF2563EB);
-  static const Color infoLight = Color(0xFFDBEAFE);
+  static const darkBorder = Color(0xFF30364B);
+  static const darkDivider = Color(0xFF30364B);
 
-  // ─────────────────────────────────
-  // BUTTON COLORS
-  // ─────────────────────────────────
+  static const darkIconPrimary = Color(0xFFF8FAFC);
+  static const darkIconSecondary = Color(0xFFA5AEC4);
 
-  static const Color buttonPrimary = primary;
-  static const Color buttonPressed = primaryDark;
-  static const Color buttonDisabled = Color(0xFFE2E8F0);
-  static const Color buttonText = white;
+  static const darkButtonDisabled = Color(0xFF30364B);
+  static const darkButtonDisabledText = Color(0xFF9AA5BB);
 
-  // ─────────────────────────────────
-  // ICON COLORS
-  // ─────────────────────────────────
+  static const darkShimmerBase = Color(0xFF22283D);
+  static const darkShimmerHighlight = Color(0xFF30364B);
 
-  static const Color iconPrimary = Color(0xFF141529);
-  static const Color iconSecondary = Color(0xFF64748B);
-  static const Color iconActive = primary;
-  static const Color iconDisabled = Color(0xFFCBD5E1);
+  // ───────────────────────────────
+  // SEMANTIC
+  // ───────────────────────────────
 
-  // ─────────────────────────────────
+  static const success = Color(0xFF16A34A);
+  static const successLight = Color(0xFFDCFCE7);
+  static const successDark = Color(0xFF4ADE80);
+
+  static const error = Color(0xFFEF4444);
+  static const errorLight = Color(0xFFFEE2E2);
+  static const errorDark = Color(0xFFF87171);
+
+  static const warning = Color(0xFFF59E0B);
+  static const warningLight = Color(0xFFFEF3C7);
+  static const warningDark = Color(0xFFFBBF24);
+
+  static const info = Color(0xFF2563EB);
+  static const infoLight = Color(0xFFDBEAFE);
+  static const infoDark = Color(0xFF60A5FA);
+
+  // ───────────────────────────────
   // JOB APPLICATION STATUS
-  // ─────────────────────────────────
+  // ───────────────────────────────
 
-  static const Color jobApplied = Color(0xFF2563EB);
-  static const Color jobShortlisted = Color(0xFF5145D9);
-  static const Color jobInterview = Color(0xFFF59E0B);
-  static const Color jobSelected = Color(0xFF16A34A);
-  static const Color jobRejected = Color(0xFFEF4444);
+  static const jobApplied = info;
+  static const jobShortlisted = primary;
+  static const jobInterview = warning;
+  static const jobSelected = success;
+  static const jobRejected = error;
 
-  // ─────────────────────────────────
-  // EXTRA UI COLORS
-  // ─────────────────────────────────
+  // ───────────────────────────────
+  // OTHER
+  // ───────────────────────────────
 
-  static const Color favorite = Color(0xFFEF4444);
-  static const Color rating = Color(0xFFF59E0B);
-  static const Color verified = Color(0xFF16A34A);
-  static const Color shimmerBase = Color(0xFFE2E8F0);
-  static const Color shimmerHighlight = Color(0xFFF8FAFC);
+  static const favorite = Color(0xFFEF4444);
+  static const rating = Color(0xFFF59E0B);
+  static const verified = Color(0xFF16A34A);
 
-  // ─────────────────────────────────
-  // OVERLAY & SHADOW
-  // ─────────────────────────────────
+  static const lightOverlay = Color(0x80000000);
+  static const darkOverlay = Color(0xB3000000);
 
-  static const Color overlay = Color(0x80000000);
-  static const Color shadow = Color(0x14000000);
+  static const lightShadow = Color(0x14000000);
+  static const darkShadow = Color(0x66000000);
 }

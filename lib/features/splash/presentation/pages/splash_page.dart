@@ -2,7 +2,6 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
-import '../../../../app/theme/app_colors.dart';
 import '../../../../core/constants/asset_paths.dart';
 
 /// First screen of the app: an ECG line draws in and turns into a job-search
@@ -70,8 +69,8 @@ class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Scaffold(
-      backgroundColor: AppColors.white,
       body: SafeArea(
         child: Column(
           children: [
@@ -94,6 +93,12 @@ class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
                                   line: _line.value,
                                   lens: _lens.value,
                                   pulse: _pulse.value,
+                                  primary: theme.colorScheme.primary,
+                                  primaryContainer:
+                                      theme.colorScheme.primaryContainer,
+                                  secondary: theme.colorScheme.secondary,
+                                  onPrimary: theme.colorScheme.onPrimary,
+                                  onSurface: theme.colorScheme.onSurface,
                                 ),
                               ),
                             ),
@@ -128,9 +133,9 @@ class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
                       child: LinearProgressIndicator(
                         value: _intro.value,
                         minHeight: 3,
-                        backgroundColor: AppColors.primaryLight,
-                        valueColor: const AlwaysStoppedAnimation(
-                          AppColors.primary,
+                        backgroundColor: theme.colorScheme.primaryContainer,
+                        valueColor: AlwaysStoppedAnimation(
+                          theme.colorScheme.primary,
                         ),
                       ),
                     ),
@@ -194,21 +199,27 @@ class _HeartbeatLensPainter extends CustomPainter {
     required this.line,
     required this.lens,
     required this.pulse,
+    required this.primary,
+    required this.primaryContainer,
+    required this.secondary,
+    required this.onPrimary,
+    required this.onSurface,
   });
 
   final double line;
   final double lens;
   final double pulse;
+  final Color primary;
+  final Color primaryContainer;
+  final Color secondary;
+  final Color onPrimary;
+  final Color onSurface;
 
   @override
   void paint(Canvas canvas, Size size) {
     final center = Offset(size.width / 2, size.height / 2);
 
-    canvas.drawCircle(
-      center,
-      78,
-      Paint()..color = AppColors.primaryLight,
-    );
+    canvas.drawCircle(center, 78, Paint()..color = primaryContainer);
 
     if (lens > 0) {
       canvas.drawCircle(
@@ -217,7 +228,7 @@ class _HeartbeatLensPainter extends CustomPainter {
         Paint()
           ..style = PaintingStyle.stroke
           ..strokeWidth = 1.5
-          ..color = AppColors.secondary.withValues(alpha: 0.5 * (1 - pulse)),
+          ..color = secondary.withValues(alpha: 0.5 * (1 - pulse)),
       );
     }
 
@@ -239,7 +250,7 @@ class _HeartbeatLensPainter extends CustomPainter {
         ..strokeWidth = 4
         ..strokeCap = StrokeCap.round
         ..strokeJoin = StrokeJoin.round
-        ..color = AppColors.primary,
+        ..color = primary,
     );
 
     if (lens <= 0) return;
@@ -247,12 +258,12 @@ class _HeartbeatLensPainter extends CustomPainter {
     canvas.translate(center.dx, center.dy);
     canvas.scale(lens);
 
-    final navy = Paint()..color = AppColors.logoNavy;
+    final navy = Paint()..color = onSurface;
     canvas.drawLine(
       const Offset(25, 25),
       const Offset(46, 46),
       Paint()
-        ..color = AppColors.logoNavy
+        ..color = onSurface
         ..strokeWidth = 9
         ..strokeCap = StrokeCap.round,
     );
@@ -268,7 +279,7 @@ class _HeartbeatLensPainter extends CustomPainter {
         const Rect.fromLTWH(-13, -7, 26, 18),
         const Radius.circular(3),
       ),
-      stroke..color = AppColors.white,
+      stroke..color = onPrimary,
     );
     canvas.drawPath(
       Path()
@@ -278,7 +289,7 @@ class _HeartbeatLensPainter extends CustomPainter {
         ..lineTo(6, -7),
       stroke,
     );
-    stroke.color = AppColors.secondary;
+    stroke.color = secondary;
     canvas.drawLine(const Offset(0, -2), const Offset(0, 6), stroke);
     canvas.drawLine(const Offset(-4, 2), const Offset(4, 2), stroke);
     canvas.restore();
@@ -286,7 +297,14 @@ class _HeartbeatLensPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_HeartbeatLensPainter old) =>
-      old.line != line || old.lens != lens || old.pulse != pulse;
+      old.line != line ||
+      old.lens != lens ||
+      old.pulse != pulse ||
+      old.primary != primary ||
+      old.primaryContainer != primaryContainer ||
+      old.secondary != secondary ||
+      old.onPrimary != onPrimary ||
+      old.onSurface != onSurface;
 }
 
 class _BrandText extends StatelessWidget {
@@ -294,6 +312,7 @@ class _BrandText extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Column(
       children: [
         Image.asset(
@@ -303,13 +322,11 @@ class _BrandText extends StatelessWidget {
           semanticLabel: 'CureJobs',
         ),
         const SizedBox(height: 12),
-        const Text(
+        Text(
           'Find verified healthcare jobs\nnear you, in minutes',
           textAlign: TextAlign.center,
-          style: TextStyle(
-            fontSize: 15,
-            height: 1.5,
-            color: AppColors.textSecondary,
+          style: theme.textTheme.bodyMedium?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
           ),
         ),
       ],
@@ -324,19 +341,18 @@ class _RoleChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
       decoration: BoxDecoration(
-        color: AppColors.white,
+        color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: theme.colorScheme.outline),
       ),
       child: Text(
         label,
-        style: const TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.w500,
-          color: AppColors.primaryDark,
+        style: theme.textTheme.labelSmall?.copyWith(
+          color: theme.colorScheme.primary,
         ),
       ),
     );
@@ -351,14 +367,17 @@ class _TrustItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, size: 14, color: AppColors.primary),
+        Icon(icon, size: 14, color: theme.colorScheme.primary),
         const SizedBox(width: 4),
         Text(
           label,
-          style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+          style: theme.textTheme.labelSmall?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
         ),
       ],
     );
