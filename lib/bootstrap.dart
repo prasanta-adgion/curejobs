@@ -8,7 +8,7 @@ import 'app/app.dart';
 import 'app/config/app_config.dart';
 import 'app/config/environment.dart';
 import 'app/config/flavor_config.dart';
-import 'app/di/injection.dart';
+import 'app/di/injection_container.dart';
 import 'app/theme/theme_cubit.dart';
 import 'core/error/error_reporter.dart';
 import 'core/storage/theme_preference_storage.dart';

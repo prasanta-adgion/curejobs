@@ -1,8 +1,8 @@
 import 'package:dio/dio.dart';
 
-import '../../../../core/network/api_client.dart';
-import '../../../../core/network/api_endpoints.dart';
-import '../../../../core/network/interceptors/session_interceptor.dart';
+import '../../../../../core/network/api_client.dart';
+import '../../../../../core/network/api_endpoints.dart';
+import '../../../../../core/network/interceptors/session_interceptor.dart';
 import '../models/auth_user_model.dart';
 
 abstract interface class AuthRemoteDataSource {

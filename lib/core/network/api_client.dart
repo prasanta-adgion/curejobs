@@ -15,14 +15,6 @@ enum HttpMethod {
   final String value;
 }
 
-/// Transport abstraction used by data sources.
-///
-/// Every method either returns the decoded value or throws a `Failure`
-/// (see `core/error/failure.dart`); it never leaks [DioException].
-/// Wrap calls in `Result.guard` at the repository boundary.
-///
-/// Without a [JsonDecoder] the body is returned as-is and must already
-/// be a `T` (use `Object?` / `void` when the body is irrelevant).
 abstract interface class ApiClient {
   Future<T> request<T>(
     HttpMethod method,

@@ -1,4 +1,4 @@
-import '../../../../core/result/result.dart';
+import '../../../../../core/result/result.dart';
 import '../entities/auth_user.dart';
 
 /// Contract the domain depends on; the data layer provides the implementation.

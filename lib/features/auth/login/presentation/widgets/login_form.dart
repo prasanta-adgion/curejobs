@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../cubit/login_cubit.dart';
+import '../bloc/login_bloc.dart';
 import '../validators/login_validators.dart';
 
-/// Email and password form. Validates locally, then hands off to [LoginCubit].
+/// Email and password form. Validates locally, then hands off to [LoginBloc].
 class LoginForm extends StatefulWidget {
   const LoginForm({super.key, this.onForgotPassword});
 
@@ -33,9 +33,8 @@ class _LoginFormState extends State<LoginForm> {
   void _submit() {
     FocusScope.of(context).unfocus();
     if (!(_formKey.currentState?.validate() ?? false)) return;
-    context.read<LoginCubit>().submit(
-      email: _email.text,
-      password: _password.text,
+    context.read<LoginBloc>().add(
+      LoginSubmitted(email: _email.text, password: _password.text),
     );
   }
 
@@ -44,9 +43,9 @@ class _LoginFormState extends State<LoginForm> {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
 
-    return BlocBuilder<LoginCubit, LoginState>(
+    return BlocBuilder<LoginBloc, LoginState>(
       builder: (context, state) {
-        final cubit = context.read<LoginCubit>();
+        final bloc = context.read<LoginBloc>();
 
         return Form(
           key: _formKey,
@@ -86,7 +85,7 @@ class _LoginFormState extends State<LoginForm> {
                     errorText: state.emailError,
                   ),
                   validator: LoginValidators.email,
-                  onChanged: (_) => cubit.clearErrors(),
+                  onChanged: (_) => bloc.add(const LoginErrorsCleared()),
                   onFieldSubmitted: (_) => _passwordFocus.requestFocus(),
                 ),
                 const SizedBox(height: 16),
@@ -129,7 +128,7 @@ class _LoginFormState extends State<LoginForm> {
                     ),
                   ),
                   validator: LoginValidators.password,
-                  onChanged: (_) => cubit.clearErrors(),
+                  onChanged: (_) => bloc.add(const LoginErrorsCleared()),
                   onFieldSubmitted: (_) => _submit(),
                 ),
                 if (state.errorMessage != null) ...[

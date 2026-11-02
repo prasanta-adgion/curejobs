@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../../../app/di/injection.dart';
+import '../../../../../app/di/injection_container.dart';
 import '../../domain/entities/auth_user.dart';
-import '../cubit/login_cubit.dart';
+import '../bloc/login_bloc.dart';
 import '../widgets/login_form.dart';
 import '../widgets/login_header.dart';
 
@@ -23,8 +23,8 @@ class LoginPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (_) => sl<LoginCubit>(),
-      child: BlocListener<LoginCubit, LoginState>(
+      create: (_) => sl<LoginBloc>(),
+      child: BlocListener<LoginBloc, LoginState>(
         listenWhen: (prev, curr) => curr.status == LoginStatus.success,
         listener: (context, state) => onLoggedIn(state.user!),
         child: _LoginView(

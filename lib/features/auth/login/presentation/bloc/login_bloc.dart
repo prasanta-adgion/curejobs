@@ -1,23 +1,29 @@
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../../../core/error/failure.dart';
+import '../../../../../core/error/failure.dart';
 import '../../domain/entities/auth_user.dart';
 import '../../domain/usecases/login_usecase.dart';
 
+part 'login_event.dart';
 part 'login_state.dart';
 
-class LoginCubit extends Cubit<LoginState> {
+class LoginBloc extends Bloc<LoginEvent, LoginState> {
   final LoginUseCase _login;
 
-  LoginCubit(this._login) : super(const LoginState());
+  LoginBloc(this._login) : super(const LoginState()) {
+    on<LoginSubmitted>(_onSubmitted);
+    on<LoginErrorsCleared>(_onErrorsCleared);
+  }
 
-  Future<void> submit({required String email, required String password}) async {
+  Future<void> _onSubmitted(
+    LoginSubmitted event,
+    Emitter<LoginState> emit,
+  ) async {
     if (state.isLoading) return;
     emit(const LoginState(status: LoginStatus.loading));
 
-    final result = await _login(email: email, password: password);
-    if (isClosed) return;
+    final result = await _login(email: event.email, password: event.password);
 
     result.fold(
       (user) => emit(LoginState(status: LoginStatus.success, user: user)),
@@ -25,8 +31,7 @@ class LoginCubit extends Cubit<LoginState> {
     );
   }
 
-  /// Clears server errors once the user edits the form.
-  void clearErrors() {
+  void _onErrorsCleared(LoginErrorsCleared event, Emitter<LoginState> emit) {
     if (state.status == LoginStatus.failure) emit(const LoginState());
   }
 

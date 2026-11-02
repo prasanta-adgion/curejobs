@@ -1,19 +1,22 @@
 import 'dart:math' as math;
 
+import 'package:curejobs/features/bottom_nav/bottom_navbar.dart';
 import 'package:flutter/material.dart';
 
+import '../../../../app/di/injection_container.dart';
 import '../../../../core/constants/asset_paths.dart';
+import '../../../../core/storage/session_storage.dart';
+import '../../../appearance_page.dart';
+import '../../../auth/login/presentation/pages/login_page.dart';
 
-/// First screen of the app: an ECG line draws in and turns into a job-search
-/// lens, surrounded by healthcare role chips. Calls [onFinished] when done.
+/// First screen of the app. Plays the intro while checking for a saved
+/// session, then opens the Appearance page or the Login page.
 class SplashPage extends StatefulWidget {
   const SplashPage({
     super.key,
-    required this.onFinished,
     this.duration = const Duration(milliseconds: 3000),
   });
 
-  final VoidCallback onFinished;
   final Duration duration;
 
   @override
@@ -55,10 +58,38 @@ class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
       curve: const Interval(0.45, 0.7, curve: Curves.easeOut),
     );
 
-    _intro.forward().whenComplete(() {
-      if (mounted) widget.onFinished();
-    });
+    _whereToGo();
   }
+
+  /// Checks the session while the intro plays, then opens the next screen.
+  Future<void> _whereToGo() async {
+    final session = _hasSession();
+    await _intro.forward().orCancel.catchError((_) {});
+    final loggedIn = await session;
+    if (!mounted) return;
+
+    _replaceWith(
+      loggedIn
+          ? const DashboardPage()
+          : LoginPage(onLoggedIn: (_) => _replaceWith(const DashboardPage())),
+    );
+  }
+
+  /// A storage error is treated as signed out.
+  Future<bool> _hasSession() async {
+    try {
+      return await sl<SessionStorageInterface>().hasSession();
+    } catch (_) {
+      return false;
+    }
+  }
+
+  void _replaceWith(Widget page) {
+    final navigator = _navigator ??= Navigator.of(context);
+    navigator.pushReplacement(MaterialPageRoute<void>(builder: (_) => page));
+  }
+
+  NavigatorState? _navigator;
 
   @override
   void dispose() {
