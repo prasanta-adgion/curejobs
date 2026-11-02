@@ -14,7 +14,11 @@ class SessionManager {
   final SessionStorageInterface _storage;
   final Dio _refreshDio;
 
-  SessionManager({required this._storage, required this._refreshDio});
+  SessionManager({
+    required SessionStorageInterface storage,
+    required Dio refreshDio,
+  }) : _storage = storage,
+       _refreshDio = refreshDio;
 
   Future<RefreshStatus>? _refreshInProgress;
 

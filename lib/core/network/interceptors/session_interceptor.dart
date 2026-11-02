@@ -1,10 +1,11 @@
 import 'package:dio/dio.dart';
 
 import '../../constants/api_constants.dart';
-import '../../error/failure.dart';
 
 import '../session_cookie_parser.dart';
-import '../session_refresh_service.dart';
+import '../session_manager.dart';
+import '../session_signals.dart';
+import 'retry_interceptor.dart';
 
 class SessionInterceptor extends Interceptor {
   final Dio _dio;
@@ -269,7 +270,7 @@ class SessionInterceptor extends Interceptor {
         extra: {
           ...options.extra,
           retriedAfterRefresh: true,
-          'disableRetry': true,
+          RetryInterceptor.disableRetry: true,
         },
       );
 
@@ -292,8 +293,8 @@ class SessionInterceptor extends Interceptor {
       type: DioExceptionType.unknown,
       message: message,
       error: temporary
-          ? const SessionRecoveryFailure()
-          : const SessionExpiredFailure(),
+          ? const SessionRecoverySignal()
+          : const SessionExpiredSignal(),
     );
   }
 

@@ -4,51 +4,56 @@ import 'dart:math';
 import 'package:dio/dio.dart';
 
 import '../../constants/api_constants.dart';
+import '../../error/error_mapper.dart';
 
+/// Retries idempotent requests on transient failures with exponential
+/// backoff + jitter. Honors `Retry-After` and cancellation.
+///
+/// Opt out per request with `Options(extra: {RetryInterceptor.disableRetry: true})`.
 class RetryInterceptor extends Interceptor {
   final Dio _dio;
 
   RetryInterceptor(this._dio);
 
+  static const String disableRetry = 'disableRetry';
   static const String _retryCountKey = '_retryCount';
 
   static const Set<String> _safeMethods = {'GET', 'HEAD', 'OPTIONS'};
-
   static const Set<int> _retryStatuses = {408, 429, 500, 502, 503, 504};
+
+  static final Random _random = Random();
 
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) async {
     final options = err.requestOptions;
-
     final count = (options.extra[_retryCountKey] as int?) ?? 0;
 
     if (!_shouldRetry(err, count)) {
       return handler.next(err);
     }
 
-    final nextCount = count + 1;
+    final delay = _delayFor(err, count + 1);
 
-    final baseDelay = min(500 * pow(2, nextCount - 1).toInt(), 4000);
+    // Server asked us to wait longer than we are willing to block.
+    if (delay == null) {
+      return handler.next(err);
+    }
 
-    // Add a small randomized delay to avoid bursts.
-    final delay = Duration(milliseconds: baseDelay + Random().nextInt(250));
+    final cancelToken = options.cancelToken;
+
+    await Future.any<void>([
+      Future<void>.delayed(delay),
+      if (cancelToken != null) cancelToken.whenCancel.then<void>((_) {}),
+    ]);
+
+    if (cancelToken?.isCancelled ?? false) {
+      return handler.next(err);
+    }
 
     try {
-      await Future.any<void>([
-        Future<void>.delayed(delay),
-        if (options.cancelToken != null)
-          options.cancelToken!.whenCancel.then<void>((_) {}),
-      ]);
-
-      if (options.cancelToken?.isCancelled ?? false) {
-        return handler.next(err);
-      }
-
-      final retryOptions = options.copyWith(
-        extra: {...options.extra, _retryCountKey: nextCount},
+      final response = await _dio.fetch<dynamic>(
+        options.copyWith(extra: {...options.extra, _retryCountKey: count + 1}),
       );
-
-      final response = await _dio.fetch<dynamic>(retryOptions);
 
       handler.resolve(response);
     } on DioException catch (retryError) {
@@ -56,30 +61,43 @@ class RetryInterceptor extends Interceptor {
     }
   }
 
-  bool _shouldRetry(DioException error, int count) {
-    if (count >= ApiConstants.maxRetryAttempts) {
-      return false;
+  Duration? _delayFor(DioException err, int attempt) {
+    final retryAfter = ErrorMapper.parseRetryAfter(
+      err.response?.headers.value('retry-after'),
+    );
+
+    if (retryAfter != null) {
+      return retryAfter > ApiConstants.maxRetryDelay ? null : retryAfter;
     }
 
+    final backoff = min(
+      ApiConstants.initialRetryDelay.inMilliseconds *
+          pow(2, attempt - 1).toInt(),
+      ApiConstants.maxRetryDelay.inMilliseconds,
+    );
+
+    // Jitter avoids synchronized retry bursts across clients.
+    return Duration(milliseconds: backoff + _random.nextInt(250));
+  }
+
+  bool _shouldRetry(DioException error, int count) {
     final options = error.requestOptions;
 
-    if (options.extra['disableRetry'] == true) {
+    if (count >= ApiConstants.maxRetryAttempts ||
+        options.extra[disableRetry] == true ||
+        (options.cancelToken?.isCancelled ?? false) ||
+        !_safeMethods.contains(options.method.toUpperCase())) {
       return false;
     }
 
-    if (options.cancelToken?.isCancelled ?? false) {
-      return false;
-    }
-
-    if (!_safeMethods.contains(options.method.toUpperCase())) {
-      return false;
-    }
-
-    if (error.type == DioExceptionType.connectionTimeout ||
-        error.type == DioExceptionType.connectionError) {
-      return true;
-    }
-
-    return _retryStatuses.contains(error.response?.statusCode);
+    return switch (error.type) {
+      DioExceptionType.connectionTimeout ||
+      DioExceptionType.receiveTimeout ||
+      DioExceptionType.connectionError => true,
+      DioExceptionType.badResponse => _retryStatuses.contains(
+        error.response?.statusCode,
+      ),
+      _ => false,
+    };
   }
 }

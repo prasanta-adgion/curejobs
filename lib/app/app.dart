@@ -5,12 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'theme/app_theme.dart';
 import 'theme/theme_cubit.dart';
 
-import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
-
-import 'theme/app_theme.dart';
-import 'theme/theme_cubit.dart';
-
+import '../features/auth/presentation/pages/login_page.dart';
 import '../features/splash/presentation/pages/splash_page.dart';
 
 class CureJobsApp extends StatelessWidget {
@@ -35,7 +30,14 @@ class CureJobsApp extends StatelessWidget {
               onFinished: () {
                 Navigator.of(context).pushReplacement(
                   MaterialPageRoute<void>(
-                    builder: (_) => const AppearancePage(),
+                    builder: (loginContext) => LoginPage(
+                      onLoggedIn: (_) =>
+                          Navigator.of(loginContext).pushReplacement(
+                            MaterialPageRoute<void>(
+                              builder: (_) => const AppearancePage(),
+                            ),
+                          ),
+                    ),
                   ),
                 );
               },
