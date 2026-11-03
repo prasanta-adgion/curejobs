@@ -4,7 +4,8 @@ import '../../../../app/theme/app_radius.dart';
 import '../models/job_filters.dart';
 import 'filter_options_sheet.dart';
 
-/// Row of dropdown pills: job type, experience and date posted.
+/// Row of filter tags: job type, experience and date posted. A selected
+/// filter turns violet and shows an × that clears it.
 class JobFilterChips extends StatelessWidget {
   const JobFilterChips({
     super.key,
@@ -22,6 +23,9 @@ class JobFilterChips extends StatelessWidget {
   final ValueChanged<Set<JobType>> onJobTypesChanged;
   final ValueChanged<ExperienceLevel?> onExperienceChanged;
   final ValueChanged<DatePosted?> onDatePostedChanged;
+
+  bool get _hasActive =>
+      jobTypes.isNotEmpty || experience != null || datePosted != null;
 
   String get _jobTypeLabel {
     if (jobTypes.isEmpty) return 'Job type';
@@ -63,6 +67,12 @@ class JobFilterChips extends StatelessWidget {
     if (result != null) onDatePostedChanged(result.firstOrNull);
   }
 
+  void _clearAll() {
+    onJobTypesChanged({});
+    onExperienceChanged(null);
+    onDatePostedChanged(null);
+  }
+
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
@@ -70,45 +80,54 @@ class JobFilterChips extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Row(
         children: [
-          _DropdownPill(
+          _FilterTag(
             label: _jobTypeLabel,
             active: jobTypes.isNotEmpty,
             onTap: () => _pickJobTypes(context),
+            onClear: () => onJobTypesChanged({}),
           ),
           const SizedBox(width: 8),
-          _DropdownPill(
+          _FilterTag(
             label: experience?.label ?? 'Experience',
             active: experience != null,
             onTap: () => _pickExperience(context),
+            onClear: () => onExperienceChanged(null),
           ),
           const SizedBox(width: 8),
-          _DropdownPill(
+          _FilterTag(
             label: datePosted?.label ?? 'Date posted',
             active: datePosted != null,
             onTap: () => _pickDatePosted(context),
+            onClear: () => onDatePostedChanged(null),
           ),
+          if (_hasActive) ...[
+            const SizedBox(width: 4),
+            TextButton(onPressed: _clearAll, child: const Text('Clear all')),
+          ],
         ],
       ),
     );
   }
 }
 
-class _DropdownPill extends StatelessWidget {
-  const _DropdownPill({
+class _FilterTag extends StatelessWidget {
+  const _FilterTag({
     required this.label,
     required this.active,
     required this.onTap,
+    required this.onClear,
   });
 
   final String label;
   final bool active;
   final VoidCallback onTap;
+  final VoidCallback onClear;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
-    final radius = BorderRadius.circular(AppRadius.pill);
+    final radius = BorderRadius.circular(AppRadius.small);
     final foreground = active ? scheme.onPrimaryContainer : scheme.onSurface;
 
     return Material(
@@ -123,7 +142,7 @@ class _DropdownPill extends StatelessWidget {
         onTap: onTap,
         borderRadius: radius,
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(14, 9, 10, 9),
+          padding: EdgeInsets.fromLTRB(12, 8, active ? 4 : 8, 8),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -131,9 +150,30 @@ class _DropdownPill extends StatelessWidget {
                 label,
                 style: theme.textTheme.labelMedium?.copyWith(color: foreground),
               ),
-              const SizedBox(width: 4),
-              Icon(Icons.keyboard_arrow_down_rounded,
-                  size: 18, color: foreground),
+              const SizedBox(width: 2),
+              if (active)
+                Semantics(
+                  button: true,
+                  label: 'Clear $label',
+                  child: InkResponse(
+                    onTap: onClear,
+                    radius: 16,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 4),
+                      child: Icon(
+                        Icons.close_rounded,
+                        size: 16,
+                        color: foreground,
+                      ),
+                    ),
+                  ),
+                )
+              else
+                Icon(
+                  Icons.keyboard_arrow_down_rounded,
+                  size: 18,
+                  color: foreground,
+                ),
             ],
           ),
         ),

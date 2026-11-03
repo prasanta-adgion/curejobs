@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 
 import 'dashboard_bottom_nav_bar.dart';
 import 'dashboard_tab.dart';
+import '../auth/login/presentation/pages/login_page.dart';
 import '../dashboard/presentation/pages/dashboard_home_page.dart';
+import '../profile/presentation/pages/profile_page.dart';
 
 /// Dashboard shell: keeps each tab alive and switches via the bottom bar.
 class DashboardPage extends StatefulWidget {
@@ -18,10 +20,28 @@ class _DashboardPageState extends State<DashboardPage> {
   // Built once so switching tabs never recreates the pages.
   late final _pages = [
     for (final tab in DashboardTab.values)
-      tab == DashboardTab.home
-          ? const DashboardHomePage()
-          : _ComingSoonTab(tab: tab),
+      switch (tab) {
+        DashboardTab.home => const DashboardHomePage(),
+        DashboardTab.profile => ProfilePage(onLoggedOut: _showLogin),
+        _ => _ComingSoonTab(tab: tab),
+      },
   ];
+
+  /// Replaces everything with the login screen; signing in again opens a
+  /// fresh dashboard.
+  void _showLogin() {
+    final navigator = Navigator.of(context);
+    navigator.pushAndRemoveUntil(
+      MaterialPageRoute<void>(
+        builder: (_) => LoginPage(
+          onLoggedIn: (_) => navigator.pushReplacement(
+            MaterialPageRoute<void>(builder: (_) => const DashboardPage()),
+          ),
+        ),
+      ),
+      (_) => false,
+    );
+  }
 
   @override
   void dispose() {

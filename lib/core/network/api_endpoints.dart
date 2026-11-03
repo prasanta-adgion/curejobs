@@ -3,4 +3,9 @@ class ApiEndpoints {
 
   static const String login = 'api/v1/auth/login';
   static const String refresh = 'api/v1/auth/refresh';
+  static const String candidateProfile = 'api/v1/candidates/me';
+  static const String categories = 'api/v1/categories';
+  static const String jobs = 'api/v1/jobs';
+  static const String unreadNotifications = 'api/v1/notifications/unread-count';
+  static const String logout = 'api/v1/auth/logout';
 }

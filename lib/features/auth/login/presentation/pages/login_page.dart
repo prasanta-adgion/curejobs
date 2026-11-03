@@ -1,3 +1,4 @@
+import 'package:curejobs/features/auth/registration/presentation/pages/registration_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -9,16 +10,10 @@ import '../widgets/login_header.dart';
 
 /// Email and password sign-in screen. Navigation is left to the caller.
 class LoginPage extends StatelessWidget {
-  const LoginPage({
-    super.key,
-    required this.onLoggedIn,
-    this.onForgotPassword,
-    this.onCreateAccount,
-  });
+  const LoginPage({super.key, required this.onLoggedIn, this.onForgotPassword});
 
   final ValueChanged<AuthUser> onLoggedIn;
   final VoidCallback? onForgotPassword;
-  final VoidCallback? onCreateAccount;
 
   @override
   Widget build(BuildContext context) {
@@ -29,7 +24,12 @@ class LoginPage extends StatelessWidget {
         listener: (context, state) => onLoggedIn(state.user!),
         child: _LoginView(
           onForgotPassword: onForgotPassword,
-          onCreateAccount: onCreateAccount,
+          onCreateAccount: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: ((context) => RegistrationPage())),
+            );
+          },
         ),
       ),
     );

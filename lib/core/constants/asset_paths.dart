@@ -8,4 +8,6 @@ abstract final class AssetPaths {
   static const String _images = 'assets/images';
 
   static const String logo = '$_images/curejobs-logo.webp';
+
+  static const String favLogo = '$_images/logo-without-bg.png';
 }
