@@ -1,21 +1,29 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
-/// Greeting, notifications bell and profile avatar.
+import '../../../../app/theme/app_colors.dart';
+import '../../../../shared/widgets/completion_avatar.dart';
+import '../../../profile/domain/entities/candidate.dart';
+import '../../../profile/presentation/bloc/candidate_profile_bloc.dart';
+
+/// Greeting, notifications bell and profile avatar. Reads the signed-in
+/// candidate from [CandidateProfileBloc]. Drawn on the navy dashboard
+/// header, so colours are fixed rather than taken from the theme.
 class DashboardHeader extends StatelessWidget {
   const DashboardHeader({
     super.key,
-    required this.name,
-    required this.initials,
     this.hasUnreadNotifications = false,
     this.onNotificationsTap,
     this.onAvatarTap,
   });
 
-  final String name;
-  final String initials;
   final bool hasUnreadNotifications;
   final VoidCallback? onNotificationsTap;
   final VoidCallback? onAvatarTap;
+
+  static const background = AppColors.logoNavy;
+  static const outline = AppColors.darkInputBorder;
+  static const muted = AppColors.darkTextSecondary;
 
   String get _greeting {
     final hour = DateTime.now().hour;
@@ -27,95 +35,96 @@ class DashboardHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
 
-    return Row(
-      children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                _greeting,
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: scheme.onSurfaceVariant,
-                ),
-              ),
-              Text(
-                name,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: theme.textTheme.titleLarge,
-              ),
-            ],
-          ),
-        ),
-        _CircleButton(
-          onTap: onNotificationsTap,
-          tooltip: 'Notifications',
-          child: Stack(
-            clipBehavior: Clip.none,
-            children: [
-              Icon(Icons.notifications_none_rounded, color: scheme.onSurface),
-              if (hasUnreadNotifications)
-                Positioned(
-                  top: 0,
-                  right: 1,
-                  child: Container(
-                    width: 9,
-                    height: 9,
-                    decoration: BoxDecoration(
-                      color: scheme.error,
-                      shape: BoxShape.circle,
-                      border: Border.all(color: scheme.surface, width: 1.5),
-                    ),
+    return BlocBuilder<CandidateProfileBloc, CandidateProfileState>(
+      buildWhen: (prev, curr) =>
+          prev.candidate != curr.candidate || prev.status != curr.status,
+      builder: (context, state) {
+        final candidate = state.candidate;
+
+        return Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    _greeting,
+                    style: theme.textTheme.bodyMedium?.copyWith(color: muted),
                   ),
-                ),
-            ],
-          ),
-        ),
-        const SizedBox(width: 10),
-        InkWell(
-          onTap: onAvatarTap,
-          customBorder: const CircleBorder(),
-          child: CircleAvatar(
-            radius: 22,
-            backgroundColor: scheme.primaryContainer,
-            child: Text(
-              initials,
-              style: theme.textTheme.labelLarge?.copyWith(
-                color: scheme.onPrimaryContainer,
+                  const SizedBox(height: 2),
+                  _Name(
+                    candidate: candidate,
+                    failed: state.status == CandidateProfileStatus.failure,
+                  ),
+                ],
               ),
             ),
-          ),
-        ),
-      ],
+            IconButton(
+              onPressed: onNotificationsTap,
+              tooltip: 'Notifications',
+              style: IconButton.styleFrom(
+                foregroundColor: AppColors.white,
+                minimumSize: const Size.square(42),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  side: const BorderSide(color: outline),
+                ),
+              ),
+              icon: Badge(
+                isLabelVisible: hasUnreadNotifications,
+                smallSize: 8,
+                backgroundColor: AppColors.errorDark,
+                child: const Icon(Icons.notifications_none_rounded, size: 22),
+              ),
+            ),
+            const SizedBox(width: 10),
+            CompletionAvatar(
+              initials: candidate?.initials,
+              percent: candidate?.profileCompletionPercent,
+              onTap: onAvatarTap,
+            ),
+          ],
+        );
+      },
     );
   }
 }
 
-class _CircleButton extends StatelessWidget {
-  const _CircleButton({required this.child, this.onTap, this.tooltip});
+/// Candidate's name, a grey bar while loading, or a neutral fallback if the
+/// profile couldn't be loaded.
+class _Name extends StatelessWidget {
+  const _Name({required this.candidate, required this.failed});
 
-  final Widget child;
-  final VoidCallback? onTap;
-  final String? tooltip;
+  final Candidate? candidate;
+  final bool failed;
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
+    final style = Theme.of(context).textTheme.titleLarge
+        ?.copyWith(color: AppColors.white, fontWeight: FontWeight.w600);
+    final name = candidate?.fullName;
 
-    return Tooltip(
-      message: tooltip ?? '',
-      child: Material(
-        color: Colors.transparent,
-        shape: CircleBorder(side: BorderSide(color: scheme.outlineVariant)),
-        child: InkWell(
-          onTap: onTap,
-          customBorder: const CircleBorder(),
-          child: SizedBox(width: 44, height: 44, child: Center(child: child)),
+    if (name == null && !failed) {
+      return Semantics(
+        label: 'Loading your name',
+        child: Container(
+          width: 150,
+          height: 22,
+          margin: const EdgeInsets.symmetric(vertical: 3),
+          decoration: BoxDecoration(
+            color: AppColors.darkSurfaceSecondary,
+            borderRadius: BorderRadius.circular(6),
+          ),
         ),
-      ),
+      );
+    }
+
+    return Text(
+      name == null || name.isEmpty ? 'Welcome back' : name,
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      style: style,
     );
   }
 }

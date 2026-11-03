@@ -7,4 +7,8 @@ abstract interface class AuthRepository {
     required String email,
     required String password,
   });
+
+  /// Ends the session on the server and always clears it on this device, so
+  /// the user is signed out even if the server can't be reached.
+  Future<Result<void>> logout();
 }

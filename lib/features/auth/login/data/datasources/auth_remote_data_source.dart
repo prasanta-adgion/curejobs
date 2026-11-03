@@ -11,6 +11,9 @@ abstract interface class AuthRemoteDataSource {
     required String email,
     required String password,
   });
+
+  /// Throws a `Failure` on error (see [ApiClient]).
+  Future<void> logout();
 }
 
 class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
@@ -35,5 +38,11 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         },
       ),
     );
+  }
+
+  @override
+  Future<void> logout() async {
+    // The session interceptor attaches the current session cookie.
+    await _client.post<void>(ApiEndpoints.logout, decoder: (_) {});
   }
 }

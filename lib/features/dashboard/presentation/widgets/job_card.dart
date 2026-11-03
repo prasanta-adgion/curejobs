@@ -2,18 +2,22 @@ import 'package:flutter/material.dart';
 
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_radius.dart';
-import '../models/dashboard_job.dart';
+import '../../domain/entities/job.dart';
+import '../formatters/job_formatter.dart';
 
-/// A single job listing: employer, title, tags, salary and post date.
+/// A single job listing as a flat list row: employer, title, tags, salary
+/// and post date. Rows are separated by thin dividers, not boxed in cards.
 class JobCard extends StatelessWidget {
   const JobCard({
     super.key,
     required this.job,
+    this.isSaved = false,
     this.onTap,
     this.onSaveTap,
   });
 
-  final DashboardJob job;
+  final Job job;
+  final bool isSaved;
   final VoidCallback? onTap;
   final VoidCallback? onSaveTap;
 
@@ -21,119 +25,140 @@ class JobCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
-    final radius = BorderRadius.circular(AppRadius.large);
+    final muted = theme.textTheme.bodySmall?.copyWith(
+      color: scheme.onSurfaceVariant,
+    );
+    final now = DateTime.now();
+    final employer = job.organization.name;
+    final salary = JobFormatter.salary(job);
+    final tags = [
+      JobFormatter.employmentType(job.employmentType),
+      ?JobFormatter.experience(job),
+      ?JobFormatter.location(job),
+      ?job.specializationName,
+    ];
 
-    return Material(
-      color: scheme.surface,
-      shape: RoundedRectangleBorder(
-        borderRadius: radius,
-        side: BorderSide(color: scheme.outlineVariant),
-      ),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: radius,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 16, 8, 14),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _EmployerLogo(initials: job.initials, accent: job.accent),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          job.title,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: theme.textTheme.titleSmall,
-                        ),
-                        const SizedBox(height: 2),
-                        Row(
-                          children: [
-                            Flexible(
-                              child: Text(
-                                job.employer,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: theme.textTheme.bodySmall?.copyWith(
-                                  color: scheme.onSurfaceVariant,
-                                ),
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 16, 8, 16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _EmployerLogo(
+                  initials: JobFormatter.initials(employer),
+                  accent: JobFormatter.accent(job.organization.id),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Flexible(
+                            child: Text(
+                              job.title,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: theme.textTheme.titleSmall?.copyWith(
+                                fontWeight: FontWeight.w600,
                               ),
                             ),
-                            if (job.isVerified) ...[
-                              const SizedBox(width: 4),
-                              const Icon(Icons.verified_rounded,
-                                  size: 15, color: AppColors.verified),
-                            ],
+                          ),
+                          if (job.isSponsored) ...[
+                            const SizedBox(width: 6),
+                            _Badge(
+                              label: job.sponsoredLabel ?? 'Sponsored',
+                              color: scheme.primary,
+                              background: scheme.primaryContainer,
+                            ),
+                          ] else if (job.isNewAt(now)) ...[
+                            const SizedBox(width: 6),
+                            const _Badge(
+                              label: 'New',
+                              color: AppColors.success,
+                              background: AppColors.successLight,
+                            ),
                           ],
-                        ),
-                      ],
-                    ),
-                  ),
-                  IconButton(
-                    onPressed: onSaveTap,
-                    tooltip: job.isSaved ? 'Remove from saved' : 'Save job',
-                    icon: Icon(
-                      job.isSaved
-                          ? Icons.bookmark_rounded
-                          : Icons.bookmark_border_rounded,
-                      color: job.isSaved
-                          ? scheme.primary
-                          : scheme.onSurfaceVariant,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Padding(
-                padding: const EdgeInsets.only(right: 8),
-                child: Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [for (final tag in job.tags) _Tag(label: tag)],
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.only(right: 8, top: 14, bottom: 12),
-                child: Divider(height: 1, color: scheme.outlineVariant),
-              ),
-              Padding(
-                padding: const EdgeInsets.only(right: 8),
-                child: Row(
-                  children: [
-                    Text.rich(
-                      TextSpan(
-                        text: job.salary,
-                        style: theme.textTheme.titleSmall,
+                        ],
+                      ),
+                      const SizedBox(height: 2),
+                      Row(
                         children: [
-                          TextSpan(
-                            text: ' /month',
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: scheme.onSurfaceVariant,
+                          Flexible(
+                            child: Text(
+                              employer,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: muted,
                             ),
                           ),
                         ],
                       ),
-                    ),
-                    const Spacer(),
-                    Text(
-                      job.postedLabel,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: job.isNew
-                            ? AppColors.success
-                            : scheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
+                IconButton(
+                  onPressed: onSaveTap,
+                  tooltip: isSaved ? 'Remove from saved' : 'Save job',
+                  visualDensity: VisualDensity.compact,
+                  icon: Icon(
+                    isSaved
+                        ? Icons.bookmark_rounded
+                        : Icons.bookmark_border_rounded,
+                    color: isSaved ? scheme.primary : scheme.outline,
+                  ),
+                ),
+              ],
+            ),
+            Padding(
+              padding: const EdgeInsets.only(right: 12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 10),
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    children: [for (final tag in tags) _Tag(label: tag)],
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: salary == null
+                            ? Text('Salary not disclosed', style: muted)
+                            : Text.rich(
+                                TextSpan(
+                                  text: salary,
+                                  style: theme.textTheme.titleSmall?.copyWith(
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                  children: [
+                                    TextSpan(
+                                      text: JobFormatter.salaryPeriod(
+                                        job.salaryPeriod,
+                                      ),
+                                      style: muted,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                      ),
+                      Text(
+                        JobFormatter.posted(job.publishedAt, now),
+                        style: muted,
+                      ),
+                    ],
+                  ),
+                ],
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -149,16 +174,45 @@ class _EmployerLogo extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 44,
-      height: 44,
+      width: 42,
+      height: 42,
       alignment: Alignment.center,
       decoration: BoxDecoration(
-        color: accent.withValues(alpha: 0.14),
-        borderRadius: BorderRadius.circular(AppRadius.medium),
+        color: accent.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(10),
       ),
       child: Text(
         initials,
-        style: Theme.of(context).textTheme.labelLarge?.copyWith(color: accent),
+        style: Theme.of(context).textTheme.labelLarge
+            ?.copyWith(color: accent, fontWeight: FontWeight.w600),
+      ),
+    );
+  }
+}
+
+class _Badge extends StatelessWidget {
+  const _Badge({
+    required this.label,
+    required this.color,
+    required this.background,
+  });
+
+  final String label;
+  final Color color;
+  final Color background;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: background,
+        borderRadius: BorderRadius.circular(5),
+      ),
+      child: Text(
+        label,
+        style: Theme.of(context).textTheme.labelSmall
+            ?.copyWith(color: color, fontWeight: FontWeight.w600),
       ),
     );
   }
@@ -175,14 +229,16 @@ class _Tag extends StatelessWidget {
     final scheme = theme.colorScheme;
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
       decoration: BoxDecoration(
         color: scheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(AppRadius.small),
+        borderRadius: BorderRadius.circular(AppRadius.small - 2),
       ),
       child: Text(
         label,
-        style: theme.textTheme.labelSmall?.copyWith(color: scheme.onSurface),
+        style: theme.textTheme.labelSmall?.copyWith(
+          color: scheme.onSurfaceVariant,
+        ),
       ),
     );
   }

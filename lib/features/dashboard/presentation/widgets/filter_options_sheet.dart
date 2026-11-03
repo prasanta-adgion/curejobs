@@ -170,8 +170,7 @@ class _OptionTile extends StatelessWidget {
                       color: selected
                           ? scheme.onPrimaryContainer
                           : scheme.onSurface,
-                      fontWeight:
-                          selected ? FontWeight.w600 : FontWeight.w400,
+                      fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
                     ),
                   ),
                 ),

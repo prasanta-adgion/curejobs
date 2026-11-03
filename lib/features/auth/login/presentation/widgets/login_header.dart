@@ -1,3 +1,4 @@
+import 'package:curejobs/core/constants/asset_paths.dart';
 import 'package:flutter/material.dart';
 
 /// Branded top section: logo, tagline and what CureJobs offers.
@@ -28,7 +29,8 @@ class LoginHeader extends StatelessWidget {
                     color: scheme.onPrimary,
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Icon(Icons.work_outline, color: scheme.primary),
+                  // child: Icon(Icons.work_outline, color: scheme.primary),
+                  child: Image.asset(AssetPaths.favLogo, width: 24, height: 24),
                 ),
                 const SizedBox(width: 12),
                 Column(

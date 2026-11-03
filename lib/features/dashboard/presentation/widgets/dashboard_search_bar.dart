@@ -1,47 +1,49 @@
 import 'package:flutter/material.dart';
 
+import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_radius.dart';
 
-/// Job keyword field, location field and the "Find jobs" button.
+/// Job keyword field, location field and the "Find jobs" button. Sits on the
+/// navy dashboard header, so the box is always white with dark text.
 class DashboardSearchBar extends StatelessWidget {
   const DashboardSearchBar({
     super.key,
     required this.keywordController,
     required this.locationController,
+    this.keywordFocusNode,
     this.onSearch,
     this.onUseCurrentLocation,
   });
 
   final TextEditingController keywordController;
   final TextEditingController locationController;
+  final FocusNode? keywordFocusNode;
   final VoidCallback? onSearch;
   final VoidCallback? onUseCurrentLocation;
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         DecoratedBox(
           decoration: BoxDecoration(
-            color: scheme.surface,
-            borderRadius: BorderRadius.circular(AppRadius.large),
-            border: Border.all(color: scheme.outlineVariant),
+            color: AppColors.white,
+            borderRadius: BorderRadius.circular(AppRadius.medium),
           ),
           child: Column(
             children: [
               _SearchField(
                 controller: keywordController,
+                focusNode: keywordFocusNode,
                 icon: Icons.search_rounded,
                 hint: 'Job title, skill or hospital',
                 textInputAction: TextInputAction.next,
               ),
-              Divider(
+              const Divider(
                 height: 1,
                 indent: 48,
-                color: scheme.outlineVariant,
+                color: AppColors.lightBorder,
               ),
               _SearchField(
                 controller: locationController,
@@ -52,10 +54,10 @@ class DashboardSearchBar extends StatelessWidget {
                 trailing: IconButton(
                   onPressed: onUseCurrentLocation,
                   tooltip: 'Use current location',
-                  icon: Icon(
+                  icon: const Icon(
                     Icons.my_location_rounded,
                     size: 20,
-                    color: scheme.onSurfaceVariant,
+                    color: AppColors.lightIconSecondary,
                   ),
                 ),
               ),
@@ -68,6 +70,8 @@ class DashboardSearchBar extends StatelessWidget {
           child: FilledButton.icon(
             onPressed: onSearch,
             style: FilledButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: AppColors.white,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(AppRadius.medium),
               ),
@@ -87,11 +91,13 @@ class _SearchField extends StatelessWidget {
     required this.icon,
     required this.hint,
     required this.textInputAction,
+    this.focusNode,
     this.onSubmitted,
     this.trailing,
   });
 
   final TextEditingController controller;
+  final FocusNode? focusNode;
   final IconData icon;
   final String hint;
   final TextInputAction textInputAction;
@@ -101,27 +107,30 @@ class _SearchField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
 
     return SizedBox(
-      height: 52,
+      height: 50,
       child: TextField(
         controller: controller,
+        focusNode: focusNode,
         textInputAction: textInputAction,
         onSubmitted: onSubmitted,
-        style: theme.textTheme.bodyMedium,
+        cursorColor: AppColors.primary,
+        style: theme.textTheme.bodyMedium?.copyWith(
+          color: AppColors.lightTextPrimary,
+        ),
         decoration: InputDecoration(
           hintText: hint,
           hintStyle: theme.textTheme.bodyMedium?.copyWith(
-            color: scheme.onSurfaceVariant,
+            color: AppColors.lightTextTertiary,
           ),
-          prefixIcon: Icon(icon, size: 20, color: scheme.primary),
+          prefixIcon: Icon(icon, size: 20, color: AppColors.primary),
           suffixIcon: trailing,
           filled: false,
           border: InputBorder.none,
           enabledBorder: InputBorder.none,
           focusedBorder: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(vertical: 16),
+          contentPadding: const EdgeInsets.symmetric(vertical: 15),
         ),
       ),
     );

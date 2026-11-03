@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../bloc/login_bloc.dart';
-import '../validators/login_validators.dart';
+import '../../../../../core/utils/input_validators.dart';
 
 /// Email and password form. Validates locally, then hands off to [LoginBloc].
 class LoginForm extends StatefulWidget {
@@ -84,7 +84,7 @@ class _LoginFormState extends State<LoginForm> {
                     prefixIcon: const Icon(Icons.mail_outline),
                     errorText: state.emailError,
                   ),
-                  validator: LoginValidators.email,
+                  validator: InputValidators.email,
                   onChanged: (_) => bloc.add(const LoginErrorsCleared()),
                   onFieldSubmitted: (_) => _passwordFocus.requestFocus(),
                 ),
@@ -127,7 +127,7 @@ class _LoginFormState extends State<LoginForm> {
                       onPressed: () => setState(() => _obscure = !_obscure),
                     ),
                   ),
-                  validator: LoginValidators.password,
+                  validator: InputValidators.password,
                   onChanged: (_) => bloc.add(const LoginErrorsCleared()),
                   onFieldSubmitted: (_) => _submit(),
                 ),
@@ -178,9 +178,8 @@ class _Label extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 6),
       child: Text(
         text,
-        style: Theme.of(
-          context,
-        ).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w600),
+        style: Theme.of(context).textTheme.labelLarge
+            ?.copyWith(fontWeight: FontWeight.w600),
       ),
     );
   }
