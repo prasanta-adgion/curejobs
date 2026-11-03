@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../models/candidate_profile.dart';
 import 'logout_section.dart';
-import 'profile_section.dart';
+import '../../shared/widgets/profile_section.dart';
 
 /// First tab: activity numbers, about, current role and skills.
 class OverviewTab extends StatelessWidget {

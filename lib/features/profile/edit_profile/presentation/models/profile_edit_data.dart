@@ -1,6 +1,6 @@
 import 'package:equatable/equatable.dart';
 
-import '../../domain/entities/candidate.dart';
+import '../../../domain/entities/candidate.dart';
 
 /// Values on the Edit profile form. Compared with the starting values to know
 /// whether there are unsaved changes.

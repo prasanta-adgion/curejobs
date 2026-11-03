@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../app/theme/app_colors.dart';
 import '../models/candidate_profile.dart';
-import 'profile_section.dart';
+import '../../shared/widgets/profile_section.dart';
 
 /// CV preview with replace and view actions, certificates and a tip.
 class ResumeTab extends StatelessWidget {

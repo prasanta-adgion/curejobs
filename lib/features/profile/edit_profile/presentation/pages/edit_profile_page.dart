@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 
-import '../../../../app/theme/app_colors.dart';
-import '../../../../core/utils/input_validators.dart';
-import '../../domain/entities/candidate.dart';
+import '../../../../../../app/theme/app_colors.dart';
+import '../../../../../../core/utils/input_validators.dart';
+import '../../../domain/entities/candidate.dart';
 import '../models/profile_edit_data.dart';
-import '../widgets/profile_section.dart';
+import '../../../shared/widgets/profile_section.dart';
 
 /// Form to change the candidate's photo, name, work details, summary and
 /// location. UI only: saving and photo upload are left to the caller.

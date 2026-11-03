@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
-import '../../../../app/theme/app_colors.dart';
-import '../models/candidate_profile.dart';
-import 'profile_section.dart';
+import '../../../../../../app/theme/app_colors.dart';
+import '../../../../presentation/models/candidate_profile.dart';
+import '../../../../shared/widgets/profile_section.dart';
 
 /// Work history as a vertical timeline, newest first.
 class ExperienceTab extends StatelessWidget {

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../bloc/logout_bloc.dart';
-import 'profile_section.dart';
+import '../../shared/widgets/profile_section.dart';
 
 /// Last block of the profile: a red "Log out" button that asks for
 /// confirmation, then sends [LogoutRequested] to [LogoutBloc].

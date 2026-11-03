@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../models/candidate_profile.dart';
-import 'profile_section.dart';
+import '../../../../presentation/models/candidate_profile.dart';
+import '../../../../shared/widgets/profile_section.dart';
 
 /// Degrees and schooling, newest first.
 class EducationTab extends StatelessWidget {
