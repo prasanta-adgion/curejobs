@@ -58,8 +58,10 @@ class _EditProfilePageState extends State<EditProfilePage> {
   late final _state = TextEditingController(text: _initial.state);
   late final _country = TextEditingController(text: _initial.country);
   late final _postalCode = TextEditingController(text: _initial.postalCode);
-  late String? _categoryId = _initial.categoryId;
-  late String? _specializationId = _initial.specializationId;
+  late final _categoryId = ValueNotifier<String?>(_initial.categoryId);
+  late final _specializationId = ValueNotifier<String?>(
+    _initial.specializationId,
+  );
 
   late final List<TextEditingController> _controllers = [
     _firstName,
@@ -90,7 +92,9 @@ class _EditProfilePageState extends State<EditProfilePage> {
     for (final controller in _controllers) {
       controller.addListener(_updateHasChanges);
     }
-    final categoryId = _categoryId;
+    _categoryId.addListener(_updateHasChanges);
+    _specializationId.addListener(_updateHasChanges);
+    final categoryId = _categoryId.value;
     if (categoryId != null) {
       _specializationsBloc.add(SpecializationsRequested(categoryId));
     }
@@ -101,6 +105,8 @@ class _EditProfilePageState extends State<EditProfilePage> {
     for (final controller in _controllers) {
       controller.dispose();
     }
+    _categoryId.dispose();
+    _specializationId.dispose();
     _hasChanges.dispose();
     _isSaving.dispose();
     _categoriesBloc.close();
@@ -118,8 +124,8 @@ class _EditProfilePageState extends State<EditProfilePage> {
     state: _state.text.trim(),
     country: _country.text.trim(),
     postalCode: _postalCode.text.trim(),
-    categoryId: _categoryId,
-    specializationId: _specializationId,
+    categoryId: _categoryId.value,
+    specializationId: _specializationId.value,
   );
 
   void _updateHasChanges() => _hasChanges.value = _current != _initial;
@@ -133,22 +139,19 @@ class _EditProfilePageState extends State<EditProfilePage> {
       MaterialPageRoute(
         builder: (_) => BlocProvider.value(
           value: _categoriesBloc,
-          child: CategoryPage(selectedId: _categoryId),
+          child: CategoryPage(selectedId: _categoryId.value),
         ),
       ),
     );
-    if (picked == null || picked.id == _categoryId) return;
-    setState(() {
-      _categoryId = picked.id;
-      // A specialization only makes sense within its category.
-      _specializationId = null;
-    });
+    if (picked == null || picked.id == _categoryId.value) return;
+    _categoryId.value = picked.id;
+    // A specialization only makes sense within its category.
+    _specializationId.value = null;
     _specializationsBloc.add(SpecializationsRequested(picked.id));
-    _updateHasChanges();
   }
 
   Future<void> _pickSpecialization() async {
-    final categoryId = _categoryId;
+    final categoryId = _categoryId.value;
     if (categoryId == null) return;
     // Try again if the last load failed.
     if (_specializationsBloc.state.status == SpecializationsStatus.failure) {
@@ -160,14 +163,13 @@ class _EditProfilePageState extends State<EditProfilePage> {
           value: _specializationsBloc,
           child: SpecializationPage(
             categoryId: categoryId,
-            selectedId: _specializationId,
+            selectedId: _specializationId.value,
           ),
         ),
       ),
     );
     if (picked == null) return;
-    setState(() => _specializationId = picked.id);
-    _updateHasChanges();
+    _specializationId.value = picked.id;
   }
 
   Future<void> _save() async {
@@ -347,37 +349,50 @@ class _EditProfilePageState extends State<EditProfilePage> {
                       const SizedBox(height: 14),
                       _LabeledField(
                         label: 'Category',
-                        child: BlocBuilder<CategoriesBloc, CategoriesState>(
-                          bloc: _categoriesBloc,
-                          builder: (context, state) => _PickerField(
-                            value: _categoryName(state.categories),
-                            placeholder: 'Select Category',
-                            onTap: _pickCategory,
-                          ),
+                        child: ValueListenableBuilder<String?>(
+                          valueListenable: _categoryId,
+                          builder: (context, categoryId, _) =>
+                              BlocBuilder<CategoriesBloc, CategoriesState>(
+                                bloc: _categoriesBloc,
+                                builder: (context, state) => _PickerField(
+                                  value: _categoryName(
+                                    state.categories,
+                                    categoryId,
+                                  ),
+                                  placeholder: 'Select Category',
+                                  onTap: _pickCategory,
+                                ),
+                              ),
                         ),
                       ),
                       const SizedBox(height: 14),
                       _LabeledField(
                         label: 'Specialization',
-                        child:
-                            BlocBuilder<
-                              SpecializationsBloc,
-                              SpecializationsState
-                            >(
-                              bloc: _specializationsBloc,
-                              builder: (context, state) => _PickerField(
-                                value: _specializationName(
-                                  state.specializations,
+                        child: ListenableBuilder(
+                          listenable: Listenable.merge([
+                            _categoryId,
+                            _specializationId,
+                          ]),
+                          builder: (context, _) =>
+                              BlocBuilder<
+                                SpecializationsBloc,
+                                SpecializationsState
+                              >(
+                                bloc: _specializationsBloc,
+                                builder: (context, state) => _PickerField(
+                                  value: _specializationName(
+                                    state.specializations,
+                                  ),
+                                  placeholder: _categoryId.value == null
+                                      ? 'Select Category first'
+                                      : 'Select Specialization',
+                                  // Stays disabled until a category is chosen.
+                                  onTap: _categoryId.value == null
+                                      ? null
+                                      : _pickSpecialization,
                                 ),
-                                placeholder: _categoryId == null
-                                    ? 'Select Category first'
-                                    : 'Select Specialization',
-                                // Stays disabled until a category is chosen.
-                                onTap: _categoryId == null
-                                    ? null
-                                    : _pickSpecialization,
                               ),
-                            ),
+                        ),
                       ),
                     ],
                   ),
@@ -523,16 +538,17 @@ class _EditProfilePageState extends State<EditProfilePage> {
     );
   }
 
-  String? _categoryName(List<Category> categories) {
+  String? _categoryName(List<Category> categories, String? id) {
     for (final category in categories) {
-      if (category.id == _categoryId) return category.name;
+      if (category.id == id) return category.name;
     }
     return null;
   }
 
   String? _specializationName(List<Specialization> specializations) {
     for (final specialization in specializations) {
-      if (specialization.id == _specializationId) return specialization.name;
+      if (specialization.id == _specializationId.value)
+        return specialization.name;
     }
     return null;
   }

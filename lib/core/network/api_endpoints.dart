@@ -10,4 +10,9 @@ class ApiEndpoints {
   static const String logout = 'api/v1/auth/logout';
   static String specializationsByCategory({required String categoryId}) =>
       'api/v1/categories/$categoryId/specializations';
+
+  //file upload
+  static const String uploadFile = 'api/v1/files/upload-url';
+  static String uploadFileComplete({required String fileId}) =>
+      'api/v1/files/$fileId/complete';
 }

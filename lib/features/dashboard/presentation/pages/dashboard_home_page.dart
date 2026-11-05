@@ -1,4 +1,5 @@
 import 'package:curejobs/features/appearance_page.dart';
+import 'package:curejobs/features/create_account/presentation/pages/create_account_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -164,7 +165,15 @@ class _DashboardHomeViewState extends State<_DashboardHomeView> {
                             keywordController: _keywordController,
                             locationController: _locationController,
                             keywordFocusNode: _keywordFocus,
-                            onSearch: () => FocusScope.of(context).unfocus(),
+                            onSearch: () {
+                              FocusScope.of(context).unfocus();
+
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (context) => CreateAccountPage(),
+                                ),
+                              );
+                            },
                             onUseCurrentLocation: () {},
                           ),
                         ],
