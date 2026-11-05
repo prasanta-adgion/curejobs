@@ -62,29 +62,3 @@ class ProfileEditData extends Equatable {
     specializationId,
   ];
 }
-
-/// A category the candidate can pick, with its specializations.
-class ProfileCategoryOption extends Equatable {
-  const ProfileCategoryOption({
-    required this.id,
-    required this.name,
-    this.specializations = const [],
-  });
-
-  final String id;
-  final String name;
-  final List<ProfileSpecializationOption> specializations;
-
-  @override
-  List<Object?> get props => [id, name, specializations];
-}
-
-class ProfileSpecializationOption extends Equatable {
-  const ProfileSpecializationOption({required this.id, required this.name});
-
-  final String id;
-  final String name;
-
-  @override
-  List<Object?> get props => [id, name];
-}

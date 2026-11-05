@@ -8,4 +8,6 @@ class ApiEndpoints {
   static const String jobs = 'api/v1/jobs';
   static const String unreadNotifications = 'api/v1/notifications/unread-count';
   static const String logout = 'api/v1/auth/logout';
+  static String specializationsByCategory({required String categoryId}) =>
+      'api/v1/categories/$categoryId/specializations';
 }

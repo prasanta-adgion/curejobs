@@ -1,3 +1,4 @@
+import '../../../../core/utils/json_parser.dart';
 import '../../domain/entities/job.dart';
 
 class JobModel extends Job {
@@ -25,32 +26,38 @@ class JobModel extends Job {
   });
 
   factory JobModel.fromJson(Map<String, dynamic> json) {
-    final organization = json['organization'] is Map<String, dynamic>
-        ? json['organization'] as Map<String, dynamic>
-        : const <String, dynamic>{};
+    final organization = JsonParser.map(json['organization']);
 
     return JobModel(
-      id: json['id'].toString(),
-      title: (json['title'] as String? ?? '').trim(),
-      slug: json['slug'] as String? ?? '',
-      employmentType: _employmentType(json['employmentType'] as String?),
-      experienceMinMonths: (json['experienceMinMonths'] as num?)?.toInt(),
-      experienceMaxMonths: (json['experienceMaxMonths'] as num?)?.toInt(),
-      salaryMinMinor: (json['salaryMinMinor'] as num?)?.toInt(),
-      salaryMaxMinor: (json['salaryMaxMinor'] as num?)?.toInt(),
-      salaryCurrency: json['salaryCurrency'] as String?,
-      salaryPeriod: _salaryPeriod(json['salaryPeriod'] as String?),
-      city: json['city'] as String?,
-      state: json['state'] as String?,
-      publishedAt: _date(json['publishedAt']),
-      applicationDeadline: _date(json['applicationDeadline']),
-      isSponsored: json['isSponsored'] as bool? ?? false,
-      sponsoredLabel: json['sponsoredLabel'] as String?,
+      id: JsonParser.string(json['id']),
+      title: JsonParser.string(json['title']).trim(),
+      slug: JsonParser.string(json['slug']),
+      employmentType: _employmentType(
+        JsonParser.nullableString(json['employmentType']),
+      ),
+      experienceMinMonths: JsonParser.nullableInteger(
+        json['experienceMinMonths'],
+      ),
+      experienceMaxMonths: JsonParser.nullableInteger(
+        json['experienceMaxMonths'],
+      ),
+      salaryMinMinor: JsonParser.nullableInteger(json['salaryMinMinor']),
+      salaryMaxMinor: JsonParser.nullableInteger(json['salaryMaxMinor']),
+      salaryCurrency: JsonParser.nullableString(json['salaryCurrency']),
+      salaryPeriod: _salaryPeriod(
+        JsonParser.nullableString(json['salaryPeriod']),
+      ),
+      city: JsonParser.nullableString(json['city']),
+      state: JsonParser.nullableString(json['state']),
+      publishedAt: JsonParser.dateTime(json['publishedAt']),
+      applicationDeadline: JsonParser.dateTime(json['applicationDeadline']),
+      isSponsored: JsonParser.boolean(json['isSponsored']),
+      sponsoredLabel: JsonParser.nullableString(json['sponsoredLabel']),
       skills: _skills(json['skills']),
       organization: JobOrganization(
-        id: (organization['id'] ?? json['organizationId'] ?? '').toString(),
-        name: (organization['name'] as String? ?? '').trim(),
-        logoFileId: organization['logoFileId'] as String?,
+        id: JsonParser.string(organization['id'] ?? json['organizationId']),
+        name: JsonParser.string(organization['name']).trim(),
+        logoFileId: JsonParser.nullableString(organization['logoFileId']),
       ),
       categoryName: _name(json['category']),
       specializationName: _name(json['specialization']),
@@ -78,11 +85,8 @@ class JobModel extends Job {
         _ => null,
       };
 
-  static DateTime? _date(Object? value) =>
-      value is String ? DateTime.tryParse(value) : null;
-
   static String? _name(Object? value) =>
-      value is Map<String, dynamic> ? value['name'] as String? : null;
+      JsonParser.nullableString(JsonParser.map(value)['name']);
 
   /// Skills may come as plain strings or as `{name: ...}` objects.
   static List<String> _skills(Object? value) {
