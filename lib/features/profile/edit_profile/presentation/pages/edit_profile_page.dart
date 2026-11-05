@@ -1,7 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../../app/di/injection_container.dart';
 import '../../../../../../app/theme/app_colors.dart';
 import '../../../../../../core/utils/input_validators.dart';
+import '../../../../category/domain/entities/category.dart';
+import '../../../../category/presentation/bloc/categories_bloc.dart';
+import '../../../../category/presentation/pages/category_page.dart';
+import '../../../../specialization/domain/entities/specialization.dart';
+import '../../../../specialization/presentation/bloc/specializations_bloc.dart';
+import '../../../../specialization/presentation/pages/specialization_page.dart';
 import '../../../domain/entities/candidate.dart';
 import '../models/profile_edit_data.dart';
 import '../../../shared/widgets/profile_section.dart';
@@ -12,7 +20,6 @@ class EditProfilePage extends StatefulWidget {
   const EditProfilePage({
     super.key,
     required this.candidate,
-    this.categories = const [],
     this.onSave,
     this.onUploadPhoto,
     this.onRemovePhoto,
@@ -20,9 +27,6 @@ class EditProfilePage extends StatefulWidget {
   });
 
   final Candidate candidate;
-
-  /// Options for the category and specialization pickers.
-  final List<ProfileCategoryOption> categories;
 
   /// Saves the form. Return normally on success (the page closes) or throw
   /// to keep the page open and show the message.
@@ -54,8 +58,10 @@ class _EditProfilePageState extends State<EditProfilePage> {
   late final _state = TextEditingController(text: _initial.state);
   late final _country = TextEditingController(text: _initial.country);
   late final _postalCode = TextEditingController(text: _initial.postalCode);
-  late String? _categoryId = _initial.categoryId;
-  late String? _specializationId = _initial.specializationId;
+  late final _categoryId = ValueNotifier<String?>(_initial.categoryId);
+  late final _specializationId = ValueNotifier<String?>(
+    _initial.specializationId,
+  );
 
   late final List<TextEditingController> _controllers = [
     _firstName,
@@ -72,11 +78,25 @@ class _EditProfilePageState extends State<EditProfilePage> {
   final _hasChanges = ValueNotifier(false);
   final _isSaving = ValueNotifier(false);
 
+  /// Shared with the category screen. Loaded here so the saved category's
+  /// name can be shown on the form.
+  final _categoriesBloc = sl<CategoriesBloc>()
+    ..add(const CategoriesRequested());
+
+  /// Shared with the specialization screen, for the chosen category.
+  final _specializationsBloc = sl<SpecializationsBloc>();
+
   @override
   void initState() {
     super.initState();
     for (final controller in _controllers) {
       controller.addListener(_updateHasChanges);
+    }
+    _categoryId.addListener(_updateHasChanges);
+    _specializationId.addListener(_updateHasChanges);
+    final categoryId = _categoryId.value;
+    if (categoryId != null) {
+      _specializationsBloc.add(SpecializationsRequested(categoryId));
     }
   }
 
@@ -85,8 +105,12 @@ class _EditProfilePageState extends State<EditProfilePage> {
     for (final controller in _controllers) {
       controller.dispose();
     }
+    _categoryId.dispose();
+    _specializationId.dispose();
     _hasChanges.dispose();
     _isSaving.dispose();
+    _categoriesBloc.close();
+    _specializationsBloc.close();
     super.dispose();
   }
 
@@ -100,59 +124,52 @@ class _EditProfilePageState extends State<EditProfilePage> {
     state: _state.text.trim(),
     country: _country.text.trim(),
     postalCode: _postalCode.text.trim(),
-    categoryId: _categoryId,
-    specializationId: _specializationId,
+    categoryId: _categoryId.value,
+    specializationId: _specializationId.value,
   );
 
   void _updateHasChanges() => _hasChanges.value = _current != _initial;
 
-  ProfileCategoryOption? get _category {
-    for (final option in widget.categories) {
-      if (option.id == _categoryId) return option;
-    }
-    return null;
-  }
-
   Future<void> _pickCategory() async {
-    final picked = await _showOptions(
-      title: 'Category',
-      options: [for (final c in widget.categories) (c.id, c.name)],
-      selectedId: _categoryId,
+    // Try again if the first load failed.
+    if (_categoriesBloc.state.status == CategoriesStatus.failure) {
+      _categoriesBloc.add(const CategoriesRequested());
+    }
+    final picked = await Navigator.of(context).push<Category>(
+      MaterialPageRoute(
+        builder: (_) => BlocProvider.value(
+          value: _categoriesBloc,
+          child: CategoryPage(selectedId: _categoryId.value),
+        ),
+      ),
     );
-    if (picked == null || picked == _categoryId) return;
-    setState(() {
-      _categoryId = picked;
-      // A specialization only makes sense within its category.
-      _specializationId = null;
-    });
-    _updateHasChanges();
+    if (picked == null || picked.id == _categoryId.value) return;
+    _categoryId.value = picked.id;
+    // A specialization only makes sense within its category.
+    _specializationId.value = null;
+    _specializationsBloc.add(SpecializationsRequested(picked.id));
   }
 
   Future<void> _pickSpecialization() async {
-    final category = _category;
-    if (category == null) return;
-    final picked = await _showOptions(
-      title: 'Specialization',
-      options: [for (final s in category.specializations) (s.id, s.name)],
-      selectedId: _specializationId,
+    final categoryId = _categoryId.value;
+    if (categoryId == null) return;
+    // Try again if the last load failed.
+    if (_specializationsBloc.state.status == SpecializationsStatus.failure) {
+      _specializationsBloc.add(SpecializationsRequested(categoryId));
+    }
+    final picked = await Navigator.of(context).push<Specialization>(
+      MaterialPageRoute(
+        builder: (_) => BlocProvider.value(
+          value: _specializationsBloc,
+          child: SpecializationPage(
+            categoryId: categoryId,
+            selectedId: _specializationId.value,
+          ),
+        ),
+      ),
     );
     if (picked == null) return;
-    setState(() => _specializationId = picked);
-    _updateHasChanges();
-  }
-
-  Future<String?> _showOptions({
-    required String title,
-    required List<(String, String)> options,
-    required String? selectedId,
-  }) {
-    return showModalBottomSheet<String>(
-      context: context,
-      showDragHandle: true,
-      isScrollControlled: true,
-      builder: (context) =>
-          _OptionsSheet(title: title, options: options, selectedId: selectedId),
-    );
+    _specializationId.value = picked.id;
   }
 
   Future<void> _save() async {
@@ -332,28 +349,49 @@ class _EditProfilePageState extends State<EditProfilePage> {
                       const SizedBox(height: 14),
                       _LabeledField(
                         label: 'Category',
-                        child: _PickerField(
-                          value: _category?.name,
-                          placeholder: widget.categories.isEmpty
-                              ? 'No categories to choose from'
-                              : 'Choose a category',
-                          onTap: widget.categories.isEmpty
-                              ? null
-                              : _pickCategory,
+                        child: ValueListenableBuilder<String?>(
+                          valueListenable: _categoryId,
+                          builder: (context, categoryId, _) =>
+                              BlocBuilder<CategoriesBloc, CategoriesState>(
+                                bloc: _categoriesBloc,
+                                builder: (context, state) => _PickerField(
+                                  value: _categoryName(
+                                    state.categories,
+                                    categoryId,
+                                  ),
+                                  placeholder: 'Select Category',
+                                  onTap: _pickCategory,
+                                ),
+                              ),
                         ),
                       ),
                       const SizedBox(height: 14),
                       _LabeledField(
                         label: 'Specialization',
-                        child: _PickerField(
-                          value: _specializationName,
-                          placeholder: _category == null
-                              ? 'Choose a category first'
-                              : 'Choose a specialization',
-                          onTap:
-                              (_category?.specializations.isNotEmpty ?? false)
-                              ? _pickSpecialization
-                              : null,
+                        child: ListenableBuilder(
+                          listenable: Listenable.merge([
+                            _categoryId,
+                            _specializationId,
+                          ]),
+                          builder: (context, _) =>
+                              BlocBuilder<
+                                SpecializationsBloc,
+                                SpecializationsState
+                              >(
+                                bloc: _specializationsBloc,
+                                builder: (context, state) => _PickerField(
+                                  value: _specializationName(
+                                    state.specializations,
+                                  ),
+                                  placeholder: _categoryId.value == null
+                                      ? 'Select Category first'
+                                      : 'Select Specialization',
+                                  // Stays disabled until a category is chosen.
+                                  onTap: _categoryId.value == null
+                                      ? null
+                                      : _pickSpecialization,
+                                ),
+                              ),
                         ),
                       ),
                     ],
@@ -500,9 +538,17 @@ class _EditProfilePageState extends State<EditProfilePage> {
     );
   }
 
-  String? get _specializationName {
-    for (final option in _category?.specializations ?? const []) {
-      if (option.id == _specializationId) return option.name;
+  String? _categoryName(List<Category> categories, String? id) {
+    for (final category in categories) {
+      if (category.id == id) return category.name;
+    }
+    return null;
+  }
+
+  String? _specializationName(List<Specialization> specializations) {
+    for (final specialization in specializations) {
+      if (specialization.id == _specializationId.value)
+        return specialization.name;
     }
     return null;
   }
@@ -758,67 +804,6 @@ class _PickerField extends StatelessWidget {
         child: value == null
             ? null
             : Text(value!, style: theme.textTheme.bodyLarge),
-      ),
-    );
-  }
-}
-
-class _OptionsSheet extends StatelessWidget {
-  const _OptionsSheet({
-    required this.title,
-    required this.options,
-    required this.selectedId,
-  });
-
-  final String title;
-  final List<(String, String)> options;
-  final String? selectedId;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-
-    return SafeArea(
-      child: ConstrainedBox(
-        constraints: BoxConstraints(
-          maxHeight: MediaQuery.sizeOf(context).height * 0.7,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
-              child: Text(
-                title,
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-            Flexible(
-              child: ListView(
-                shrinkWrap: true,
-                children: [
-                  for (final (id, name) in options)
-                    ListTile(
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                      ),
-                      title: Text(name),
-                      selected: id == selectedId,
-                      selectedColor: scheme.primary,
-                      trailing: id == selectedId
-                          ? Icon(Icons.check_rounded, color: scheme.primary)
-                          : null,
-                      onTap: () => Navigator.of(context).pop(id),
-                    ),
-                ],
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }

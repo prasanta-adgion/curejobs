@@ -1,3 +1,4 @@
+import '../../../../../core/utils/json_parser.dart';
 import '../../domain/entities/auth_user.dart';
 
 class AuthUserModel extends AuthUser {
@@ -14,9 +15,9 @@ class AuthUserModel extends AuthUser {
         : data;
 
     return AuthUserModel(
-      id: user['id'].toString(),
+      id: JsonParser.string(user['id']),
       email: user['email'] as String,
-      name: user['name'] as String?,
+      name: JsonParser.nullableString(user['name']),
     );
   }
 }

@@ -1,3 +1,4 @@
+import '../../../../core/utils/json_parser.dart';
 import '../../domain/entities/job_page.dart';
 import 'job_model.dart';
 
@@ -12,25 +13,24 @@ class JobPageModel extends JobPage {
   /// Reads `{data: [...], pagination: {page, total, hasMore, ...}}`.
   factory JobPageModel.fromJson(Object? json) {
     final root = json as Map<String, dynamic>;
-    final items = root['data'] is List ? root['data'] as List : const [];
-    final pagination = root['pagination'] is Map<String, dynamic>
-        ? root['pagination'] as Map<String, dynamic>
-        : const <String, dynamic>{};
+    final items = JsonParser.list(root['data']);
+    final pagination = JsonParser.map(root['pagination']);
 
     final jobs = [
       for (final item in items)
         if (item is Map<String, dynamic>) JobModel.fromJson(item),
     ];
-    final page = (pagination['page'] as num?)?.toInt() ?? 1;
-    final totalPages = (pagination['totalPages'] as num?)?.toInt();
+    final page = JsonParser.integer(pagination['page'], fallback: 1);
+    final totalPages = JsonParser.nullableInteger(pagination['totalPages']);
 
     return JobPageModel(
       jobs: jobs,
       page: page,
-      total: (pagination['total'] as num?)?.toInt() ?? jobs.length,
-      hasMore:
-          pagination['hasMore'] as bool? ??
-          (totalPages != null && page < totalPages),
+      total: JsonParser.integer(pagination['total'], fallback: jobs.length),
+      hasMore: JsonParser.boolean(
+        pagination['hasMore'],
+        fallback: totalPages != null && page < totalPages,
+      ),
     );
   }
 }

@@ -1,3 +1,4 @@
+import '../../../../core/utils/json_parser.dart';
 import '../../domain/entities/candidate.dart';
 
 class CandidateModel extends Candidate {
@@ -27,22 +28,28 @@ class CandidateModel extends Candidate {
         : root;
 
     return CandidateModel(
-      id: data['id'].toString(),
-      firstName: data['firstName'] as String? ?? '',
-      lastName: data['lastName'] as String? ?? '',
-      professionalTitle: data['professionalTitle'] as String?,
-      professionalSummary: data['professionalSummary'] as String?,
-      profilePhotoFileId: data['profilePhotoFileId'] as String?,
-      primaryCategoryId: data['primaryCategoryId'] as String?,
-      primarySpecializationId: data['primarySpecializationId'] as String?,
-      address: (data['address'] ?? data['addressLine1']) as String?,
-      city: data['city'] as String?,
-      state: data['state'] as String?,
-      country: data['country'] as String?,
-      postalCode: data['postalCode'] as String?,
-      profileCompletionPercent:
-          (data['profileCompletionPercent'] as num?)?.round().clamp(0, 100) ??
-          0,
+      id: JsonParser.string(data['id']),
+      firstName: JsonParser.string(data['firstName']),
+      lastName: JsonParser.string(data['lastName']),
+      professionalTitle: JsonParser.nullableString(data['professionalTitle']),
+      professionalSummary: JsonParser.nullableString(
+        data['professionalSummary'],
+      ),
+      profilePhotoFileId: JsonParser.nullableString(data['profilePhotoFileId']),
+      primaryCategoryId: JsonParser.nullableString(data['primaryCategoryId']),
+      primarySpecializationId: JsonParser.nullableString(
+        data['primarySpecializationId'],
+      ),
+      address: JsonParser.nullableString(
+        data['address'] ?? data['addressLine1'],
+      ),
+      city: JsonParser.nullableString(data['city']),
+      state: JsonParser.nullableString(data['state']),
+      country: JsonParser.nullableString(data['country']),
+      postalCode: JsonParser.nullableString(data['postalCode']),
+      profileCompletionPercent: JsonParser.integer(
+        data['profileCompletionPercent'],
+      ).clamp(0, 100),
       verification: data['verification'] is Map<String, dynamic>
           ? CandidateVerificationModel.fromJson(
               data['verification'] as Map<String, dynamic>,
@@ -61,13 +68,13 @@ class CandidateVerificationModel extends CandidateVerification {
   });
 
   factory CandidateVerificationModel.fromJson(Map<String, dynamic> json) {
-    final expiresAt = json['badgeExpiresAt'] as String?;
-
     return CandidateVerificationModel(
-      documentStatus: _documentStatus(json['documentStatus'] as String?),
-      badgeActive: json['badgeActive'] as bool? ?? false,
-      badgeSource: json['badgeSource'] as String?,
-      badgeExpiresAt: expiresAt == null ? null : DateTime.tryParse(expiresAt),
+      documentStatus: _documentStatus(
+        JsonParser.nullableString(json['documentStatus']),
+      ),
+      badgeActive: JsonParser.boolean(json['badgeActive']),
+      badgeSource: JsonParser.nullableString(json['badgeSource']),
+      badgeExpiresAt: JsonParser.dateTime(json['badgeExpiresAt']),
     );
   }
 
