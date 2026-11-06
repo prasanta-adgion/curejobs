@@ -76,7 +76,7 @@ final class DioApiClient implements ApiClient {
   @override
   Future<T> post<T>(
     String path, {
-    Object? data,
+    Object? body,
     Map<String, dynamic>? queryParameters,
     JsonDecoder<T>? decoder,
     Options? options,
@@ -85,7 +85,7 @@ final class DioApiClient implements ApiClient {
     return request<T>(
       HttpMethod.post,
       path,
-      data: data,
+      data: body,
       queryParameters: queryParameters,
       decoder: decoder,
       options: options,
@@ -96,7 +96,7 @@ final class DioApiClient implements ApiClient {
   @override
   Future<T> put<T>(
     String path, {
-    Object? data,
+    Object? body,
     Map<String, dynamic>? queryParameters,
     JsonDecoder<T>? decoder,
     Options? options,
@@ -105,7 +105,7 @@ final class DioApiClient implements ApiClient {
     return request<T>(
       HttpMethod.put,
       path,
-      data: data,
+      data: body,
       queryParameters: queryParameters,
       decoder: decoder,
       options: options,
@@ -116,7 +116,7 @@ final class DioApiClient implements ApiClient {
   @override
   Future<T> patch<T>(
     String path, {
-    Object? data,
+    Object? body,
     Map<String, dynamic>? queryParameters,
     JsonDecoder<T>? decoder,
     Options? options,
@@ -125,7 +125,7 @@ final class DioApiClient implements ApiClient {
     return request<T>(
       HttpMethod.patch,
       path,
-      data: data,
+      data: body,
       queryParameters: queryParameters,
       decoder: decoder,
       options: options,
@@ -136,7 +136,7 @@ final class DioApiClient implements ApiClient {
   @override
   Future<T> delete<T>(
     String path, {
-    Object? data,
+    Object? body,
     Map<String, dynamic>? queryParameters,
     JsonDecoder<T>? decoder,
     Options? options,
@@ -145,7 +145,7 @@ final class DioApiClient implements ApiClient {
     return request<T>(
       HttpMethod.delete,
       path,
-      data: data,
+      data: body,
       queryParameters: queryParameters,
       decoder: decoder,
       options: options,

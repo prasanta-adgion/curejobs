@@ -46,6 +46,7 @@ class ProfileHeader extends StatelessWidget {
                   children: [
                     CompletionAvatar(
                       initials: candidate?.initials,
+                      photoUrl: state.photoUrl,
                       percent: candidate?.profileCompletionPercent,
                       size: 80,
                       longLabel: true,

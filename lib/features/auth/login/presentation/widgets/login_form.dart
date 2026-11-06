@@ -20,13 +20,14 @@ class _LoginFormState extends State<LoginForm> {
   final _email = TextEditingController();
   final _password = TextEditingController();
   final _passwordFocus = FocusNode();
-  bool _obscure = true;
+  ValueNotifier<bool> _obscurePassword = ValueNotifier<bool>(true);
 
   @override
   void dispose() {
     _email.dispose();
     _password.dispose();
     _passwordFocus.dispose();
+    _obscurePassword.dispose();
     super.dispose();
   }
 
@@ -106,30 +107,46 @@ class _LoginFormState extends State<LoginForm> {
                     ),
                   ],
                 ),
-                TextFormField(
-                  controller: _password,
-                  focusNode: _passwordFocus,
-                  enabled: !state.isLoading,
-                  obscureText: _obscure,
-                  textInputAction: TextInputAction.done,
-                  autofillHints: const [AutofillHints.password],
-                  decoration: InputDecoration(
-                    hintText: 'Enter your password',
-                    prefixIcon: const Icon(Icons.lock_outline),
-                    errorText: state.passwordError,
-                    suffixIcon: IconButton(
-                      tooltip: _obscure ? 'Show password' : 'Hide password',
-                      icon: Icon(
-                        _obscure
-                            ? Icons.visibility_outlined
-                            : Icons.visibility_off_outlined,
+
+                ValueListenableBuilder<bool>(
+                  valueListenable: _obscurePassword,
+                  builder: (context, isObscured, child) {
+                    return TextFormField(
+                      controller: _password,
+                      focusNode: _passwordFocus,
+                      enabled: !state.isLoading,
+                      obscureText: isObscured,
+                      textInputAction: TextInputAction.done,
+                      autofillHints: const [AutofillHints.password],
+                      autocorrect: false,
+                      enableSuggestions: false,
+                      decoration: InputDecoration(
+                        hintText: 'Enter your password',
+                        prefixIcon: const Icon(Icons.lock_outline),
+                        errorText: state.passwordError,
+                        suffixIcon: IconButton(
+                          tooltip: isObscured
+                              ? 'Show password'
+                              : 'Hide password',
+                          icon: Icon(
+                            isObscured
+                                ? Icons.visibility_outlined
+                                : Icons.visibility_off_outlined,
+                          ),
+                          onPressed: () {
+                            _obscurePassword.value = !isObscured;
+                          },
+                        ),
                       ),
-                      onPressed: () => setState(() => _obscure = !_obscure),
-                    ),
-                  ),
-                  validator: InputValidators.password,
-                  onChanged: (_) => bloc.add(const LoginErrorsCleared()),
-                  onFieldSubmitted: (_) => _submit(),
+                      validator: InputValidators.password,
+                      onChanged: (_) {
+                        context.read<LoginBloc>().add(
+                          const LoginErrorsCleared(),
+                        );
+                      },
+                      onFieldSubmitted: (_) => _submit(),
+                    );
+                  },
                 ),
                 if (state.errorMessage != null) ...[
                   const SizedBox(height: 16),

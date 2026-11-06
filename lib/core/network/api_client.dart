@@ -38,7 +38,7 @@ abstract interface class ApiClient {
 
   Future<T> post<T>(
     String path, {
-    Object? data,
+    Object? body,
     Map<String, dynamic>? queryParameters,
     JsonDecoder<T>? decoder,
     Options? options,
@@ -47,7 +47,7 @@ abstract interface class ApiClient {
 
   Future<T> put<T>(
     String path, {
-    Object? data,
+    Object? body,
     Map<String, dynamic>? queryParameters,
     JsonDecoder<T>? decoder,
     Options? options,
@@ -56,7 +56,7 @@ abstract interface class ApiClient {
 
   Future<T> patch<T>(
     String path, {
-    Object? data,
+    Object? body,
     Map<String, dynamic>? queryParameters,
     JsonDecoder<T>? decoder,
     Options? options,
@@ -65,7 +65,7 @@ abstract interface class ApiClient {
 
   Future<T> delete<T>(
     String path, {
-    Object? data,
+    Object? body,
     Map<String, dynamic>? queryParameters,
     JsonDecoder<T>? decoder,
     Options? options,

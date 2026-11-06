@@ -6,7 +6,6 @@ import 'package:flutter/material.dart';
 import '../../../../app/di/injection_container.dart';
 import '../../../../core/constants/asset_paths.dart';
 import '../../../../core/storage/session_storage.dart';
-import '../../../appearance_page.dart';
 import '../../../auth/login/presentation/pages/login_page.dart';
 
 /// First screen of the app. Plays the intro while checking for a saved

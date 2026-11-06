@@ -1,5 +1,6 @@
 import 'package:curejobs/features/appearance_page.dart';
 import 'package:curejobs/features/create_account/presentation/pages/create_account_page.dart';
+import 'package:curejobs/features/profile/presentation/pages/profile_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -156,6 +157,13 @@ class _DashboardHomeViewState extends State<_DashboardHomeView> {
                               Navigator.of(context).push(
                                 MaterialPageRoute(
                                   builder: (context) => AppearancePage(),
+                                ),
+                              );
+                            },
+                            onAvatarTap: () {
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (context) => const ProfilePage(),
                                 ),
                               );
                             },

@@ -26,7 +26,7 @@ class LoginHeader extends StatelessWidget {
                   width: 44,
                   height: 44,
                   decoration: BoxDecoration(
-                    color: scheme.onPrimary,
+                    color: Colors.white,
                     borderRadius: BorderRadius.circular(12),
                   ),
                   // child: Icon(Icons.work_outline, color: scheme.primary),

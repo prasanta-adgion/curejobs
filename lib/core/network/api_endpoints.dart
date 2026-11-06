@@ -15,4 +15,7 @@ class ApiEndpoints {
   static const String uploadFile = 'api/v1/files/upload-url';
   static String uploadFileComplete({required String fileId}) =>
       'api/v1/files/$fileId/complete';
+
+  static String getFileAccess({required String fileId}) =>
+      'api/v1/files/$fileId/access';
 }

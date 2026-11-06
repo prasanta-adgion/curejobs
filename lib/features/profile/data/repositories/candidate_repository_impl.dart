@@ -12,4 +12,9 @@ class CandidateRepositoryImpl implements CandidateRepository {
   Future<Result<Candidate>> getMyProfile() {
     return Result.guard(_remote.getMyProfile);
   }
+
+  @override
+  Future<Result<String>> getFileAccessUrl({required String fileId}) {
+    return Result.guard(() => _remote.getFileAccessUrl(fileId: fileId));
+  }
 }

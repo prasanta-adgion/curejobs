@@ -1,7 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:image_picker/image_picker.dart' show ImageSource;
 
 import '../../../../app/di/injection_container.dart';
+import '../../../../core/services/image_picker_service.dart';
+import '../../../../shared/widgets/photo_source_sheet.dart';
+import '../../../media_preview/domain/enums/media_upload_purpose.dart';
+import '../../../media_preview/presentation/pick_and_upload_media.dart';
 import '../bloc/candidate_profile_bloc.dart';
 import '../bloc/logout_bloc.dart';
 import '../models/candidate_profile.dart';
@@ -69,6 +74,38 @@ class ProfilePage extends StatelessWidget {
     if (saved ?? false) bloc.add(const CandidateProfileRequested());
   }
 
+  /// Asks for a camera or gallery photo, previews and uploads it, then shows
+  /// it in the header. There is no remove option: the API can't clear a photo.
+  Future<void> _changePhoto(BuildContext context) async {
+    final bloc = context.read<CandidateProfileBloc>();
+    final candidate = bloc.state.candidate;
+    if (candidate == null) return;
+
+    final photoUrl = bloc.state.photoUrl;
+    final action = await showPhotoSourceSheet(
+      context,
+      photo: photoUrl == null ? null : NetworkImage(photoUrl),
+      initials: candidate.initials,
+    );
+    if (action == null || !context.mounted) return;
+
+    final source = action == PhotoSheetAction.camera
+        ? ImageSource.camera
+        : ImageSource.gallery;
+    final picker = ImagePickerService();
+    final uploaded = await pickAndUploadMedia(
+      context,
+      () => picker.pickPhoto(source),
+      purpose: MediaUploadPurpose.profilePhoto,
+      pickAgainLabel: source == ImageSource.camera ? 'Retake' : 'Change',
+      name: candidate.fullName,
+      subtitle: candidate.professionalTitle,
+    );
+    if (uploaded == null) return;
+
+    bloc.add(CandidateProfilePhotoGet(uploaded.fileId));
+  }
+
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
@@ -110,7 +147,7 @@ class ProfilePage extends StatelessWidget {
                   child: ProfileHeader(
                     onEdit: onEditProfile ?? () => _openEditProfile(context),
                     onSettings: onSettings,
-                    onChangePhoto: onChangePhoto,
+                    onChangePhoto: onChangePhoto ?? () => _changePhoto(context),
                   ),
                 ),
                 SliverPersistentHeader(
