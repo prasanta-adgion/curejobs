@@ -126,6 +126,16 @@ final class ParsingFailure extends Failure {
   ]);
 }
 
+/// A file didn't reach storage, or wasn't confirmed afterwards.
+final class UploadFailure extends Failure {
+  const UploadFailure([
+    super.message = "Your file couldn't be uploaded. Please try again.",
+  ]);
+
+  @override
+  bool get isRetryable => true;
+}
+
 final class UnknownFailure extends Failure {
   const UnknownFailure([super.message = 'Something unexpected happened.']);
 

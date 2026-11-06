@@ -66,7 +66,7 @@ class AboutYouStep extends StatelessWidget {
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      'PNG, JPG or WEBP, up to 5 MB',
+                      'PNG, JPG or WEBP',
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: scheme.onSurfaceVariant,
                       ),

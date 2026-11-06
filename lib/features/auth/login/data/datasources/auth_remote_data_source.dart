@@ -28,7 +28,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   }) {
     return _client.post<AuthUserModel>(
       ApiEndpoints.login,
-      data: {'email': email, 'password': password},
+      body: {'email': email, 'password': password},
       decoder: AuthUserModel.fromJson,
       // The session interceptor stores the returned session cookie.
       options: Options(

@@ -24,6 +24,18 @@ class DioFactory {
     );
   }
 
+  /// Client for presigned S3 uploads. It must never carry the session cookie,
+  /// and has no logging because the URL itself grants access.
+  static Dio createS3Dio() {
+    return Dio(
+      BaseOptions(
+        connectTimeout: ApiConstants.connectTimeout,
+        receiveTimeout: ApiConstants.receiveTimeout,
+        sendTimeout: ApiConstants.uploadSendTimeout,
+      ),
+    );
+  }
+
   /// Bare client used only by [SessionManager] to refresh the session.
   /// It has no session interceptor, so a refresh can never trigger
   /// another refresh.

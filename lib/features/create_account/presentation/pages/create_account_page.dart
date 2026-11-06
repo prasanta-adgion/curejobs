@@ -1,15 +1,23 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:image_picker/image_picker.dart' show ImageSource;
 
 import '../../../../app/di/injection_container.dart';
 import '../../../../core/services/document_picker_service.dart';
 import '../../../../core/services/image_picker_service.dart';
 import '../../../../core/services/picked_file.dart';
+import '../../../../shared/widgets/photo_source_sheet.dart';
 import '../../../bottom_nav/bottom_navbar.dart';
 import '../../../category/domain/entities/category.dart';
 import '../../../category/presentation/bloc/categories_bloc.dart';
 import '../../../category/presentation/pages/category_page.dart';
+import '../../../media_preview/domain/entities/media_complete_data.dart';
+import '../../../media_preview/domain/enums/media_upload_purpose.dart';
+import '../../../media_preview/presentation/pages/media_preview_page.dart';
+import '../../../media_preview/presentation/pages/media_upload_page.dart';
 import '../../../specialization/domain/entities/specialization.dart';
 import '../../../specialization/presentation/bloc/specializations_bloc.dart';
 import '../../../specialization/presentation/pages/specialization_page.dart';
@@ -60,6 +68,10 @@ class _CreateAccountPageState extends State<CreateAccountPage> {
   String? _country = _countries.first;
   PickedFile? _photo;
   PickedFile? _resume;
+
+  /// Finalized file ids, for when the profile is saved.
+  String? _photoFileId;
+  String? _resumeFileId;
 
   bool get _isDone => _step > _totalSteps;
 
@@ -163,13 +175,90 @@ class _CreateAccountPageState extends State<CreateAccountPage> {
   }
 
   Future<void> _pickPhoto() async {
-    final photo = await _pick(_imagePicker.pickPhoto);
-    if (photo != null) setState(() => _photo = photo);
+    FocusScope.of(context).unfocus();
+    final current = _photo;
+    final action = await showPhotoSourceSheet(
+      context,
+      photo: current == null ? null : FileImage(File(current.path)),
+      initials: _initials,
+      canRemove: current != null,
+    );
+    if (action == null || !mounted) return;
+
+    final source = switch (action) {
+      PhotoSheetAction.camera => ImageSource.camera,
+      PhotoSheetAction.gallery => ImageSource.gallery,
+      PhotoSheetAction.remove => null,
+    };
+    if (source == null) {
+      setState(() {
+        _photo = null;
+        _photoFileId = null;
+      });
+      return;
+    }
+    final photo = await _pickAndPreview(
+      () => _imagePicker.pickPhoto(source),
+      purpose: MediaUploadPurpose.profilePhoto,
+      pickAgainLabel: source == ImageSource.camera ? 'Retake' : 'Change',
+    );
+    if (photo == null) return;
+    setState(() {
+      _photo = photo.file;
+      _photoFileId = photo.fileId;
+    });
   }
 
   Future<void> _pickResume() async {
-    final resume = await _pick(_documentPicker.pickResume);
-    if (resume != null) setState(() => _resume = resume);
+    final resume = await _pickAndPreview(
+      _documentPicker.pickResume,
+      purpose: MediaUploadPurpose.resume,
+    );
+    if (resume == null) return;
+    setState(() {
+      _resume = resume.file;
+      _resumeFileId = resume.fileId;
+    });
+  }
+
+  /// Picks a file, previews it, then uploads it. Picking again runs [picker]
+  /// once more. Null if the user cancels.
+  Future<({PickedFile file, String fileId})?> _pickAndPreview(
+    Future<PickedFile?> Function() picker, {
+    required MediaUploadPurpose purpose,
+    String pickAgainLabel = 'Change',
+  }) async {
+    final name = '${_firstName.text.trim()} ${_lastName.text.trim()}'.trim();
+    final title = _title.text.trim();
+
+    while (mounted) {
+      final file = await _pick(picker);
+      if (file == null || !mounted) return null;
+
+      final result = await Navigator.of(context).push<MediaPreviewResult>(
+        MaterialPageRoute(
+          builder: (_) => MediaPreviewPage(
+            file: file,
+            pickAgainLabel: pickAgainLabel,
+            name: name.isEmpty ? null : name,
+            subtitle: title.isEmpty ? null : title,
+          ),
+        ),
+      );
+      if (result == null) return null;
+
+      final selected = result.file;
+      if (selected == null || !mounted) continue;
+
+      final uploaded = await Navigator.of(context).push<MediaCompleteData>(
+        MaterialPageRoute(
+          builder: (_) => MediaUploadPage(file: selected, purpose: purpose),
+        ),
+      );
+      if (uploaded == null) return null;
+      return (file: selected, fileId: uploaded.fileId);
+    }
+    return null;
   }
 
   /// Runs [picker] and shows why a file was rejected. Null if none was chosen.
