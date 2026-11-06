@@ -74,7 +74,7 @@ void main() {
 
     await api.post<Object?>(
       'jobs',
-      data: {'a': 1},
+      body: {'a': 1},
       queryParameters: {'q': 'x'},
     );
 

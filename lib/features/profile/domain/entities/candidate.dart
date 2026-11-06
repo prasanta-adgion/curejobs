@@ -1,6 +1,5 @@
 import 'package:equatable/equatable.dart';
 
-/// The signed-in candidate's own profile, as the app uses it.
 class Candidate extends Equatable {
   final String id;
   final String firstName;
@@ -10,15 +9,19 @@ class Candidate extends Equatable {
   final String? profilePhotoFileId;
   final String? primaryCategoryId;
   final String? primarySpecializationId;
+
+  final String? area;
   final String? address;
   final String? city;
   final String? state;
   final String? country;
   final String? postalCode;
 
-  /// From 0 to 100.
   final int profileCompletionPercent;
   final CandidateVerification verification;
+
+  final DateTime? createdAt;
+  final DateTime? updatedAt;
 
   const Candidate({
     required this.id,
@@ -29,6 +32,7 @@ class Candidate extends Equatable {
     this.profilePhotoFileId,
     this.primaryCategoryId,
     this.primarySpecializationId,
+    this.area,
     this.address,
     this.city,
     this.state,
@@ -36,6 +40,8 @@ class Candidate extends Equatable {
     this.postalCode,
     this.profileCompletionPercent = 0,
     this.verification = const CandidateVerification(),
+    this.createdAt,
+    this.updatedAt,
   });
 
   String get fullName => [
@@ -43,16 +49,16 @@ class Candidate extends Equatable {
     lastName,
   ].map((part) => part.trim()).where((part) => part.isNotEmpty).join(' ');
 
-  /// Up to two letters: first letter of the first and last name.
   String get initials {
     final letters = [firstName, lastName]
         .map((part) => part.trim())
         .where((part) => part.isNotEmpty)
-        .map((part) => part[0].toUpperCase());
+        .map((part) => part[0].toUpperCase())
+        .take(2);
+
     return letters.isEmpty ? '?' : letters.join();
   }
 
-  /// "Kolkata, West Bengal", or whichever parts are known.
   String? get location {
     final parts = [city, state]
         .whereType<String>()
@@ -60,6 +66,7 @@ class Candidate extends Equatable {
         .where((part) => part.isNotEmpty)
         .map(_capitalise)
         .toList();
+
     return parts.isEmpty ? null : parts.join(', ');
   }
 
@@ -83,6 +90,7 @@ class Candidate extends Equatable {
     profilePhotoFileId,
     primaryCategoryId,
     primarySpecializationId,
+    area,
     address,
     city,
     state,
@@ -90,31 +98,39 @@ class Candidate extends Equatable {
     postalCode,
     profileCompletionPercent,
     verification,
+    createdAt,
+    updatedAt,
   ];
 }
 
 enum DocumentStatus { notSubmitted, pending, approved, rejected }
 
-/// Document review result and the verified badge it earns.
 class CandidateVerification extends Equatable {
   final DocumentStatus documentStatus;
   final bool badgeActive;
   final String? badgeSource;
+  final String? badgeKind;
+  final String? badgeCollegeName;
   final DateTime? badgeExpiresAt;
 
   const CandidateVerification({
     this.documentStatus = DocumentStatus.notSubmitted,
     this.badgeActive = false,
     this.badgeSource,
+    this.badgeKind,
+    this.badgeCollegeName,
     this.badgeExpiresAt,
   });
 
-  /// Show the verified badge only while it is active and not expired.
+  bool get isDocumentApproved => documentStatus == DocumentStatus.approved;
+
   bool isVerifiedAt(DateTime now) {
-    if (!badgeActive || documentStatus != DocumentStatus.approved) {
+    if (!badgeActive || !isDocumentApproved) {
       return false;
     }
+
     final expiresAt = badgeExpiresAt;
+
     return expiresAt == null || expiresAt.isAfter(now);
   }
 
@@ -123,6 +139,8 @@ class CandidateVerification extends Equatable {
     documentStatus,
     badgeActive,
     badgeSource,
+    badgeKind,
+    badgeCollegeName,
     badgeExpiresAt,
   ];
 }

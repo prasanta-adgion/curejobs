@@ -21,8 +21,6 @@ class CropImageResult {
   final PickedFile? file;
 }
 
-/// Two steps: place the photo in the round frame, then confirm the result.
-/// Pops with a [CropImageResult], or null if cancelled.
 class CropImagePage extends StatefulWidget {
   const CropImagePage({
     super.key,

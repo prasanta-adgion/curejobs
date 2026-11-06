@@ -83,7 +83,7 @@ class AboutYouStep extends StatelessWidget {
             children: [
               LabeledTextField(
                 label: 'First name',
-                hint: 'Riya',
+                hint: 'Enter first name',
                 controller: firstName,
                 isRequired: true,
                 validator: (value) => _required(value, 'Enter your first name'),
@@ -91,7 +91,7 @@ class AboutYouStep extends StatelessWidget {
               const SizedBox(height: 14),
               LabeledTextField(
                 label: 'Last name',
-                hint: 'Sen',
+                hint: 'Enter last name',
                 controller: lastName,
                 isRequired: true,
                 validator: (value) => _required(value, 'Enter your last name'),

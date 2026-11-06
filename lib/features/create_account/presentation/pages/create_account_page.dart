@@ -14,10 +14,8 @@ import '../../../bottom_nav/bottom_navbar.dart';
 import '../../../category/domain/entities/category.dart';
 import '../../../category/presentation/bloc/categories_bloc.dart';
 import '../../../category/presentation/pages/category_page.dart';
-import '../../../media_preview/domain/entities/media_complete_data.dart';
 import '../../../media_preview/domain/enums/media_upload_purpose.dart';
-import '../../../media_preview/presentation/pages/media_preview_page.dart';
-import '../../../media_preview/presentation/pages/media_upload_page.dart';
+import '../../../media_preview/presentation/pick_and_upload_media.dart';
 import '../../../specialization/domain/entities/specialization.dart';
 import '../../../specialization/presentation/bloc/specializations_bloc.dart';
 import '../../../specialization/presentation/pages/specialization_page.dart';
@@ -221,58 +219,22 @@ class _CreateAccountPageState extends State<CreateAccountPage> {
     });
   }
 
-  /// Picks a file, previews it, then uploads it. Picking again runs [picker]
-  /// once more. Null if the user cancels.
   Future<({PickedFile file, String fileId})?> _pickAndPreview(
     Future<PickedFile?> Function() picker, {
     required MediaUploadPurpose purpose,
     String pickAgainLabel = 'Change',
-  }) async {
+  }) {
     final name = '${_firstName.text.trim()} ${_lastName.text.trim()}'.trim();
     final title = _title.text.trim();
 
-    while (mounted) {
-      final file = await _pick(picker);
-      if (file == null || !mounted) return null;
-
-      final result = await Navigator.of(context).push<MediaPreviewResult>(
-        MaterialPageRoute(
-          builder: (_) => MediaPreviewPage(
-            file: file,
-            pickAgainLabel: pickAgainLabel,
-            name: name.isEmpty ? null : name,
-            subtitle: title.isEmpty ? null : title,
-          ),
-        ),
-      );
-      if (result == null) return null;
-
-      final selected = result.file;
-      if (selected == null || !mounted) continue;
-
-      final uploaded = await Navigator.of(context).push<MediaCompleteData>(
-        MaterialPageRoute(
-          builder: (_) => MediaUploadPage(file: selected, purpose: purpose),
-        ),
-      );
-      if (uploaded == null) return null;
-      return (file: selected, fileId: uploaded.fileId);
-    }
-    return null;
-  }
-
-  /// Runs [picker] and shows why a file was rejected. Null if none was chosen.
-  Future<PickedFile?> _pick(Future<PickedFile?> Function() picker) async {
-    try {
-      final file = await picker();
-      return mounted ? file : null;
-    } on PickedFileException catch (error) {
-      if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(error.message)));
-      }
-      return null;
-    }
+    return pickAndUploadMedia(
+      context,
+      picker,
+      purpose: purpose,
+      pickAgainLabel: pickAgainLabel,
+      name: name.isEmpty ? null : name,
+      subtitle: title.isEmpty ? null : title,
+    );
   }
 
   @override

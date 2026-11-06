@@ -16,14 +16,14 @@ class MediaPreviewResult {
   const MediaPreviewResult.selected(PickedFile this.file);
   const MediaPreviewResult.pickAgain() : file = null;
 
-  /// The file to use, or null if the user wants to pick another.
+  /// The file to upload, or null if the user wants to pick another.
   final PickedFile? file;
 }
 
-/// Shows the file the user just picked. Images go on to the crop screen;
-/// documents can be used as they are. Pops with a [MediaPreviewResult], or
+/// Shows the file the user just picked. Images can be cropped first, and the
+/// preview then shows the cropped photo. Pops with a [MediaPreviewResult], or
 /// null if cancelled.
-class MediaPreviewPage extends StatelessWidget {
+class MediaPreviewPage extends StatefulWidget {
   const MediaPreviewPage({
     super.key,
     required this.file,
@@ -39,33 +39,45 @@ class MediaPreviewPage extends StatelessWidget {
   final String? name;
   final String? subtitle;
 
-  Future<void> _crop(BuildContext context) async {
+  @override
+  State<MediaPreviewPage> createState() => _MediaPreviewPageState();
+}
+
+class _MediaPreviewPageState extends State<MediaPreviewPage> {
+  /// The picked file, or its cropped version.
+  late final _file = ValueNotifier<PickedFile>(widget.file);
+
+  @override
+  void dispose() {
+    _file.dispose();
+    super.dispose();
+  }
+
+  Future<void> _crop() async {
     final navigator = Navigator.of(context);
     final result = await navigator.push<CropImageResult>(
       MaterialPageRoute(
         builder: (_) => CropImagePage(
-          path: file.path,
-          retakeLabel: pickAgainLabel,
-          name: name,
-          subtitle: subtitle,
+          path: _file.value.path,
+          retakeLabel: widget.pickAgainLabel,
+          name: widget.name,
+          subtitle: widget.subtitle,
         ),
       ),
     );
-    // Cancelling the crop comes back to this preview.
-    if (result == null || !context.mounted) return;
+    // Cancelling the crop keeps the current preview.
+    if (result == null || !mounted) return;
 
     final cropped = result.file;
-    navigator.pop(
-      cropped == null
-          ? const MediaPreviewResult.pickAgain()
-          : MediaPreviewResult.selected(cropped),
-    );
+    if (cropped == null) {
+      navigator.pop(const MediaPreviewResult.pickAgain());
+    } else {
+      _file.value = cropped;
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final type = MediaFileType.of(file);
-    final isImage = type == MediaFileType.image;
     final navigator = Navigator.of(context);
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
@@ -73,30 +85,57 @@ class MediaPreviewPage extends StatelessWidget {
       child: Scaffold(
         backgroundColor: AppColors.darkBackground,
         body: SafeArea(
-          child: Column(
-            children: [
-              CropTopBar(
-                title: 'Preview',
-                subtitle: type.label,
-                icon: Icons.close_rounded,
-                tooltip: 'Cancel',
-                onLeading: navigator.pop,
-              ),
-              Expanded(
-                child: isImage
-                    ? ImagePreview(file: File(file.path))
-                    : DocumentPreview(file: file, type: type),
-              ),
-              CropActions(
-                secondaryLabel: pickAgainLabel,
-                primaryLabel: isImage ? 'Crop image' : 'Use this file',
-                onSecondary: () =>
-                    navigator.pop(const MediaPreviewResult.pickAgain()),
-                onPrimary: isImage
-                    ? () => _crop(context)
-                    : () => navigator.pop(MediaPreviewResult.selected(file)),
-              ),
-            ],
+          child: ValueListenableBuilder<PickedFile>(
+            valueListenable: _file,
+            builder: (context, file, _) {
+              final type = MediaFileType.of(file);
+              final isImage = type == MediaFileType.image;
+
+              return Column(
+                children: [
+                  CropTopBar(
+                    title: 'Preview',
+                    subtitle: type.label,
+                    icon: Icons.close_rounded,
+                    tooltip: 'Cancel',
+                    onLeading: navigator.pop,
+                  ),
+                  Expanded(
+                    child: isImage
+                        ? ImagePreview(file: File(file.path))
+                        : DocumentPreview(file: file, type: type),
+                  ),
+                  if (isImage)
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+                      child: OutlinedButton.icon(
+                        onPressed: _crop,
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: AppColors.darkTextPrimary,
+                          minimumSize: const Size.fromHeight(48),
+                          side: const BorderSide(
+                            color: AppColors.darkInputBorder,
+                          ),
+                        ),
+                        icon: const Icon(
+                          Icons.crop_rounded,
+                          size: 18,
+                          color: AppColors.darkPrimary,
+                        ),
+                        label: const Text('Crop image'),
+                      ),
+                    ),
+                  CropActions(
+                    secondaryLabel: widget.pickAgainLabel,
+                    primaryLabel: 'Upload',
+                    onSecondary: () =>
+                        navigator.pop(const MediaPreviewResult.pickAgain()),
+                    onPrimary: () =>
+                        navigator.pop(MediaPreviewResult.selected(file)),
+                  ),
+                ],
+              );
+            },
           ),
         ),
       ),

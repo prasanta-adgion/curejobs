@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../app/theme/app_colors.dart';
 
-/// Initials avatar wrapped in a profile-completion ring, with a percent tag
+/// Photo or initials avatar wrapped in a profile-completion ring, with a percent tag
 /// on the bottom edge. At 100% the ring closes and the tag becomes a green
 /// tick. Designed for the navy headers, so colours are fixed.
 class CompletionAvatar extends StatelessWidget {
@@ -12,6 +12,7 @@ class CompletionAvatar extends StatelessWidget {
     super.key,
     required this.initials,
     required this.percent,
+    this.photoUrl,
     this.size = 52,
     this.longLabel = false,
     this.onTap,
@@ -20,6 +21,10 @@ class CompletionAvatar extends StatelessWidget {
 
   /// Null while the profile is loading; shows a person icon.
   final String? initials;
+
+  /// Shown over the initials, which remain while it loads, if it is null,
+  /// or if it fails.
+  final String? photoUrl;
 
   /// 0 to 100, or null while loading (draws an empty ring, no tag).
   final int? percent;
@@ -62,6 +67,24 @@ class CompletionAvatar extends StatelessWidget {
         ? 'Your profile'
         : 'Your profile, $value percent complete';
 
+    final Widget fallback = initials == null
+        ? Icon(
+            Icons.person_outline_rounded,
+            size: inner * 0.45,
+            color: AppColors.primaryLight,
+          )
+        : Text(
+            initials!,
+            style:
+                (size >= 70
+                        ? theme.textTheme.titleLarge
+                        : theme.textTheme.labelLarge)
+                    ?.copyWith(
+                      color: AppColors.primaryLight,
+                      fontWeight: FontWeight.w600,
+                    ),
+          );
+
     return Semantics(
       button: onTap != null,
       label: semantics,
@@ -87,26 +110,21 @@ class CompletionAvatar extends StatelessWidget {
                 width: inner,
                 height: inner,
                 alignment: Alignment.center,
+                clipBehavior: Clip.antiAlias,
                 decoration: const BoxDecoration(
                   shape: BoxShape.circle,
                   color: AppColors.darkPrimaryContainer,
                 ),
-                child: initials == null
-                    ? Icon(
-                        Icons.person_outline_rounded,
-                        size: inner * 0.45,
-                        color: AppColors.primaryLight,
-                      )
-                    : Text(
-                        initials!,
-                        style:
-                            (size >= 70
-                                    ? theme.textTheme.titleLarge
-                                    : theme.textTheme.labelLarge)
-                                ?.copyWith(
-                                  color: AppColors.primaryLight,
-                                  fontWeight: FontWeight.w600,
-                                ),
+                child: photoUrl == null
+                    ? fallback
+                    : Image.network(
+                        photoUrl!,
+                        width: inner,
+                        height: inner,
+                        fit: BoxFit.cover,
+                        frameBuilder: (context, child, frame, wasSync) =>
+                            wasSync || frame != null ? child : fallback,
+                        errorBuilder: (context, error, stackTrace) => fallback,
                       ),
               ),
               if (value != null && !complete)
