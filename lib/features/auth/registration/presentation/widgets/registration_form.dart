@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../../app/theme/app_colors.dart';
+import '../../../../../app/theme/app_radius.dart';
 import '../../../../../core/utils/input_validators.dart';
 import '../bloc/registration_bloc.dart';
 
@@ -57,6 +58,8 @@ class _RegistrationFormState extends State<RegistrationForm> {
   Widget _buildForm(BuildContext context, RegistrationState state) {
     final scheme = Theme.of(context).colorScheme;
     final loading = state.isLoading;
+    final passwordsMatch =
+        _confirm.text.isNotEmpty && _confirm.text == _password.text;
 
     return Form(
       key: _formKey,
@@ -125,14 +128,32 @@ class _RegistrationFormState extends State<RegistrationForm> {
               decoration: InputDecoration(
                 hintText: 'Re-enter password',
                 prefixIcon: const Icon(Icons.lock_outline),
-                suffixIcon: _VisibilityToggle(
-                  obscured: _obscureConfirm,
-                  onPressed: () =>
-                      setState(() => _obscureConfirm = !_obscureConfirm),
+                enabledBorder: passwordsMatch
+                    ? OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(AppRadius.medium),
+                        borderSide: const BorderSide(color: AppColors.success),
+                      )
+                    : null,
+                suffixIcon: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (passwordsMatch)
+                      const Icon(
+                        Icons.check_circle,
+                        color: AppColors.success,
+                        semanticLabel: 'Passwords match',
+                      ),
+                    _VisibilityToggle(
+                      obscured: _obscureConfirm,
+                      onPressed: () =>
+                          setState(() => _obscureConfirm = !_obscureConfirm),
+                    ),
+                  ],
                 ),
               ),
               validator: (value) =>
                   InputValidators.confirmPassword(value, _password.text),
+              onChanged: (_) => setState(() {}),
               onFieldSubmitted: (_) => _submit(),
             ),
             if (state.errorMessage != null) ...[

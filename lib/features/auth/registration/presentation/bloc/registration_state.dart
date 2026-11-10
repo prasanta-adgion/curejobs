@@ -13,12 +13,17 @@ class RegistrationState extends Equatable {
   final String? emailError;
   final String? passwordError;
 
+  /// Set only on success, so the next step can sign the user in. Memory
+  /// only; never logged (excluded from [props] and so from toString).
+  final String? password;
+
   const RegistrationState({
     this.status = RegistrationStatus.initial,
     this.result,
     this.errorMessage,
     this.emailError,
     this.passwordError,
+    this.password,
   });
 
   bool get isLoading => status == RegistrationStatus.loading;

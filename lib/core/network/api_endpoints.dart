@@ -4,6 +4,7 @@ class ApiEndpoints {
   static const String login = 'api/v1/auth/login';
   static const String register = 'api/v1/auth/register';
   static const String verifyOtp = 'api/v1/auth/email/verify';
+  static const String resendVerificationCode = 'api/v1/auth/email/resend';
 
   static const String refresh = 'api/v1/auth/refresh';
   static const String candidateProfile = 'api/v1/candidates/me';

@@ -30,7 +30,12 @@ class RegistrationBloc extends Bloc<RegistrationEvent, RegistrationState> {
 
     result.fold(
       (value) => emit(
-        RegistrationState(status: RegistrationStatus.success, result: value),
+        RegistrationState(
+          status: RegistrationStatus.success,
+          result: value,
+          // Needed to sign in after email verification.
+          password: event.password,
+        ),
       ),
       (failure) => emit(_fromFailure(failure)),
     );
