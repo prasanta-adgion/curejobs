@@ -2,7 +2,8 @@
 ///
 /// Tolerant by design: it accepts `message` / `error` / `detail` for
 /// the message and `errors` as either `{field: [msg]}`, `{field: msg}`
-/// or `[{field, message}]`. Anything else is ignored.
+/// or `[{field, message}]`, falling back to `details` as `["field msg"]`.
+/// Anything else is ignored.
 final class ApiErrorBody {
   final String? message;
   final Map<String, List<String>> fieldErrors;
@@ -16,10 +17,33 @@ final class ApiErrorBody {
       return empty;
     }
 
+    final fieldErrors = _fieldErrors(data['errors']);
+
     return ApiErrorBody(
       message: _message(data),
-      fieldErrors: _fieldErrors(data['errors']),
+      fieldErrors: fieldErrors.isNotEmpty
+          ? fieldErrors
+          : _detailErrors(data['details']),
     );
+  }
+
+  /// Reads `details: ["email must be an email"]`, keying each message by its
+  /// first word (the field name, as class-validator writes it).
+  static Map<String, List<String>> _detailErrors(Object? details) {
+    if (details is! List) {
+      return const {};
+    }
+
+    final result = <String, List<String>>{};
+
+    for (final item in details.whereType<String>()) {
+      final text = item.trim();
+      final space = text.indexOf(' ');
+      if (space <= 0) continue;
+      (result[text.substring(0, space)] ??= []).add(text);
+    }
+
+    return result;
   }
 
   static String? _message(Map<dynamic, dynamic> data) {

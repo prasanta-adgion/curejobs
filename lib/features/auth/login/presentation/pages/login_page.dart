@@ -27,7 +27,7 @@ class LoginPage extends StatelessWidget {
           onCreateAccount: () {
             Navigator.push(
               context,
-              MaterialPageRoute(builder: ((context) => RegistrationPage())),
+              MaterialPageRoute(builder: (_) => const RegistrationPage()),
             );
           },
         ),

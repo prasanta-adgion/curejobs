@@ -44,6 +44,9 @@ dependencies:
   image_picker: ^1.2.4
   file_picker: ^13.3.2
   image_cropper: ^13.0.0
+  # 7.x is built on the standalone material_ui package and asserts for its
+  # own Material ancestor, which this app's Scaffold/Card don't provide.
+  pinput: ^6.0.2
 
 dev_dependencies:
   flutter_test:

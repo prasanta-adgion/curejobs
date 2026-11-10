@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../../app/theme/app_colors.dart';
+import '../../../../../app/theme/app_radius.dart';
 import '../../../../../core/utils/input_validators.dart';
+import '../bloc/registration_bloc.dart';
 
-/// Email, password and confirm password form. Validates locally, then calls
-/// [onSubmit]. UI only: no networking yet.
+/// Email, password and confirm password form. Validates locally, then hands
+/// off to [RegistrationBloc].
 class RegistrationForm extends StatefulWidget {
-  const RegistrationForm({super.key, this.onSubmit, this.isLoading = false});
-
-  final void Function(String email, String password)? onSubmit;
-  final bool isLoading;
+  const RegistrationForm({super.key});
 
   @override
   State<RegistrationForm> createState() => _RegistrationFormState();
@@ -39,13 +39,27 @@ class _RegistrationFormState extends State<RegistrationForm> {
   void _submit() {
     FocusScope.of(context).unfocus();
     if (!(_formKey.currentState?.validate() ?? false)) return;
-    widget.onSubmit?.call(_email.text.trim(), _password.text);
+    context.read<RegistrationBloc>().add(
+      RegistrationSubmitted(email: _email.text, password: _password.text),
+    );
+  }
+
+  void _clearServerErrors() {
+    context.read<RegistrationBloc>().add(const RegistrationErrorsCleared());
   }
 
   @override
   Widget build(BuildContext context) {
+    return BlocBuilder<RegistrationBloc, RegistrationState>(
+      builder: (context, state) => _buildForm(context, state),
+    );
+  }
+
+  Widget _buildForm(BuildContext context, RegistrationState state) {
     final scheme = Theme.of(context).colorScheme;
-    final loading = widget.isLoading;
+    final loading = state.isLoading;
+    final passwordsMatch =
+        _confirm.text.isNotEmpty && _confirm.text == _password.text;
 
     return Form(
       key: _formKey,
@@ -65,11 +79,13 @@ class _RegistrationFormState extends State<RegistrationForm> {
               inputFormatters: [
                 FilteringTextInputFormatter.deny(RegExp(r'\s')),
               ],
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 hintText: 'name@example.com',
-                prefixIcon: Icon(Icons.mail_outline),
+                prefixIcon: const Icon(Icons.mail_outline),
+                errorText: state.emailError,
               ),
               validator: InputValidators.email,
+              onChanged: (_) => _clearServerErrors(),
               onFieldSubmitted: (_) => _passwordFocus.requestFocus(),
             ),
             const SizedBox(height: 16),
@@ -84,6 +100,7 @@ class _RegistrationFormState extends State<RegistrationForm> {
               decoration: InputDecoration(
                 hintText: 'Enter password',
                 prefixIcon: const Icon(Icons.lock_outline),
+                errorText: state.passwordError,
                 suffixIcon: _VisibilityToggle(
                   obscured: _obscurePassword,
                   onPressed: () =>
@@ -91,7 +108,10 @@ class _RegistrationFormState extends State<RegistrationForm> {
                 ),
               ),
               validator: InputValidators.strongPassword,
-              onChanged: (_) => setState(() {}),
+              onChanged: (_) {
+                setState(() {});
+                _clearServerErrors();
+              },
               onFieldSubmitted: (_) => _confirmFocus.requestFocus(),
             ),
             const SizedBox(height: 8),
@@ -108,16 +128,38 @@ class _RegistrationFormState extends State<RegistrationForm> {
               decoration: InputDecoration(
                 hintText: 'Re-enter password',
                 prefixIcon: const Icon(Icons.lock_outline),
-                suffixIcon: _VisibilityToggle(
-                  obscured: _obscureConfirm,
-                  onPressed: () =>
-                      setState(() => _obscureConfirm = !_obscureConfirm),
+                enabledBorder: passwordsMatch
+                    ? OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(AppRadius.medium),
+                        borderSide: const BorderSide(color: AppColors.success),
+                      )
+                    : null,
+                suffixIcon: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (passwordsMatch)
+                      const Icon(
+                        Icons.check_circle,
+                        color: AppColors.success,
+                        semanticLabel: 'Passwords match',
+                      ),
+                    _VisibilityToggle(
+                      obscured: _obscureConfirm,
+                      onPressed: () =>
+                          setState(() => _obscureConfirm = !_obscureConfirm),
+                    ),
+                  ],
                 ),
               ),
               validator: (value) =>
                   InputValidators.confirmPassword(value, _password.text),
+              onChanged: (_) => setState(() {}),
               onFieldSubmitted: (_) => _submit(),
             ),
+            if (state.errorMessage != null) ...[
+              const SizedBox(height: 16),
+              _ErrorBanner(message: state.errorMessage!),
+            ],
             const SizedBox(height: 24),
             SizedBox(
               height: 54,
@@ -154,6 +196,40 @@ class _Label extends StatelessWidget {
         text,
         style: Theme.of(context).textTheme.labelLarge
             ?.copyWith(fontWeight: FontWeight.w600),
+      ),
+    );
+  }
+}
+
+class _ErrorBanner extends StatelessWidget {
+  const _ErrorBanner({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+
+    return Semantics(
+      liveRegion: true,
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: scheme.errorContainer,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.error_outline, color: scheme.onErrorContainer, size: 20),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                message,
+                style: TextStyle(color: scheme.onErrorContainer),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
