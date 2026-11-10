@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 
 import '../../../../core/widgets/app_snackbar.dart';
+
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:image_picker/image_picker.dart' show ImageSource;
@@ -215,6 +216,8 @@ class _CreateAccountPageState extends State<CreateAccountPage> {
           value: _specializationsBloc,
           child: SpecializationPage(
             categoryId: categoryId,
+            categoryName: _category.value?.name,
+            categorySlug: _category.value?.slug,
             selectedId: _specialization.value?.id,
           ),
         ),

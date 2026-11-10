@@ -46,7 +46,8 @@ class _DraggableInspectorButtonState extends State<_DraggableInspectorButton> {
     final screen = MediaQuery.sizeOf(context);
     final padding = MediaQuery.paddingOf(context);
     final position =
-        _position ?? Offset(screen.width - _size - 16, screen.height - _size - 96);
+        _position ??
+        Offset(screen.width - _size - 16, screen.height - _size - 96);
 
     return Positioned(
       left: position.dx,
@@ -59,7 +60,9 @@ class _DraggableInspectorButtonState extends State<_DraggableInspectorButton> {
             next.dy.clamp(padding.top, screen.height - _size - padding.bottom),
           );
         }),
-        child: NetworkLoggerButton(color: Theme.of(context).colorScheme.primary),
+        child: NetworkLoggerButton(
+          color: Theme.of(context).colorScheme.primary,
+        ),
       ),
     );
   }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/widgets/app_snackbar.dart';
+
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:image_picker/image_picker.dart' show ImageSource;
 
@@ -13,7 +14,9 @@ import '../bloc/candidate_profile_bloc.dart';
 import '../bloc/logout_bloc.dart';
 import '../models/candidate_profile.dart';
 import '../../edit_profile/presentation/pages/edit_profile_page.dart';
+import '../../sections/education/domain/entities/education.dart';
 import '../../sections/education/presentation/widgets/education_tab.dart';
+import '../../sections/experience/domain/entities/experience.dart';
 import '../../sections/experience/presentation/widgets/experience_tab.dart';
 import '../widgets/overview_tab.dart';
 import '../widgets/profile_header.dart';
@@ -48,9 +51,9 @@ class ProfilePage extends StatelessWidget {
   final VoidCallback? onEditAbout;
   final VoidCallback? onEditSkills;
   final VoidCallback? onAddExperience;
-  final ValueChanged<ProfileExperience>? onEditExperience;
+  final ValueChanged<Experience>? onEditExperience;
   final VoidCallback? onAddEducation;
-  final ValueChanged<ProfileEducation>? onEditEducation;
+  final ValueChanged<Education>? onEditEducation;
   final VoidCallback? onUploadCv;
   final VoidCallback? onViewCv;
   final VoidCallback? onAddCertificate;
@@ -70,7 +73,10 @@ class ProfilePage extends StatelessWidget {
     final saved = await Navigator.of(context).push<bool>(
       MaterialPageRoute(
         fullscreenDialog: true,
-        builder: (_) => EditProfilePage(candidate: candidate),
+        builder: (_) => EditProfilePage(
+          candidate: candidate,
+          photoUrl: bloc.state.photoUrl,
+        ),
       ),
     );
     if (saved ?? false) bloc.add(const CandidateProfileRequested());
@@ -178,15 +184,10 @@ class ProfilePage extends StatelessWidget {
                     onEditSkills: onEditSkills,
                   ),
                   ExperienceTab(
-                    experience: profile.experience,
                     onAdd: onAddExperience,
                     onEdit: onEditExperience,
                   ),
-                  EducationTab(
-                    education: profile.education,
-                    onAdd: onAddEducation,
-                    onEdit: onEditEducation,
-                  ),
+                  EducationTab(onAdd: onAddEducation, onEdit: onEditEducation),
                   ResumeTab(
                     profile: profile,
                     onUploadCv: onUploadCv,

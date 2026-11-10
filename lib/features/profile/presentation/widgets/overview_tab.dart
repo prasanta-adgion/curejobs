@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../models/candidate_profile.dart';
 import 'logout_section.dart';
+import 'my_applications_section.dart';
 import '../../shared/widgets/profile_section.dart';
 
 /// First tab: activity numbers, about, current role and skills.
@@ -26,11 +27,7 @@ class OverviewTab extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.only(bottom: 24),
       children: [
-        ProfileSection(
-          title: 'This month',
-          showDivider: false,
-          child: _Stats(stats: profile.stats),
-        ),
+        const MyApplicationsSection(counts: ApplicationCounts.sample),
         ProfileSection(
           title: 'About',
           action: SectionAction(
@@ -96,65 +93,6 @@ class OverviewTab extends StatelessWidget {
           ),
         ),
         const LogoutSection(),
-      ],
-    );
-  }
-}
-
-class _Stats extends StatelessWidget {
-  const _Stats({required this.stats});
-
-  final ProfileStats stats;
-
-  @override
-  Widget build(BuildContext context) {
-    final divider = Theme.of(context).colorScheme.outlineVariant;
-
-    return IntrinsicHeight(
-      child: Row(
-        children: [
-          Expanded(
-            child: _Stat(value: stats.views, label: 'Profile views'),
-          ),
-          VerticalDivider(width: 24, color: divider),
-          Expanded(
-            child: _Stat(value: stats.applied, label: 'Applied'),
-          ),
-          VerticalDivider(width: 24, color: divider),
-          Expanded(
-            child: _Stat(value: stats.shortlisted, label: 'Shortlisted'),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _Stat extends StatelessWidget {
-  const _Stat({required this.value, required this.label});
-
-  final int value;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          '$value',
-          style: theme.textTheme.headlineSmall?.copyWith(
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        Text(
-          label,
-          style: theme.textTheme.bodySmall?.copyWith(
-            color: theme.colorScheme.onSurfaceVariant,
-          ),
-        ),
       ],
     );
   }
