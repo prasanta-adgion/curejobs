@@ -1,20 +1,70 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../../app/di/injection_container.dart';
+import '../../domain/entities/registration_result.dart';
+import '../bloc/registration_bloc.dart';
 import '../widgets/registration_form.dart';
 import '../widgets/registration_header.dart';
 
-/// Email and password sign-up screen. UI only; navigation and submission are
-/// left to the caller.
+/// Email and password sign-up screen.
+///
+/// On success it calls [onRegistered]; without one it confirms with a
+/// snackbar and returns to the previous (sign-in) screen.
 class RegistrationPage extends StatelessWidget {
   const RegistrationPage({
     super.key,
-    this.onSubmit,
+    this.onRegistered,
     this.onBack,
     this.onTermsTap,
     this.onPrivacyTap,
   });
 
-  final void Function(String email, String password)? onSubmit;
+  final ValueChanged<RegistrationResult>? onRegistered;
+  final VoidCallback? onBack;
+  final VoidCallback? onTermsTap;
+  final VoidCallback? onPrivacyTap;
+
+  void _handleSuccess(BuildContext context, RegistrationResult result) {
+    if (onRegistered != null) {
+      onRegistered!(result);
+      return;
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          result.emailVerificationRequired
+              ? 'Account created. Check ${result.email} to verify your email.'
+              : 'Account created. You can now sign in.',
+        ),
+      ),
+    );
+    Navigator.maybePop(context);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocProvider(
+      create: (_) => sl<RegistrationBloc>(),
+      child: BlocListener<RegistrationBloc, RegistrationState>(
+        listenWhen: (prev, curr) =>
+            prev.status != curr.status &&
+            curr.status == RegistrationStatus.success,
+        listener: (context, state) => _handleSuccess(context, state.result!),
+        child: _RegistrationView(
+          onBack: onBack,
+          onTermsTap: onTermsTap,
+          onPrivacyTap: onPrivacyTap,
+        ),
+      ),
+    );
+  }
+}
+
+class _RegistrationView extends StatelessWidget {
+  const _RegistrationView({this.onBack, this.onTermsTap, this.onPrivacyTap});
+
   final VoidCallback? onBack;
   final VoidCallback? onTermsTap;
   final VoidCallback? onPrivacyTap;
@@ -55,7 +105,7 @@ class RegistrationPage extends StatelessWidget {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              RegistrationForm(onSubmit: onSubmit),
+                              const RegistrationForm(),
                               const SizedBox(height: 16),
                               Wrap(
                                 crossAxisAlignment: WrapCrossAlignment.center,

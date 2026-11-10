@@ -19,6 +19,8 @@ import '../../../media_preview/presentation/pick_and_upload_media.dart';
 import '../../../specialization/domain/entities/specialization.dart';
 import '../../../specialization/presentation/bloc/specializations_bloc.dart';
 import '../../../specialization/presentation/pages/specialization_page.dart';
+import '../../domain/entities/create_account_params.dart';
+import '../bloc/create_account_bloc.dart';
 import '../widgets/about_you_step.dart';
 import '../widgets/all_done_view.dart';
 import '../widgets/create_account_footer.dart';
@@ -39,7 +41,6 @@ class CreateAccountPage extends StatefulWidget {
 class _CreateAccountPageState extends State<CreateAccountPage> {
   static const _totalSteps = 3;
   static const _samplePercent = 70;
-  static const _countries = ['India'];
 
   final _nameFormKey = GlobalKey<FormState>();
   final _firstName = TextEditingController();
@@ -47,6 +48,7 @@ class _CreateAccountPageState extends State<CreateAccountPage> {
   final _title = TextEditingController();
   final _summary = TextEditingController();
   final _pinCode = TextEditingController();
+  final _country = TextEditingController(text: 'India');
   final _city = TextEditingController();
   final _state = TextEditingController();
   final _area = TextEditingController();
@@ -58,20 +60,19 @@ class _CreateAccountPageState extends State<CreateAccountPage> {
   final _categoriesBloc = sl<CategoriesBloc>()
     ..add(const CategoriesRequested());
   final _specializationsBloc = sl<SpecializationsBloc>();
+  final _createAccountBloc = sl<CreateAccountBloc>();
 
   /// 1 to 3 for the steps, 4 for the finish screen.
-  int _step = 1;
-  Category? _category;
-  Specialization? _specialization;
-  String? _country = _countries.first;
-  PickedFile? _photo;
-  PickedFile? _resume;
+  final _step = ValueNotifier<int>(1);
+  final _category = ValueNotifier<Category?>(null);
+  final _specialization = ValueNotifier<Specialization?>(null);
+  final _photo = ValueNotifier<PickedFile?>(null);
+  final _resume = ValueNotifier<PickedFile?>(null);
 
-  /// Finalized file ids, for when the profile is saved.
+  /// Finalized photo file id, sent when the profile is saved. Not shown.
   String? _photoFileId;
-  String? _resumeFileId;
 
-  bool get _isDone => _step > _totalSteps;
+  bool _isDone(int step) => step > _totalSteps;
 
   String? get _initials {
     final letters = [_firstName.text, _lastName.text]
@@ -98,26 +99,79 @@ class _CreateAccountPageState extends State<CreateAccountPage> {
       _title,
       _summary,
       _pinCode,
+      _country,
       _city,
       _state,
       _area,
     ]) {
       controller.dispose();
     }
+    for (final notifier in <ValueNotifier<Object?>>[
+      _step,
+      _category,
+      _specialization,
+      _photo,
+      _resume,
+    ]) {
+      notifier.dispose();
+    }
     _categoriesBloc.close();
     _specializationsBloc.close();
+    _createAccountBloc.close();
     super.dispose();
   }
 
   void _next() {
     FocusScope.of(context).unfocus();
-    if (_step == 1 && !_nameFormKey.currentState!.validate()) return;
-    setState(() => _step++);
+    final step = _step.value;
+    if (step == 1 && !_nameFormKey.currentState!.validate()) return;
+    if (step == _totalSteps) {
+      _createAccountBloc.add(CreateAccountSubmitted(_buildParams()));
+      return;
+    }
+    _step.value = step + 1;
+  }
+
+  CreateAccountParams _buildParams() {
+    return CreateAccountParams(
+      firstName: _firstName.text,
+      lastName: _lastName.text,
+      professionalTitle: _title.text,
+      professionalSummary: _summary.text,
+      profilePhotoFileId: _photoFileId,
+      primaryCategoryId: _category.value?.id,
+      primarySpecializationId: _specialization.value?.id,
+      area: _area.text,
+      city: _city.text,
+      state: _state.text,
+      country: _country.text,
+      postalCode: _pinCode.text,
+    );
+  }
+
+  void _onCreateAccountState(BuildContext context, CreateAccountState state) {
+    switch (state.status) {
+      case CreateAccountSubmitStatus.success:
+        _step.value = _totalSteps + 1;
+      case CreateAccountSubmitStatus.failure:
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
+            SnackBar(
+              content: Text(
+                state.failure?.message ?? "Couldn't save your profile.",
+              ),
+            ),
+          );
+      case CreateAccountSubmitStatus.initial:
+      case CreateAccountSubmitStatus.submitting:
+        break;
+    }
   }
 
   void _back() {
     FocusScope.of(context).unfocus();
-    setState(() => _step--);
+    _step.value--;
   }
 
   void _goToDashboard() {
@@ -132,26 +186,25 @@ class _CreateAccountPageState extends State<CreateAccountPage> {
     if (state.categories.isEmpty && !state.isLoading) {
       _categoriesBloc.add(const CategoriesRequested());
     }
+    final current = _category.value;
     final picked = await Navigator.of(context).push<Category>(
       MaterialPageRoute(
         builder: (_) => BlocProvider.value(
           value: _categoriesBloc,
-          child: CategoryPage(selectedId: _category?.id),
+          child: CategoryPage(selectedId: current?.id),
         ),
       ),
     );
-    if (picked == null || picked.id == _category?.id) return;
+    if (picked == null || picked.id == current?.id) return;
 
     _specializationsBloc.add(SpecializationsRequested(picked.id));
-    setState(() {
-      _category = picked;
-      // A specialization only makes sense within its category.
-      _specialization = null;
-    });
+    _category.value = picked;
+    // A specialization only makes sense within its category.
+    _specialization.value = null;
   }
 
   Future<void> _pickSpecialization() async {
-    final categoryId = _category?.id;
+    final categoryId = _category.value?.id;
     if (categoryId == null) return;
 
     final state = _specializationsBloc.state;
@@ -164,17 +217,17 @@ class _CreateAccountPageState extends State<CreateAccountPage> {
           value: _specializationsBloc,
           child: SpecializationPage(
             categoryId: categoryId,
-            selectedId: _specialization?.id,
+            selectedId: _specialization.value?.id,
           ),
         ),
       ),
     );
-    if (picked != null) setState(() => _specialization = picked);
+    if (picked != null) _specialization.value = picked;
   }
 
   Future<void> _pickPhoto() async {
     FocusScope.of(context).unfocus();
-    final current = _photo;
+    final current = _photo.value;
     final action = await showPhotoSourceSheet(
       context,
       photo: current == null ? null : FileImage(File(current.path)),
@@ -189,10 +242,8 @@ class _CreateAccountPageState extends State<CreateAccountPage> {
       PhotoSheetAction.remove => null,
     };
     if (source == null) {
-      setState(() {
-        _photo = null;
-        _photoFileId = null;
-      });
+      _photo.value = null;
+      _photoFileId = null;
       return;
     }
     final photo = await _pickAndPreview(
@@ -201,10 +252,8 @@ class _CreateAccountPageState extends State<CreateAccountPage> {
       pickAgainLabel: source == ImageSource.camera ? 'Retake' : 'Change',
     );
     if (photo == null) return;
-    setState(() {
-      _photo = photo.file;
-      _photoFileId = photo.fileId;
-    });
+    _photoFileId = photo.fileId;
+    _photo.value = photo.file;
   }
 
   Future<void> _pickResume() async {
@@ -212,11 +261,7 @@ class _CreateAccountPageState extends State<CreateAccountPage> {
       _documentPicker.pickResume,
       purpose: MediaUploadPurpose.resume,
     );
-    if (resume == null) return;
-    setState(() {
-      _resume = resume.file;
-      _resumeFileId = resume.fileId;
-    });
+    if (resume != null) _resume.value = resume.file;
   }
 
   Future<({PickedFile file, String fileId})?> _pickAndPreview(
@@ -239,72 +284,86 @@ class _CreateAccountPageState extends State<CreateAccountPage> {
 
   @override
   Widget build(BuildContext context) {
-    final title = _title.text.trim();
-
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.light,
-      child: PopScope(
-        canPop: _step == 1 || _isDone,
-        onPopInvokedWithResult: (didPop, _) {
-          if (!didPop) _back();
-        },
-        child: Scaffold(
-          body: Column(
-            children: [
-              if (_isDone)
-                AllDoneHeader(
-                  firstName: _firstName.text.trim(),
-                  initials: _initials,
-                  percent: _samplePercent,
-                  title: title.isEmpty ? null : title,
-                  location: _location,
-                )
-              else
-                _buildHeader(),
-              Expanded(child: _buildBody()),
-              _buildFooter(),
-            ],
+      child: BlocListener<CreateAccountBloc, CreateAccountState>(
+        bloc: _createAccountBloc,
+        listenWhen: (previous, current) => previous.status != current.status,
+        listener: _onCreateAccountState,
+        child: ValueListenableBuilder<int>(
+          valueListenable: _step,
+          builder: (context, step, _) => PopScope(
+            canPop: step == 1 || _isDone(step),
+            onPopInvokedWithResult: (didPop, _) {
+              if (!didPop) _back();
+            },
+            child: Scaffold(
+              body: Column(
+                children: [
+                  _buildHeader(step),
+                  Expanded(child: _buildBody(step)),
+                  _buildFooter(step),
+                ],
+              ),
+            ),
           ),
         ),
       ),
     );
   }
 
-  Widget _buildHeader() {
-    final (heading, subtitle) = switch (_step) {
+  Widget _buildHeader(int step) {
+    if (_isDone(step)) {
+      final title = _title.text.trim();
+      return AllDoneHeader(
+        firstName: _firstName.text.trim(),
+        initials: _initials,
+        percent: _samplePercent,
+        title: title.isEmpty ? null : title,
+        location: _location,
+      );
+    }
+
+    final (heading, subtitle) = switch (step) {
       1 => ('Tell us about you', 'This is what recruiters see first.'),
       2 => ('Your work', 'So we can match you with the right jobs.'),
       _ => ('Where are you based?', "We'll show you nearby jobs first."),
     };
 
     return CreateAccountHeader(
-      step: _step,
+      step: step,
       totalSteps: _totalSteps,
       title: heading,
       subtitle: subtitle,
-      onBack: _step > 1 ? _back : null,
+      onBack: step > 1 ? _back : null,
       onSkip: _goToDashboard,
     );
   }
 
-  Widget _buildBody() {
-    return switch (_step) {
+  Widget _buildBody(int step) {
+    return switch (step) {
       1 => Form(
         key: _nameFormKey,
-        child: AboutYouStep(
-          firstName: _firstName,
-          lastName: _lastName,
-          photoPath: _photo?.path,
-          onUploadPhoto: _pickPhoto,
+        child: ValueListenableBuilder<PickedFile?>(
+          valueListenable: _photo,
+          builder: (context, photo, _) => AboutYouStep(
+            firstName: _firstName,
+            lastName: _lastName,
+            photoPath: photo?.path,
+            onUploadPhoto: _pickPhoto,
+          ),
         ),
       ),
-      2 => YourWorkStep(
-        title: _title,
-        summary: _summary,
-        categoryName: _category?.name,
-        specializationName: _specialization?.name,
-        onPickCategory: _pickCategory,
-        onPickSpecialization: _pickSpecialization,
+      2 => ListenableBuilder(
+        listenable: Listenable.merge([_category, _specialization]),
+        builder: (context, _) => YourWorkStep(
+          title: _title,
+          summary: _summary,
+          categoryName: _category.value?.name,
+          specializationName: _specialization.value?.name,
+          onPickCategory: _pickCategory,
+          onPickSpecialization: _pickSpecialization,
+        ),
       ),
       3 => LocationStep(
         pinCode: _pinCode,
@@ -312,29 +371,41 @@ class _CreateAccountPageState extends State<CreateAccountPage> {
         state: _state,
         area: _area,
         country: _country,
-        countries: _countries,
-        onCountryChanged: (value) => setState(() => _country = value),
       ),
-      _ => AllDoneBody(
-        resumeName: _resume?.name,
-        onViewMatches: _goToDashboard,
-        onUploadResume: _pickResume,
+      _ => ValueListenableBuilder<PickedFile?>(
+        valueListenable: _resume,
+        builder: (context, resume, _) => AllDoneBody(
+          resumeName: resume?.name,
+          onViewMatches: _goToDashboard,
+          onUploadResume: _pickResume,
+        ),
       ),
     };
   }
 
-  Widget _buildFooter() {
-    if (_isDone) {
+  Widget _buildFooter(int step) {
+    if (_isDone(step)) {
       return CreateAccountFooter(
         label: 'Browse jobs',
         onPressed: _goToDashboard,
       );
     }
-    return CreateAccountFooter(
-      label: _step == _totalSteps ? 'Finish' : 'Continue',
-      onPressed: _next,
-      onBack: _step > 1 ? _back : null,
-      showArrow: _step == 1,
+    return BlocBuilder<CreateAccountBloc, CreateAccountState>(
+      bloc: _createAccountBloc,
+      buildWhen: (previous, current) =>
+          previous.isSubmitting != current.isSubmitting,
+      builder: (context, state) {
+        final isSaving = state.isSubmitting;
+        return CreateAccountFooter(
+          label: step == _totalSteps
+              ? (isSaving ? 'Saving…' : 'Finish')
+              : 'Continue',
+          // Null disables the buttons while saving.
+          onPressed: isSaving ? null : _next,
+          onBack: step > 1 && !isSaving ? _back : null,
+          showArrow: step == 1,
+        );
+      },
     );
   }
 }
