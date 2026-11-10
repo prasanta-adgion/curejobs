@@ -5,6 +5,7 @@ import '../constants/api_constants.dart';
 import 'interceptors/logging_interceptor.dart';
 import 'interceptors/retry_interceptor.dart';
 import 'interceptors/session_interceptor.dart';
+import 'network_inspector.dart';
 import 'session_manager.dart';
 
 class DioFactory {
@@ -49,6 +50,9 @@ class DioFactory {
     if (enableLogging) {
       dio.interceptors.add(LoggingInterceptor(logBodies: logBodies));
     }
+    if (NetworkInspector.isEnabled) {
+      dio.interceptors.add(NetworkInspector.interceptor());
+    }
 
     return dio;
   }
@@ -75,6 +79,8 @@ class DioFactory {
       ),
       RetryInterceptor(dio),
       if (enableLogging) LoggingInterceptor(logBodies: logBodies),
+      // In-app request/response viewer, dev and staging only.
+      if (NetworkInspector.isEnabled) NetworkInspector.interceptor(),
     ]);
 
     return dio;

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import '../../../../core/widgets/app_snackbar.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:image_picker/image_picker.dart' show ImageSource;
 
@@ -126,12 +128,9 @@ class ProfilePage extends StatelessWidget {
             case LogoutStatus.success:
               onLoggedOut?.call();
             case LogoutStatus.failure:
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(
-                    state.errorMessage ?? "Couldn't log out. Try again.",
-                  ),
-                ),
+              AppSnackbar.error(
+                title: "Couldn't log out",
+                message: state.errorMessage ?? 'Try again in a moment.',
               );
             case LogoutStatus.initial || LogoutStatus.loading:
               break;

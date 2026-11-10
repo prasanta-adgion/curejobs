@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import '../../../../../core/widgets/app_snackbar.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../../app/di/injection_container.dart';
@@ -49,8 +51,9 @@ class RegistrationPage extends StatelessWidget {
       return;
     }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Account created. You can now sign in.')),
+    AppSnackbar.success(
+      title: 'Account created',
+      message: 'You can now sign in.',
     );
     Navigator.maybePop(context);
   }

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import '../../../../../core/widgets/app_snackbar.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../../app/di/injection_container.dart';
@@ -38,8 +40,9 @@ class OtpVerificationPage extends StatelessWidget {
       return;
     }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Email verified. Sign in to continue.')),
+    AppSnackbar.success(
+      title: 'Email verified',
+      message: 'Sign in to continue.',
     );
     navigator.popUntil((route) => route.isFirst);
   }
@@ -60,11 +63,10 @@ class OtpVerificationPage extends StatelessWidget {
           BlocListener<OtpVerificationBloc, OtpVerificationState>(
             listenWhen: (prev, curr) => curr.codesSent > prev.codesSent,
             listener: (context, state) {
-              ScaffoldMessenger.of(context)
-                ..hideCurrentSnackBar()
-                ..showSnackBar(
-                  SnackBar(content: Text('New code sent to ${state.email}')),
-                );
+              AppSnackbar.info(
+                title: 'New code sent',
+                message: 'Check ${state.email} for the verification code.',
+              );
             },
           ),
         ],

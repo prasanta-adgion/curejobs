@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import '../core/widgets/app_snackbar.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../app/theme/theme_cubit.dart';
@@ -10,11 +12,7 @@ class AppearancePage extends StatelessWidget {
     try {
       await context.read<ThemeCubit>().changeTheme(mode);
     } catch (_) {
-      if (!context.mounted) return;
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Could not save appearance preference.')),
-      );
+      AppSnackbar.error(title: "Couldn't save your appearance choice");
     }
   }
 

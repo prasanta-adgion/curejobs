@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../app/theme/app_colors.dart';
 import '../../app/theme/theme_cubit.dart';
+import '../../core/widgets/app_snackbar.dart';
 
 /// Square icon button that opens a small menu to pick System, Light or Dark.
 /// The icon shows the current choice. Drop it into any header or toolbar.
@@ -28,10 +29,7 @@ class ThemeModeButton extends StatelessWidget {
     try {
       await context.read<ThemeCubit>().changeTheme(mode);
     } catch (_) {
-      if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Couldn't save your appearance choice.")),
-      );
+      AppSnackbar.error(title: "Couldn't save your appearance choice");
     }
   }
 

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import '../../../../../core/widgets/app_snackbar.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../../app/di/injection_container.dart';
@@ -177,9 +179,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
     if (!(_formKey.currentState?.validate() ?? false)) return;
     final onSave = widget.onSave;
     if (onSave == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Saving isn't available yet.")),
-      );
+      AppSnackbar.info(title: "Saving isn't available yet");
       return;
     }
 
@@ -191,8 +191,11 @@ class _EditProfilePageState extends State<EditProfilePage> {
       Navigator.of(context).pop(true);
     } catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Couldn't save your profile. Try again.")),
+      AppSnackbar.error(
+        title: "Couldn't save your profile",
+        message: 'Check your connection and try again.',
+        actionLabel: 'Retry',
+        onAction: _save,
       );
     } finally {
       if (mounted) _isSaving.value = false;
