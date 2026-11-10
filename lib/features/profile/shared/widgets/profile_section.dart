@@ -47,7 +47,7 @@ class ProfileSection extends StatelessWidget {
                     child: Text(
                       title.toUpperCase(),
                       style: theme.textTheme.labelSmall?.copyWith(
-                        color: scheme.outline,
+                        color: scheme.onSurfaceVariant,
                         fontWeight: FontWeight.w600,
                         letterSpacing: 0.8,
                       ),
@@ -81,15 +81,23 @@ class SectionAction extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return TextButton.icon(
       onPressed: onPressed,
       style: TextButton.styleFrom(
+        backgroundColor: theme.primaryColor,
         padding: const EdgeInsets.symmetric(horizontal: 8),
         minimumSize: const Size(0, 32),
         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
       ),
-      icon: Icon(icon, size: 16),
-      label: Text(label),
+      icon: Icon(icon, size: 16, color: theme.colorScheme.onPrimary),
+      label: Text(
+        label,
+        style: theme.textTheme.labelSmall?.copyWith(
+          color: theme.colorScheme.onPrimary,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
     );
   }
 }

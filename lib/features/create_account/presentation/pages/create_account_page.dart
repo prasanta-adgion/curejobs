@@ -1,6 +1,9 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+
+import '../../../../core/widgets/app_snackbar.dart';
+
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:image_picker/image_picker.dart' show ImageSource;
@@ -132,6 +135,7 @@ class _CreateAccountPageState extends State<CreateAccountPage> {
     _step.value = step + 1;
   }
 
+  //request payload
   CreateAccountParams _buildParams() {
     return CreateAccountParams(
       firstName: _firstName.text,
@@ -154,15 +158,10 @@ class _CreateAccountPageState extends State<CreateAccountPage> {
       case CreateAccountSubmitStatus.success:
         _step.value = _totalSteps + 1;
       case CreateAccountSubmitStatus.failure:
-        ScaffoldMessenger.of(context)
-          ..hideCurrentSnackBar()
-          ..showSnackBar(
-            SnackBar(
-              content: Text(
-                state.failure?.message ?? "Couldn't save your profile.",
-              ),
-            ),
-          );
+        AppSnackbar.error(
+          title: "Couldn't save your profile",
+          message: state.failure?.message ?? 'Try again in a moment.',
+        );
       case CreateAccountSubmitStatus.initial:
       case CreateAccountSubmitStatus.submitting:
         break;
@@ -217,6 +216,8 @@ class _CreateAccountPageState extends State<CreateAccountPage> {
           value: _specializationsBloc,
           child: SpecializationPage(
             categoryId: categoryId,
+            categoryName: _category.value?.name,
+            categorySlug: _category.value?.slug,
             selectedId: _specialization.value?.id,
           ),
         ),

@@ -24,4 +24,9 @@ class ApiEndpoints {
 
   static String getFileAccess({required String fileId}) =>
       'api/v1/files/$fileId/access';
+
+  static const String candidateEducation = 'api/v1/candidates/me/education';
+  static const String candidateExperience = 'api/v1/candidates/me/experience';
+  static String candidateExperienceById({required String id}) =>
+      '$candidateExperience/$id';
 }

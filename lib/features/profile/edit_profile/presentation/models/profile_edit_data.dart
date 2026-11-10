@@ -17,6 +17,7 @@ class ProfileEditData extends Equatable {
     required this.postalCode,
     this.categoryId,
     this.specializationId,
+    this.photoFileId,
   });
 
   factory ProfileEditData.fromCandidate(Candidate candidate) {
@@ -25,13 +26,15 @@ class ProfileEditData extends Equatable {
       lastName: candidate.lastName,
       professionalTitle: candidate.professionalTitle ?? '',
       professionalSummary: candidate.professionalSummary ?? '',
-      address: candidate.address ?? '',
+      // Saved as `area` in the profile payload.
+      address: candidate.area ?? candidate.address ?? '',
       city: candidate.city ?? '',
       state: candidate.state ?? '',
       country: candidate.country ?? '',
       postalCode: candidate.postalCode ?? '',
       categoryId: candidate.primaryCategoryId,
       specializationId: candidate.primarySpecializationId,
+      photoFileId: candidate.profilePhotoFileId,
     );
   }
 
@@ -47,6 +50,9 @@ class ProfileEditData extends Equatable {
   final String? categoryId;
   final String? specializationId;
 
+  /// Uploaded profile photo; changes when a new photo is uploaded.
+  final String? photoFileId;
+
   @override
   List<Object?> get props => [
     firstName,
@@ -60,5 +66,6 @@ class ProfileEditData extends Equatable {
     postalCode,
     categoryId,
     specializationId,
+    photoFileId,
   ];
 }

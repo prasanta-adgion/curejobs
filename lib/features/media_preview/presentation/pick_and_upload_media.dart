@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/widgets/app_snackbar.dart';
+
 import '../../../core/services/picked_file.dart';
 import '../domain/entities/media_complete_data.dart';
 import '../domain/enums/media_upload_purpose.dart';
@@ -54,10 +56,7 @@ Future<PickedFile?> _pick(
   try {
     return await picker();
   } on PickedFileException catch (error) {
-    if (context.mounted) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(error.message)));
-    }
+    AppSnackbar.error(title: error.message);
     return null;
   }
 }

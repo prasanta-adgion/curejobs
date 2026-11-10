@@ -41,12 +41,11 @@ dependencies:
   flutter_secure_storage: ^11.2.0
   shared_preferences: ^2.5.6
   get_it: ^9.3.0
-  image_picker: ^1.2.4
+  image_picker: ^1.2.4 
   file_picker: ^13.3.2
   image_cropper: ^13.0.0
-  # 7.x is built on the standalone material_ui package and asserts for its
-  # own Material ancestor, which this app's Scaffold/Card don't provide.
   pinput: ^6.0.2
+  network_logger: ^1.0.4
 
 dev_dependencies:
   flutter_test:
