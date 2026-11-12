@@ -1,3 +1,4 @@
+import 'package:curejobs/core/constants/app_icons.dart';
 import 'package:flutter/material.dart';
 
 import '../../domain/entities/experience.dart';
@@ -80,7 +81,7 @@ class DeleteExperienceSheet extends StatelessWidget {
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Icon(
-                      Icons.work_outline_rounded,
+                      AppIcons.work,
                       size: 18,
                       color: scheme.onPrimaryContainer,
                     ),

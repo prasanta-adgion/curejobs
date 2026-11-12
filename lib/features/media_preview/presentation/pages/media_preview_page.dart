@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:curejobs/core/constants/app_icons.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -96,7 +97,7 @@ class _MediaPreviewPageState extends State<MediaPreviewPage> {
                   CropTopBar(
                     title: 'Preview',
                     subtitle: type.label,
-                    icon: Icons.close_rounded,
+                    icon: AppIcons.close,
                     tooltip: 'Cancel',
                     onLeading: navigator.pop,
                   ),

@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 
+import 'package:curejobs/core/constants/app_icons.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -151,7 +152,7 @@ class _CropImagePageState extends State<CropImagePage> {
         CropTopBar(
           title: 'Adjust your photo',
           subtitle: 'Step 1 of 2',
-          icon: Icons.close_rounded,
+          icon: AppIcons.close,
           tooltip: 'Cancel',
           onLeading: () => Navigator.of(context).pop(),
         ),

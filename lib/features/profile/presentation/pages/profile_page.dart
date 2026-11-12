@@ -14,54 +14,29 @@ import '../bloc/candidate_profile_bloc.dart';
 import '../bloc/logout_bloc.dart';
 import '../models/candidate_profile.dart';
 import '../../edit_profile/presentation/pages/edit_profile_page.dart';
-import '../../sections/education/domain/entities/education.dart';
-import '../../sections/education/presentation/widgets/education_tab.dart';
-import '../../sections/experience/domain/entities/experience.dart';
+import '../widgets/qualifications_tab.dart';
 import '../../sections/experience/presentation/widgets/experience_tab.dart';
 import '../widgets/overview_tab.dart';
 import '../widgets/profile_header.dart';
 import '../widgets/resume_tab.dart';
 
 /// Candidate profile: navy header with tabs for overview, experience,
-/// education and resume. The header shows the signed-in candidate from the
-/// API; the tabs still use sample data. Actions are left to the caller.
+/// qualifications and resume. Each section handles its own actions; only
+/// leaving the screen after logout is left to the caller.
 class ProfilePage extends StatelessWidget {
   const ProfilePage({
     super.key,
     this.profile = ProfileSampleData.candidate,
-    this.onEditProfile,
-    this.onSettings,
-    this.onChangePhoto,
-    this.onEditAbout,
-    this.onEditSkills,
-    this.onAddExperience,
-    this.onEditExperience,
-    this.onAddEducation,
-    this.onEditEducation,
-    this.onUploadCv,
-    this.onViewCv,
-    this.onAddCertificate,
     this.onLoggedOut,
   });
 
+  /// Sample data for sections that don't have an API yet.
   final CandidateProfile profile;
-  final VoidCallback? onEditProfile;
-  final VoidCallback? onSettings;
-  final VoidCallback? onChangePhoto;
-  final VoidCallback? onEditAbout;
-  final VoidCallback? onEditSkills;
-  final VoidCallback? onAddExperience;
-  final ValueChanged<Experience>? onEditExperience;
-  final VoidCallback? onAddEducation;
-  final ValueChanged<Education>? onEditEducation;
-  final VoidCallback? onUploadCv;
-  final VoidCallback? onViewCv;
-  final VoidCallback? onAddCertificate;
 
   /// Called once the user has been signed out, to leave this screen.
   final VoidCallback? onLoggedOut;
 
-  static const _tabs = ['Overview', 'Experience', 'Education', 'Resume'];
+  static const _tabs = ['Overview', 'Experience', 'Qualifications', 'Resume'];
 
   /// Opens the edit form for the loaded candidate. Reloads the profile when
   /// the form reports a save.
@@ -150,9 +125,8 @@ class ProfilePage extends StatelessWidget {
               headerSliverBuilder: (context, _) => [
                 SliverToBoxAdapter(
                   child: ProfileHeader(
-                    onEdit: onEditProfile ?? () => _openEditProfile(context),
-                    onSettings: onSettings,
-                    onChangePhoto: onChangePhoto ?? () => _changePhoto(context),
+                    onEdit: () => _openEditProfile(context),
+                    onChangePhoto: () => _changePhoto(context),
                   ),
                 ),
                 SliverPersistentHeader(
@@ -178,22 +152,10 @@ class ProfilePage extends StatelessWidget {
               ],
               body: TabBarView(
                 children: [
-                  OverviewTab(
-                    profile: profile,
-                    onEditAbout: onEditAbout,
-                    onEditSkills: onEditSkills,
-                  ),
-                  ExperienceTab(
-                    onAdd: onAddExperience,
-                    onEdit: onEditExperience,
-                  ),
-                  EducationTab(onAdd: onAddEducation, onEdit: onEditEducation),
-                  ResumeTab(
-                    profile: profile,
-                    onUploadCv: onUploadCv,
-                    onViewCv: onViewCv,
-                    onAddCertificate: onAddCertificate,
-                  ),
+                  OverviewTab(profile: profile),
+                  const ExperienceTab(),
+                  const QualificationsTab(),
+                  ResumeTab(profile: profile),
                 ],
               ),
             ),

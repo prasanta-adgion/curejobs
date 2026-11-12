@@ -8,6 +8,7 @@ class ProfileSection extends StatelessWidget {
     required this.title,
     required this.child,
     this.action,
+    this.count,
     this.showDivider = true,
   });
 
@@ -16,6 +17,9 @@ class ProfileSection extends StatelessWidget {
 
   /// Optional control on the right of the title, such as Add or Edit.
   final Widget? action;
+
+  /// Optional number shown in a small badge after the title.
+  final int? count;
   final bool showDivider;
 
   @override
@@ -43,16 +47,34 @@ class ProfileSection extends StatelessWidget {
               height: 32,
               child: Row(
                 children: [
-                  Expanded(
-                    child: Text(
-                      title.toUpperCase(),
-                      style: theme.textTheme.labelSmall?.copyWith(
-                        color: scheme.onSurfaceVariant,
-                        fontWeight: FontWeight.w600,
-                        letterSpacing: 0.8,
-                      ),
+                  Text(
+                    title.toUpperCase(),
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: scheme.onSurfaceVariant,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 0.8,
                     ),
                   ),
+                  if (count != null) ...[
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 7,
+                        vertical: 1,
+                      ),
+                      decoration: BoxDecoration(
+                        color: scheme.surfaceContainerHighest,
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                      child: Text(
+                        '$count',
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: scheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ),
+                  ],
+                  const Spacer(),
                   if (action != null) action!,
                 ],
               ),
@@ -85,7 +107,7 @@ class SectionAction extends StatelessWidget {
     return TextButton.icon(
       onPressed: onPressed,
       style: TextButton.styleFrom(
-        backgroundColor: theme.primaryColor,
+        backgroundColor: theme.colorScheme.primary,
         padding: const EdgeInsets.symmetric(horizontal: 8),
         minimumSize: const Size(0, 32),
         tapTargetSize: MaterialTapTargetSize.shrinkWrap,

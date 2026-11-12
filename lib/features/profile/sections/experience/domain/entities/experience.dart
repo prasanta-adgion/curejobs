@@ -1,3 +1,4 @@
+import 'package:curejobs/core/utils/date_time_utils.dart';
 import 'package:equatable/equatable.dart';
 
 /// One position in the candidate's work history.
@@ -28,21 +29,6 @@ class Experience extends Equatable {
     this.sortOrder = 0,
   });
 
-  static const _months = [
-    'Jan',
-    'Feb',
-    'Mar',
-    'Apr',
-    'May',
-    'Jun',
-    'Jul',
-    'Aug',
-    'Sep',
-    'Oct',
-    'Nov',
-    'Dec',
-  ];
-
   /// `FULL_TIME` → "Full time".
   String? get employmentTypeLabel {
     final type = employmentType;
@@ -53,7 +39,7 @@ class Experience extends Equatable {
 
   /// e.g. "Jan 2025 – Present".
   String get period {
-    String fmt(DateTime d) => '${_months[d.month - 1]} ${d.year}';
+    String fmt(DateTime d) => '${DateTimeUtils.months[d.month - 1]} ${d.year}';
     final start = startDate == null ? null : fmt(startDate!);
     final end = currentlyWorking
         ? 'Present'

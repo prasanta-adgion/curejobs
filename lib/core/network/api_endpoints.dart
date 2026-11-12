@@ -26,7 +26,18 @@ class ApiEndpoints {
       'api/v1/files/$fileId/access';
 
   static const String candidateEducation = 'api/v1/candidates/me/education';
+  static String candidateEducationById({required String id}) =>
+      '$candidateEducation/$id';
   static const String candidateExperience = 'api/v1/candidates/me/experience';
   static String candidateExperienceById({required String id}) =>
       '$candidateExperience/$id';
+
+  static const String skills = 'api/v1/candidates/me/skills';
+  static String skillById({required String id}) => '$skills/$id';
+
+  static const String languages = 'api/v1/candidates/me/languages';
+  static String languageById({required String id}) => '$languages/$id';
+
+  static const String certificates = 'api/v1/candidates/me/certifications';
+  static String certificateById({required String id}) => '$certificates/$id';
 }

@@ -4,20 +4,13 @@ import '../../../../app/theme/app_colors.dart';
 import '../models/candidate_profile.dart';
 import '../../shared/widgets/profile_section.dart';
 
-/// CV preview with replace and view actions, certificates and a tip.
+/// CV preview with replace and view actions, and a tip. Certificates live on
+/// the Qualifications tab.
 class ResumeTab extends StatelessWidget {
-  const ResumeTab({
-    super.key,
-    required this.profile,
-    this.onUploadCv,
-    this.onViewCv,
-    this.onAddCertificate,
-  });
+  const ResumeTab({super.key, required this.profile});
 
+  /// Sample CV until upload and preview are built.
   final CandidateProfile profile;
-  final VoidCallback? onUploadCv;
-  final VoidCallback? onViewCv;
-  final VoidCallback? onAddCertificate;
 
   @override
   Widget build(BuildContext context) {
@@ -29,29 +22,7 @@ class ResumeTab extends StatelessWidget {
         ProfileSection(
           title: 'Your CV',
           showDivider: false,
-          child: cv == null
-              ? _EmptyCv(onUpload: onUploadCv)
-              : _CvCard(cv: cv, onReplace: onUploadCv, onView: onViewCv),
-        ),
-        ProfileSection(
-          title: 'Certificates',
-          action: SectionAction(
-            label: 'Add',
-            icon: Icons.add,
-            onPressed: onAddCertificate,
-          ),
-          child: Column(
-            children: [
-              for (var i = 0; i < profile.certificates.length; i++) ...[
-                if (i > 0)
-                  Divider(
-                    height: 1,
-                    color: Theme.of(context).colorScheme.outlineVariant,
-                  ),
-                _CertificateRow(certificate: profile.certificates[i]),
-              ],
-            ],
-          ),
+          child: cv == null ? const _EmptyCv() : _CvCard(cv: cv),
         ),
         if (profile.tip != null)
           ProfileSection(
@@ -64,11 +35,9 @@ class ResumeTab extends StatelessWidget {
 }
 
 class _CvCard extends StatelessWidget {
-  const _CvCard({required this.cv, this.onReplace, this.onView});
+  const _CvCard({required this.cv});
 
   final ProfileCv cv;
-  final VoidCallback? onReplace;
-  final VoidCallback? onView;
 
   @override
   Widget build(BuildContext context) {
@@ -127,32 +96,7 @@ class _CvCard extends StatelessWidget {
             ),
           ],
         ),
-        const SizedBox(height: 16),
-        Row(
-          children: [
-            Expanded(
-              child: SizedBox(
-                height: 46,
-                child: FilledButton.icon(
-                  onPressed: onReplace,
-                  icon: const Icon(Icons.upload_outlined, size: 18),
-                  label: const Text('Replace'),
-                ),
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: SizedBox(
-                height: 46,
-                child: OutlinedButton.icon(
-                  onPressed: onView,
-                  icon: const Icon(Icons.visibility_outlined, size: 18),
-                  label: const Text('View'),
-                ),
-              ),
-            ),
-          ],
-        ),
+        // Replace and View buttons go here once CV upload and preview exist.
       ],
     );
   }
@@ -222,124 +166,38 @@ class _CvThumbnail extends StatelessWidget {
 }
 
 class _EmptyCv extends StatelessWidget {
-  const _EmptyCv({this.onUpload});
-
-  final VoidCallback? onUpload;
+  const _EmptyCv();
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
 
-    return Material(
-      color: scheme.primaryContainer.withValues(alpha: 0.35),
-      borderRadius: BorderRadius.circular(14),
-      child: InkWell(
-        onTap: onUpload,
+    // Not tappable until CV upload is built.
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: scheme.primaryContainer.withValues(alpha: 0.35),
         borderRadius: BorderRadius.circular(14),
-        child: Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: scheme.primary.withValues(alpha: 0.4)),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const ProfileIconTile(
-                icon: Icons.cloud_upload_outlined,
-                size: 48,
-              ),
-              const SizedBox(height: 12),
-              Text(
-                'Upload your CV',
-                style: theme.textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                'PDF, DOC or DOCX · up to 5 MB',
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: scheme.onSurfaceVariant,
-                ),
-              ),
-            ],
-          ),
-        ),
+        border: Border.all(color: scheme.primary.withValues(alpha: 0.4)),
       ),
-    );
-  }
-}
-
-class _CertificateRow extends StatelessWidget {
-  const _CertificateRow({required this.certificate});
-
-  final ProfileCertificate certificate;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-
-    final (label, color, background) = switch (certificate.status) {
-      CertificateStatus.verified => (
-        'Verified',
-        AppColors.success,
-        AppColors.successLight,
-      ),
-      CertificateStatus.expiring => (
-        'Expiring',
-        const Color(0xFFB45309),
-        AppColors.warningLight,
-      ),
-      CertificateStatus.pending => (
-        'Pending',
-        scheme.onSurfaceVariant,
-        scheme.surfaceContainerHighest,
-      ),
-    };
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 12),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          ProfileIconTile(
-            icon: Icons.workspace_premium_outlined,
-            size: 38,
-            color: color,
-            background: background,
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  certificate.title,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                Text(
-                  '${certificate.issuer} · ${certificate.validity}',
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: scheme.onSurfaceVariant,
-                  ),
-                ),
-              ],
+          const ProfileIconTile(icon: Icons.description_outlined, size: 48),
+          const SizedBox(height: 12),
+          Text(
+            'No CV yet',
+            style: theme.textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.w600,
             ),
           ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-            decoration: BoxDecoration(
-              color: background,
-              borderRadius: BorderRadius.circular(6),
-            ),
-            child: Text(
-              label,
-              style: theme.textTheme.labelSmall?.copyWith(color: color),
+          const SizedBox(height: 2),
+          Text(
+            'CV upload is coming soon.',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: scheme.onSurfaceVariant,
             ),
           ),
         ],

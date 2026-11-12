@@ -68,12 +68,15 @@ class ProfileHeader extends StatelessWidget {
                         ),
                         const SizedBox(width: 8),
                         const ThemeModeButton(onDarkBackground: true),
-                        const SizedBox(width: 8),
-                        _HeaderButton(
-                          icon: Icons.settings_outlined,
-                          tooltip: 'Settings',
-                          onPressed: onSettings,
-                        ),
+                        // Hidden until there's a settings screen to open.
+                        if (onSettings != null) ...[
+                          const SizedBox(width: 8),
+                          _HeaderButton(
+                            icon: Icons.settings_outlined,
+                            tooltip: 'Settings',
+                            onPressed: onSettings,
+                          ),
+                        ],
                       ],
                     ),
                   ],

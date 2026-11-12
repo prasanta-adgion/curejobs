@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:curejobs/core/constants/app_icons.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:image_picker/image_picker.dart' show ImageSource;
@@ -332,7 +333,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
           appBar: AppBar(
             leading: IconButton(
               tooltip: 'Close',
-              icon: const Icon(Icons.close_rounded),
+              icon: const Icon(AppIcons.close),
               onPressed: () => Navigator.of(context).maybePop(),
             ),
             titleSpacing: 0,

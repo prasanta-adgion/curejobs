@@ -1,8 +1,11 @@
+import 'package:curejobs/core/constants/app_icons.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../../../app/di/injection_container.dart';
+import '../../../../../../core/utils/date_time_utils.dart';
 import '../../../../../../core/utils/input_validators.dart';
+import '../../../../../../core/widgets/app_date_picker.dart';
 import '../../../../../../core/widgets/app_snackbar.dart';
 import '../../../../shared/widgets/profile_section.dart';
 import '../../domain/entities/employment_type.dart';
@@ -27,20 +30,6 @@ class ExperienceFormPage extends StatefulWidget {
 
 class _ExperienceFormPageState extends State<ExperienceFormPage> {
   static const _responsibilitiesLimit = 1000;
-  static const _months = [
-    'Jan',
-    'Feb',
-    'Mar',
-    'Apr',
-    'May',
-    'Jun',
-    'Jul',
-    'Aug',
-    'Sep',
-    'Oct',
-    'Nov',
-    'Dec',
-  ];
 
   final _formKey = GlobalKey<FormState>();
   final _bloc = sl<ExperienceFormBloc>();
@@ -127,29 +116,24 @@ class _ExperienceFormPageState extends State<ExperienceFormPage> {
   void _updateHasChanges() => _hasChanges.value = _current != _initial;
 
   String? _formatMonth(DateTime? d) =>
-      d == null ? null : '${_months[d.month - 1]} ${d.year}';
+      d == null ? null : DateTimeUtils.monthYear(d);
 
-  Future<DateTime?> _pickMonth(DateTime? initial, {DateTime? first}) async {
-    FocusScope.of(context).unfocus();
-    final now = DateTime.now();
-    final firstDate = first ?? DateTime(1970);
-    var start = initial ?? now;
-    if (start.isBefore(firstDate)) start = firstDate;
-    if (start.isAfter(now)) start = now;
-
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: start,
-      firstDate: firstDate,
-      lastDate: now,
-      initialDatePickerMode: DatePickerMode.year,
-      helpText: 'Select month',
+  Future<DateTime?> _pickMonth(
+    DateTime? initial, {
+    required String title,
+    DateTime? first,
+  }) {
+    return AppDatePicker.pickMonth(
+      context,
+      title: title,
+      initial: initial,
+      first: first ?? DateTime(1970),
+      last: DateTime.now(),
     );
-    return picked == null ? null : DateTime(picked.year, picked.month);
   }
 
   Future<void> _pickStart() async {
-    final picked = await _pickMonth(_startDate.value);
+    final picked = await _pickMonth(_startDate.value, title: 'Start date');
     if (picked == null) return;
     _startDate.value = picked;
     _startError.value = null;
@@ -160,11 +144,17 @@ class _ExperienceFormPageState extends State<ExperienceFormPage> {
   Future<void> _pickEnd() async {
     final picked = await _pickMonth(
       _endDate.value ?? _startDate.value,
+      title: 'End date',
       first: _startDate.value,
     );
     if (picked == null) return;
     _endDate.value = picked;
     _endError.value = null;
+  }
+
+  void _pickJobTitle(String title) {
+    _jobTitle.text = title;
+    _jobTitle.selection = TextSelection.collapsed(offset: title.length);
   }
 
   Future<void> _pickEmploymentType() async {
@@ -283,7 +273,7 @@ class _ExperienceFormPageState extends State<ExperienceFormPage> {
           appBar: AppBar(
             leading: IconButton(
               tooltip: 'Close',
-              icon: const Icon(Icons.close_rounded),
+              icon: const Icon(AppIcons.close),
               onPressed: () => Navigator.of(context).maybePop(),
             ),
             titleSpacing: 0,
@@ -369,6 +359,8 @@ class _ExperienceFormPageState extends State<ExperienceFormPage> {
                   InputValidators.required(v, fieldName: 'a job title'),
             ),
           ),
+          const SizedBox(height: 10),
+          JobTitleSuggestions(controller: _jobTitle, onPicked: _pickJobTitle),
           const SizedBox(height: 14),
           ExperienceLabeledField(
             label: 'Organization',
@@ -393,6 +385,7 @@ class _ExperienceFormPageState extends State<ExperienceFormPage> {
                 value: type?.label,
                 placeholder: 'Select employment type',
                 onTap: _pickEmploymentType,
+                onClear: () => _employmentType.value = null,
               ),
             ),
           ),
@@ -432,7 +425,7 @@ class _ExperienceFormPageState extends State<ExperienceFormPage> {
                   child: ExperiencePickerField(
                     value: _formatMonth(_startDate.value),
                     placeholder: 'Month, year',
-                    icon: Icons.calendar_today_outlined,
+                    icon: AppIcons.calendar,
                     errorText: _startError.value,
                     onTap: _pickStart,
                   ),
@@ -444,7 +437,7 @@ class _ExperienceFormPageState extends State<ExperienceFormPage> {
                   child: ExperiencePickerField(
                     value: current ? 'Present' : _formatMonth(_endDate.value),
                     placeholder: 'Month, year',
-                    icon: Icons.calendar_today_outlined,
+                    icon: AppIcons.calendar,
                     errorText: current ? null : _endError.value,
                     onTap: current ? null : _pickEnd,
                   ),
