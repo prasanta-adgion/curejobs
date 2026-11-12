@@ -13,13 +13,9 @@ import 'delete_experience_sheet.dart';
 
 /// Work history as a vertical timeline. Owns its [ExperienceBloc].
 ///
-/// Add, edit and delete work out of the box; pass [onAdd] / [onEdit] to
-/// replace the built-in form.
+/// Add, edit and delete are handled here with the built-in form.
 class ExperienceTab extends StatelessWidget {
-  const ExperienceTab({super.key, this.onAdd, this.onEdit});
-
-  final VoidCallback? onAdd;
-  final ValueChanged<Experience>? onEdit;
+  const ExperienceTab({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -53,8 +49,8 @@ class ExperienceTab extends StatelessWidget {
             },
             child: _ExperienceList(
               items: state.items,
-              onAdd: onAdd ?? () => _openForm(context),
-              onEdit: onEdit ?? (item) => _openForm(context, item),
+              onAdd: () => _openForm(context),
+              onEdit: (item) => _openForm(context, item),
               onDelete: (item) => _confirmDelete(context, item),
             ),
           );

@@ -10,6 +10,8 @@ import '../../features/media_preview/di/media_preview_dependencies.dart';
 import '../../features/profile/di/profile_dependencies.dart';
 import '../../features/profile/sections/education/di/education_dependencies.dart';
 import '../../features/profile/sections/experience/di/experience_dependencies.dart';
+import '../../features/profile/sections/skill/di/skill_dependencies.dart';
+import '../../features/profile/sections/language/di/language_dependencies.dart';
 import '../../features/specialization/di/specialization_dependencies.dart';
 
 void registerFeatureDependencies(GetIt sl) {
@@ -19,6 +21,8 @@ void registerFeatureDependencies(GetIt sl) {
   registerProfileDependencies(sl);
   registerEducationDependencies(sl);
   registerExperienceDependencies(sl);
+  registerSkillDependencies(sl);
+  registerLanguageDependencies(sl);
   registerDashboardDependencies(sl);
   registerCategoryDependencies(sl);
   registerSpecializationDependencies(sl);

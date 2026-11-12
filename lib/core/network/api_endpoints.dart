@@ -29,4 +29,10 @@ class ApiEndpoints {
   static const String candidateExperience = 'api/v1/candidates/me/experience';
   static String candidateExperienceById({required String id}) =>
       '$candidateExperience/$id';
+
+  static const String skills = 'api/v1/candidates/me/skills';
+  static String skillById({required String id}) => '$skills/$id';
+
+  static const String languages = 'api/v1/candidates/me/languages';
+  static String languageById({required String id}) => '$languages/$id';
 }

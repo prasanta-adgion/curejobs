@@ -243,3 +243,4 @@ abstract final class ProfileSampleData {
     tip: 'Renew BLS / ACLS before May to stay eligible for ICU roles.',
   );
 }
+

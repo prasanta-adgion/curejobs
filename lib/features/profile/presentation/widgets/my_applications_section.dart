@@ -286,7 +286,7 @@ class _StatusBar extends StatelessWidget {
             Text(
               closed,
               style: theme.textTheme.labelSmall?.copyWith(
-                color: scheme.outline,
+                color: scheme.onSurfaceVariant,
               ),
             ),
         ],

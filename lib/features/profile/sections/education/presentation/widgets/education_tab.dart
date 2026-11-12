@@ -7,12 +7,22 @@ import '../../../../shared/widgets/profile_section.dart';
 import '../../domain/entities/education.dart';
 import '../bloc/education_bloc.dart';
 
-/// Education tab: owns its [EducationBloc] and loads from the API.
+/// Education list: owns its [EducationBloc] and loads from the API.
+///
+/// [leading] widgets go above the Education section and [trailing] below it,
+/// so other sections can share the same scrolling page. Loading and errors
+/// only affect the Education section, never the extra widgets.
+///
+/// Read-only for now: Add and Edit show once the education form is built.
 class EducationTab extends StatelessWidget {
-  const EducationTab({super.key, this.onAdd, this.onEdit});
+  const EducationTab({
+    super.key,
+    this.leading = const [],
+    this.trailing = const [],
+  });
 
-  final VoidCallback? onAdd;
-  final ValueChanged<Education>? onEdit;
+  final List<Widget> leading;
+  final List<Widget> trailing;
 
   @override
   Widget build(BuildContext context) {
@@ -20,16 +30,6 @@ class EducationTab extends StatelessWidget {
       create: (_) => sl<EducationBloc>()..add(const EducationRequested()),
       child: BlocBuilder<EducationBloc, EducationState>(
         builder: (context, state) {
-          if (state.isLoading && state.items.isEmpty) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          if (state.status == EducationStatus.failure && state.items.isEmpty) {
-            return AppErrorView(
-              failure: state.failure!,
-              onRetry: () =>
-                  context.read<EducationBloc>().add(const EducationRequested()),
-            );
-          }
           return RefreshIndicator(
             onRefresh: () async {
               final bloc = context.read<EducationBloc>()
@@ -37,9 +37,9 @@ class EducationTab extends StatelessWidget {
               await bloc.stream.firstWhere((s) => !s.isLoading);
             },
             child: _EducationList(
-              items: state.items,
-              onAdd: onAdd,
-              onEdit: onEdit,
+              state: state,
+              leading: leading,
+              trailing: trailing,
             ),
           );
         },
@@ -49,29 +49,42 @@ class EducationTab extends StatelessWidget {
 }
 
 class _EducationList extends StatelessWidget {
-  const _EducationList({required this.items, this.onAdd, this.onEdit});
+  const _EducationList({
+    required this.state,
+    required this.leading,
+    required this.trailing,
+  });
 
-  final List<Education> items;
-  final VoidCallback? onAdd;
-  final ValueChanged<Education>? onEdit;
+  final EducationState state;
+  final List<Widget> leading;
+  final List<Widget> trailing;
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final items = state.items;
 
     return ListView(
       physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.only(bottom: 24),
       children: [
+        ...leading,
         ProfileSection(
           title: 'Education',
           showDivider: false,
-          action: SectionAction(
-            label: 'Add',
-            icon: Icons.add,
-            onPressed: onAdd,
-          ),
-          child: items.isEmpty
+          child: state.isLoading && items.isEmpty
+              ? const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 24),
+                  child: Center(child: CircularProgressIndicator()),
+                )
+              : state.status == EducationStatus.failure && items.isEmpty
+              ? AppErrorView(
+                  failure: state.failure!,
+                  onRetry: () => context.read<EducationBloc>().add(
+                    const EducationRequested(),
+                  ),
+                )
+              : items.isEmpty
               ? Padding(
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   child: Text(
@@ -85,24 +98,21 @@ class _EducationList extends StatelessWidget {
                     for (var i = 0; i < items.length; i++) ...[
                       if (i > 0)
                         Divider(height: 1, color: scheme.outlineVariant),
-                      _EducationTile(
-                        item: items[i],
-                        onEdit: onEdit == null ? null : () => onEdit!(items[i]),
-                      ),
+                      _EducationTile(item: items[i]),
                     ],
                   ],
                 ),
         ),
+        ...trailing,
       ],
     );
   }
 }
 
 class _EducationTile extends StatelessWidget {
-  const _EducationTile({required this.item, this.onEdit});
+  const _EducationTile({required this.item});
 
   final Education item;
-  final VoidCallback? onEdit;
 
   @override
   Widget build(BuildContext context) {
@@ -144,12 +154,6 @@ class _EducationTile extends StatelessWidget {
                 ],
               ],
             ),
-          ),
-          IconButton(
-            tooltip: 'Edit',
-            onPressed: onEdit,
-            visualDensity: VisualDensity.compact,
-            icon: Icon(Icons.edit_outlined, size: 18, color: scheme.outline),
           ),
         ],
       ),
