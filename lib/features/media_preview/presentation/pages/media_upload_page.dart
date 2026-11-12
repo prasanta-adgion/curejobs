@@ -1,3 +1,4 @@
+import 'package:curejobs/core/constants/app_icons.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -47,7 +48,7 @@ class MediaUploadPage extends StatelessWidget {
                     CropTopBar(
                       title: failed ? 'Upload failed' : 'Uploading',
                       subtitle: file.name,
-                      icon: Icons.close_rounded,
+                      icon: AppIcons.close,
                       tooltip: 'Cancel',
                       onLeading: navigator.pop,
                     ),

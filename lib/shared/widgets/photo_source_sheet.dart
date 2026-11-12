@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import 'package:curejobs/core/constants/app_icons.dart';
 import 'package:flutter/material.dart';
 
 import '../../app/theme/app_colors.dart';
@@ -149,7 +150,7 @@ class _PhotoSourceSheet extends StatelessWidget {
             onPressed: () => Navigator.of(context).pop(),
             tooltip: 'Close',
             color: scheme.onSurfaceVariant,
-            icon: const Icon(Icons.close_rounded, size: 20),
+            icon: const Icon(AppIcons.close, size: 20),
           ),
         ),
         _Portrait(

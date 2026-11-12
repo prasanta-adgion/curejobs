@@ -1,3 +1,4 @@
+import 'package:curejobs/core/constants/app_icons.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -175,7 +176,7 @@ class _SpecializationPickerState extends State<_SpecializationPicker> {
                     ? const SizedBox.shrink()
                     : IconButton(
                         tooltip: 'Clear search',
-                        icon: const Icon(Icons.close_rounded),
+                        icon: const Icon(AppIcons.close),
                         onPressed: () {
                           _search.clear();
                           _query.value = '';

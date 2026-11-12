@@ -1,3 +1,4 @@
+import 'package:curejobs/core/constants/app_icons.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -260,7 +261,7 @@ class _LanguageRow extends StatelessWidget {
                             shape: BoxShape.circle,
                           ),
                           child: Icon(
-                            Icons.close_rounded,
+                            AppIcons.close,
                             size: 14,
                             color: scheme.onSurfaceVariant,
                           ),

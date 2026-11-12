@@ -1,3 +1,4 @@
+import 'package:curejobs/core/constants/app_icons.dart';
 import 'package:flutter/material.dart';
 
 import '../../domain/entities/language.dart';
@@ -64,7 +65,9 @@ class _EditLanguageSheet extends StatefulWidget {
 
 class _EditLanguageSheetState extends State<_EditLanguageSheet> {
   late final _name = TextEditingController(text: widget.initial?.name);
-  late final _level = ValueNotifier<LanguageProficiency?>(widget.initial?.proficiency);
+  late final _level = ValueNotifier<LanguageProficiency?>(
+    widget.initial?.proficiency,
+  );
   final _nameError = ValueNotifier<String?>(null);
 
   bool get _isEditing => widget.initial != null;
@@ -99,9 +102,8 @@ class _EditLanguageSheetState extends State<_EditLanguageSheet> {
     _nameError.value = error;
     if (error != null || level == null) return;
 
-    Navigator.of(
-      context,
-    ).pop(LanguageSheetResult.saved(name: name, proficiency: level));
+    Navigator.of(context)
+        .pop(LanguageSheetResult.saved(name: name, proficiency: level));
   }
 
   @override
@@ -149,10 +151,7 @@ class _EditLanguageSheetState extends State<_EditLanguageSheet> {
                                 ? const SizedBox.shrink()
                                 : IconButton(
                                     tooltip: 'Clear',
-                                    icon: const Icon(
-                                      Icons.close_rounded,
-                                      size: 18,
-                                    ),
+                                    icon: const Icon(AppIcons.close, size: 18),
                                     onPressed: () => _pick(''),
                                   ),
                           ),
@@ -203,20 +202,21 @@ class _EditLanguageSheetState extends State<_EditLanguageSheet> {
                   const SizedBox(height: 8),
                   ValueListenableBuilder<LanguageProficiency?>(
                     valueListenable: _level,
-                    builder: (context, selected, _) => RadioGroup<LanguageProficiency>(
-                      groupValue: selected,
-                      onChanged: (v) => _level.value = v,
-                      child: Column(
-                        children: [
-                          for (final level in LanguageProficiency.values)
-                            _LevelOption(
-                              level: level,
-                              selected: level == selected,
-                              onTap: () => _level.value = level,
-                            ),
-                        ],
-                      ),
-                    ),
+                    builder: (context, selected, _) =>
+                        RadioGroup<LanguageProficiency>(
+                          groupValue: selected,
+                          onChanged: (v) => _level.value = v,
+                          child: Column(
+                            children: [
+                              for (final level in LanguageProficiency.values)
+                                _LevelOption(
+                                  level: level,
+                                  selected: level == selected,
+                                  onTap: () => _level.value = level,
+                                ),
+                            ],
+                          ),
+                        ),
                   ),
                 ],
               ),
@@ -227,7 +227,8 @@ class _EditLanguageSheetState extends State<_EditLanguageSheet> {
             builder: (context, level, _) => _BottomBar(
               isEditing: _isEditing,
               onRemove: () =>
-                  Navigator.of(context).pop(const LanguageSheetResult.removed()),
+                  Navigator.of(context)
+                      .pop(const LanguageSheetResult.removed()),
               onSave: level == null ? null : _save,
             ),
           ),
@@ -276,7 +277,7 @@ class _Header extends StatelessWidget {
           IconButton(
             tooltip: 'Close',
             onPressed: () => Navigator.of(context).pop(),
-            icon: Icon(Icons.close_rounded, color: scheme.onSurfaceVariant),
+            icon: Icon(AppIcons.close, color: scheme.onSurfaceVariant),
           ),
         ],
       ),

@@ -88,8 +88,7 @@ class LanguagesBloc extends Bloc<LanguagesEvent, LanguagesState> {
     Emitter<LanguagesState> emit,
   ) async {
     final language = event.language;
-    if (state.isBusy(language) ||
-        language.proficiency == event.proficiency) {
+    if (state.isBusy(language) || language.proficiency == event.proficiency) {
       return;
     }
 

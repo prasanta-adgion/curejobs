@@ -1,3 +1,4 @@
+import 'package:curejobs/core/utils/date_time_utils.dart';
 import 'package:flutter/material.dart';
 
 import '../../domain/entities/job.dart';
@@ -11,21 +12,6 @@ abstract final class JobFormatter {
     Color(0xFF854F0B),
     Color(0xFF993556),
     Color(0xFF185FA5),
-  ];
-
-  static const _months = [
-    'Jan',
-    'Feb',
-    'Mar',
-    'Apr',
-    'May',
-    'Jun',
-    'Jul',
-    'Aug',
-    'Sep',
-    'Oct',
-    'Nov',
-    'Dec',
   ];
 
   static String employmentType(EmploymentType type) => switch (type) {
@@ -105,7 +91,7 @@ abstract final class JobFormatter {
     if (days <= 0) return 'Today';
     if (days == 1) return 'Yesterday';
     if (days < 7) return '$days days ago';
-    final date = '${local.day} ${_months[local.month - 1]}';
+    final date = '${local.day} ${DateTimeUtils.months[local.month - 1]}';
     return local.year == now.year ? date : '$date ${local.year}';
   }
 

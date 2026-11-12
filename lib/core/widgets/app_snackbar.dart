@@ -1,3 +1,4 @@
+import 'package:curejobs/core/constants/app_icons.dart';
 import 'package:flutter/material.dart';
 
 import '../../app/theme/app_colors.dart';
@@ -375,7 +376,7 @@ class _CountdownClose extends StatelessWidget {
                   ),
                 ),
               ),
-              Icon(Icons.close_rounded, size: 14, color: iconColor),
+              Icon(AppIcons.close, size: 14, color: iconColor),
             ],
           ),
         ),

@@ -15,7 +15,6 @@ class CandidateProfile extends Equatable {
     required this.skills,
     required this.experience,
     required this.education,
-    required this.certificates,
     this.cv,
     this.isVerified = false,
     this.tip,
@@ -32,7 +31,6 @@ class CandidateProfile extends Equatable {
   final List<String> skills;
   final List<ProfileExperience> experience;
   final List<ProfileEducation> education;
-  final List<ProfileCertificate> certificates;
   final ProfileCv? cv;
   final bool isVerified;
   final String? tip;
@@ -57,7 +55,6 @@ class CandidateProfile extends Equatable {
     skills,
     experience,
     education,
-    certificates,
     cv,
     isVerified,
     tip,
@@ -125,25 +122,6 @@ class ProfileEducation extends Equatable {
 
   @override
   List<Object?> get props => [degree, institution, period, score];
-}
-
-enum CertificateStatus { verified, expiring, pending }
-
-class ProfileCertificate extends Equatable {
-  const ProfileCertificate({
-    required this.title,
-    required this.issuer,
-    required this.validity,
-    required this.status,
-  });
-
-  final String title;
-  final String issuer;
-  final String validity;
-  final CertificateStatus status;
-
-  @override
-  List<Object?> get props => [title, issuer, validity, status];
 }
 
 class ProfileCv extends Equatable {
@@ -220,20 +198,6 @@ abstract final class ProfileSampleData {
         score: '84%',
       ),
     ],
-    certificates: [
-      ProfileCertificate(
-        title: 'Nursing council licence',
-        issuer: 'WBNC',
-        validity: 'Valid till 2028',
-        status: CertificateStatus.verified,
-      ),
-      ProfileCertificate(
-        title: 'BLS / ACLS',
-        issuer: 'AHA',
-        validity: 'Valid till 2026',
-        status: CertificateStatus.expiring,
-      ),
-    ],
     cv: ProfileCv(
       fileName: 'Priya_Sharma_CV.pdf',
       sizeLabel: '240 KB',
@@ -243,4 +207,3 @@ abstract final class ProfileSampleData {
     tip: 'Renew BLS / ACLS before May to stay eligible for ICU roles.',
   );
 }
-

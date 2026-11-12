@@ -154,7 +154,7 @@ class ProfilePage extends StatelessWidget {
                 children: [
                   OverviewTab(profile: profile),
                   const ExperienceTab(),
-                  QualificationsTab(profile: profile),
+                  const QualificationsTab(),
                   ResumeTab(profile: profile),
                 ],
               ),

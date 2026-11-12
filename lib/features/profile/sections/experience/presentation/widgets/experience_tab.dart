@@ -1,3 +1,4 @@
+import 'package:curejobs/core/constants/app_icons.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -6,6 +7,7 @@ import '../../../../../../app/theme/app_colors.dart';
 import '../../../../../../core/widgets/app_error_view.dart';
 import '../../../../../../core/widgets/app_snackbar.dart';
 import '../../../../shared/widgets/profile_section.dart';
+import '../../../../shared/widgets/entry_more_menu.dart';
 import '../../domain/entities/experience.dart';
 import '../bloc/experience_bloc.dart';
 import '../pages/edit_experience_form_page.dart';
@@ -174,7 +176,7 @@ class _AddPositionCard extends StatelessWidget {
             child: Column(
               children: [
                 if (isFirst) ...[
-                  Icon(Icons.work_outline_rounded, color: scheme.primary),
+                  Icon(AppIcons.work, color: scheme.primary),
                   const SizedBox(height: 8),
                   Text(
                     'Add your first position',
@@ -238,56 +240,6 @@ class _DashedBorderPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_DashedBorderPainter old) => old.color != color;
-}
-
-enum _EntryAction { edit, delete }
-
-/// ⋮ menu on each card with Edit and Delete.
-class _EntryMenu extends StatelessWidget {
-  const _EntryMenu({this.onEdit, this.onDelete});
-
-  final VoidCallback? onEdit;
-  final VoidCallback? onDelete;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-
-    return PopupMenuButton<_EntryAction>(
-      tooltip: 'More options',
-      icon: Icon(Icons.more_vert_rounded, size: 20, color: scheme.outline),
-      style: IconButton.styleFrom(visualDensity: VisualDensity.compact),
-      position: PopupMenuPosition.under,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      onSelected: (action) => switch (action) {
-        _EntryAction.edit => onEdit?.call(),
-        _EntryAction.delete => onDelete?.call(),
-      },
-      itemBuilder: (context) => [
-        const PopupMenuItem(
-          value: _EntryAction.edit,
-          child: ListTile(
-            dense: true,
-            contentPadding: EdgeInsets.zero,
-            leading: Icon(Icons.edit_outlined, size: 20),
-            title: Text('Edit'),
-          ),
-        ),
-        const PopupMenuDivider(height: 1),
-        PopupMenuItem(
-          value: _EntryAction.delete,
-          child: ListTile(
-            dense: true,
-            contentPadding: EdgeInsets.zero,
-            iconColor: scheme.error,
-            textColor: scheme.error,
-            leading: const Icon(Icons.delete_outline_rounded, size: 20),
-            title: const Text('Delete'),
-          ),
-        ),
-      ],
-    );
-  }
 }
 
 /// Width of the organization tile on the timeline, and the gap after it.
@@ -410,9 +362,15 @@ class _TimelineEntryState extends State<_TimelineEntry> {
                         ],
                       ),
                     ),
-                    _EntryMenu(
-                      onEdit: widget.onEdit,
-                      onDelete: widget.onDelete,
+                    Padding(
+                      padding: const EdgeInsets.only(right: 4),
+                      child: EntryMoreMenu(
+                        title: item.jobTitle,
+                        subtitle: item.organizationName,
+                        editHint: 'Role, dates, responsibilities',
+                        onEdit: widget.onEdit,
+                        onDelete: widget.onDelete,
+                      ),
                     ),
                   ],
                 ),
@@ -429,10 +387,7 @@ class _TimelineEntryState extends State<_TimelineEntry> {
                           accent: isCurrent,
                         ),
                       if (typeLabel != null)
-                        _FactChip(
-                          icon: Icons.work_outline_rounded,
-                          label: typeLabel,
-                        ),
+                        _FactChip(icon: AppIcons.work, label: typeLabel),
                     ],
                   ),
                 ],
@@ -443,7 +398,7 @@ class _TimelineEntryState extends State<_TimelineEntry> {
                   children: [
                     if (item.period.isNotEmpty)
                       _IconText(
-                        icon: Icons.calendar_today_outlined,
+                        icon: AppIcons.calendar,
                         text: item.period,
                         style: muted,
                       ),

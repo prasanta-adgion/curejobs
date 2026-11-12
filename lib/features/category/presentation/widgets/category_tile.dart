@@ -1,3 +1,4 @@
+import 'package:curejobs/core/constants/app_icons.dart';
 import 'package:flutter/material.dart';
 
 import '../../domain/entities/category.dart';
@@ -70,7 +71,7 @@ class _CategoryListState extends State<CategoryList> {
                     ? const SizedBox.shrink()
                     : IconButton(
                         tooltip: 'Clear search',
-                        icon: const Icon(Icons.close_rounded),
+                        icon: const Icon(AppIcons.close),
                         onPressed: () {
                           _search.clear();
                           _query.value = '';

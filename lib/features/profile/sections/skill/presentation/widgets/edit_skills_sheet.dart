@@ -1,3 +1,4 @@
+import 'package:curejobs/core/constants/app_icons.dart';
 import 'package:flutter/material.dart';
 
 import '../../../../../../app/theme/app_colors.dart';
@@ -369,7 +370,7 @@ class _Header extends StatelessWidget {
           IconButton(
             tooltip: 'Close',
             onPressed: onClose,
-            icon: Icon(Icons.close_rounded, color: scheme.onSurfaceVariant),
+            icon: Icon(AppIcons.close, color: scheme.onSurfaceVariant),
           ),
         ],
       ),
@@ -737,7 +738,7 @@ class _AddedChip extends StatelessWidget {
               visualDensity: VisualDensity.compact,
               padding: EdgeInsets.zero,
               constraints: const BoxConstraints(minWidth: 34, minHeight: 34),
-              icon: Icon(Icons.close_rounded, size: 16, color: fg),
+              icon: Icon(AppIcons.close, size: 16, color: fg),
             ),
           ],
         ),

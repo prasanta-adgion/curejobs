@@ -1,36 +1,49 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../../../presentation/models/candidate_profile.dart';
-import 'certifications_section.dart';
+import '../../domain/entities/certification.dart';
+import '../bloc/certifications_bloc.dart';
+import '../models/certification_ui.dart';
+import '../page/certification_form_page.dart';
 
-/// Amber banner at the top of Qualifications when a certificate or licence
-/// is about to expire. Shows nothing when none are.
+/// Banner at the top of Qualifications when a certificate or licence is
+/// expiring (amber) or has expired (red). Shows nothing otherwise. Reads
+/// [CertificationsBloc] from the tree.
 class ExpiringCertificateBanner extends StatelessWidget {
-  const ExpiringCertificateBanner({
-    super.key,
-    required this.certificates,
-    this.onUpdate,
-  });
-
-  final List<ProfileCertificate> certificates;
-  final ValueChanged<ProfileCertificate>? onUpdate;
+  const ExpiringCertificateBanner({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final expiring = certificates
-        .where((c) => c.status == CertificateStatus.expiring)
-        .toList();
-    if (expiring.isEmpty) return const SizedBox.shrink();
+    return BlocBuilder<CertificationsBloc, CertificationsState>(
+      buildWhen: (prev, curr) => prev.items != curr.items,
+      builder: (context, state) {
+        final due = state.needingRenewal;
+        if (due.isEmpty) return const SizedBox.shrink();
+        return _Banner(due: due);
+      },
+    );
+  }
+}
 
+class _Banner extends StatelessWidget {
+  const _Banner({required this.due});
+
+  final List<Certification> due;
+
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final style = certificateStatusStyle(
-      CertificateStatus.expiring,
+    final first = due.first;
+    final anyExpired = due.any((c) => c.status == CertificationStatus.expired);
+    final style = certificationStatusStyle(
+      anyExpired ? CertificationStatus.expired : CertificationStatus.expiring,
       theme.colorScheme,
     );
-    final first = expiring.first;
-    final title = expiring.length == 1
-        ? '${first.title} is expiring'
-        : '${expiring.length} certificates are expiring';
+    final title = due.length == 1
+        ? first.status == CertificationStatus.expired
+              ? '${first.name} has expired'
+              : '${first.name} is expiring'
+        : '${due.length} certificates need renewal';
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 4),
@@ -56,7 +69,7 @@ class ExpiringCertificateBanner extends StatelessWidget {
                     ),
                   ),
                   Text(
-                    '${first.validity}. Upload the renewed certificate.',
+                    '${first.validityLabel}. Renew it to stay eligible.',
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: style.color,
                     ),
@@ -64,21 +77,18 @@ class ExpiringCertificateBanner extends StatelessWidget {
                 ],
               ),
             ),
-            // Hidden until updating a certificate is built.
-            if (onUpdate != null) ...[
-              const SizedBox(width: 8),
-              FilledButton(
-                onPressed: () => onUpdate!(first),
-                style: FilledButton.styleFrom(
-                  backgroundColor: style.color,
-                  foregroundColor: Colors.white,
-                  minimumSize: const Size(0, 34),
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                ),
-                child: const Text('Update'),
+            const SizedBox(width: 8),
+            FilledButton(
+              onPressed: () => openCertificationForm(context, first),
+              style: FilledButton.styleFrom(
+                backgroundColor: style.color,
+                foregroundColor: Colors.white,
+                minimumSize: const Size(0, 34),
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
-            ],
+              child: const Text('Update'),
+            ),
           ],
         ),
       ),
