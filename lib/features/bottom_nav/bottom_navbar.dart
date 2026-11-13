@@ -1,3 +1,4 @@
+import 'package:curejobs/features/apply_application/presentation/page/my_applications_page.dart';
 import 'package:flutter/material.dart';
 
 import 'dashboard_bottom_nav_bar.dart';
@@ -23,6 +24,7 @@ class _DashboardPageState extends State<DashboardPage> {
       switch (tab) {
         DashboardTab.home => const DashboardHomePage(),
         DashboardTab.profile => ProfilePage(onLoggedOut: _showLogin),
+        DashboardTab.applied => MyApplicationsPage(),
         _ => _ComingSoonTab(tab: tab),
       },
   ];

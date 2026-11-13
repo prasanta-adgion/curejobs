@@ -133,7 +133,7 @@ class _PhotoSourceSheet extends StatelessWidget {
                       style: TextButton.styleFrom(
                         foregroundColor: scheme.error,
                       ),
-                      icon: const Icon(Icons.delete_outline_rounded, size: 18),
+                      icon: const Icon(AppIcons.delete, size: 18),
                       label: const Text('Remove photo'),
                     )
                   else

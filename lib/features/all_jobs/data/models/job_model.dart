@@ -23,6 +23,20 @@ class JobModel extends Job {
     super.skills,
     super.categoryName,
     super.specializationName,
+    super.description,
+    super.qualificationText,
+    super.additionalRequirements,
+    super.address,
+    super.area,
+    super.country,
+    super.postalCode,
+    super.status,
+    super.closedAt,
+    super.expiredAt,
+    super.pausedAt,
+    super.isFeatured,
+    super.featuredLabel,
+    super.matchReasons,
   });
 
   factory JobModel.fromJson(Map<String, dynamic> json) {
@@ -61,6 +75,78 @@ class JobModel extends Job {
       ),
       categoryName: _name(json['category']),
       specializationName: _name(json['specialization']),
+      description: _html(json['description']),
+      qualificationText: _text(json['qualificationText']),
+      additionalRequirements: _text(json['additionalRequirements']),
+      address: _text(json['address']),
+      area: _text(json['area']),
+      country: _text(json['country']),
+      postalCode: _text(json['postalCode']),
+      status: JsonParser.nullableString(json['status']),
+      closedAt: JsonParser.dateTime(json['closedAt']),
+      expiredAt: JsonParser.dateTime(json['expiredAt']),
+      pausedAt: JsonParser.dateTime(json['pausedAt']),
+      isFeatured: JsonParser.boolean(json['isFeatured']),
+      featuredLabel: _text(json['featuredLabel']),
+      matchReasons: [
+        for (final reason in JsonParser.list(json['matchReasons']))
+          if (reason is String && reason.trim().isNotEmpty) reason.trim(),
+      ],
+    );
+  }
+
+  /// Trimmed text, or null when missing or blank.
+  static String? _text(Object? value) {
+    final text = JsonParser.nullableString(value)?.trim();
+    return text == null || text.isEmpty ? null : text;
+  }
+
+  /// The API stores the description as entity-encoded HTML
+  /// (`&#60;p&#62;` for `<p>`). Decode it back to plain HTML.
+  static String? _html(Object? value) {
+    final raw = _text(value);
+    if (raw == null) return null;
+    final html = decodeHtmlEntities(raw);
+    // Skip descriptions that are only empty tags.
+    final hasText = html.replaceAll(RegExp(r'<[^>]*>'), '').trim().isNotEmpty;
+    return hasText ? html : null;
+  }
+
+  static const _namedEntities = {
+    'amp': '&',
+    'lt': '<',
+    'gt': '>',
+    'quot': '"',
+    'apos': "'",
+    'nbsp': ' ',
+    'ndash': '–',
+    'mdash': '—',
+    'rsquo': '’',
+    'lsquo': '‘',
+    'rdquo': '”',
+    'ldquo': '“',
+    'hellip': '…',
+    'bull': '•',
+    'rupee': '₹',
+  };
+
+  /// Decodes `&#60;`, `&#x3C;` and named entities like `&amp;`.
+  /// Safe to call on text that is already decoded.
+  static String decodeHtmlEntities(String input) {
+    return input.replaceAllMapped(
+      RegExp(r'&(#x[0-9a-fA-F]+|#\d+|[a-zA-Z]+);'),
+      (m) {
+        final code = m[1]!;
+        if (code.startsWith('#x') || code.startsWith('#X')) {
+          final n = int.tryParse(code.substring(2), radix: 16);
+          return n == null ? m[0]! : String.fromCharCode(n);
+        }
+        if (code.startsWith('#')) {
+          final n = int.tryParse(code.substring(1));
+          return n == null ? m[0]! : String.fromCharCode(n);
+        }
+        return _namedEntities[code.toLowerCase()] ?? m[0]!;
+      },
     );
   }
 

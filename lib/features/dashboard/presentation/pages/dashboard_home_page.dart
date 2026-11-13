@@ -15,6 +15,7 @@ import '../widgets/dashboard_search_bar.dart';
 import '../widgets/job_filter_chips.dart';
 import '../widgets/jobs_for_you_section.dart';
 import '../widgets/profile_completion_card.dart';
+import '../../../job_details/presentation/pages/job_details_page.dart';
 
 class DashboardHomePage extends StatelessWidget {
   const DashboardHomePage({super.key});
@@ -240,7 +241,10 @@ class _DashboardHomeViewState extends State<_DashboardHomeView> {
                           },
                         ),
                   ),
-                  const JobsForYouSection(),
+                  JobsForYouSection(
+                    onJobTap: (job) =>
+                        Navigator.of(context).push(JobDetailsPage.route(job)),
+                  ),
                 ],
               ),
             ),

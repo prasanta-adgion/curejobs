@@ -31,7 +31,7 @@ class FlavorConfig {
         return const FlavorConfig(
           environment: Environment.staging,
           appName: 'CureJobs Staging',
-          baseUrl: 'https://api.curejobs.in/',
+          baseUrl: 'https://staging-api.curejobs.in/',
           enableLogging: true,
         );
 

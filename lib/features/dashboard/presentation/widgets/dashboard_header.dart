@@ -65,10 +65,10 @@ class DashboardHeader extends StatelessWidget {
               tooltip: 'Notifications',
               style: IconButton.styleFrom(
                 foregroundColor: AppColors.white,
+                backgroundColor: AppColors.white.withValues(alpha: 0.10),
                 minimumSize: const Size.square(42),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10),
-                  side: const BorderSide(color: outline),
                 ),
               ),
               icon: Badge(

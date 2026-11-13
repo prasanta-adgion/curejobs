@@ -49,11 +49,7 @@ class DeleteExperienceSheet extends StatelessWidget {
                   color: scheme.errorContainer,
                   shape: BoxShape.circle,
                 ),
-                child: Icon(
-                  Icons.delete_outline_rounded,
-                  color: scheme.error,
-                  size: 26,
-                ),
+                child: Icon(AppIcons.delete, color: scheme.error, size: 26),
               ),
             ),
             const SizedBox(height: 12),

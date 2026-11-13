@@ -31,7 +31,7 @@ class SkillsSection extends StatelessWidget {
     if (removed != null) {
       AppSnackbar.info(
         title: 'Removed "${removed.skill.name}"',
-        icon: Icons.delete_outline_rounded,
+        icon: AppIcons.delete,
         actionLabel: 'Undo',
         onAction: () =>
             bloc.add(SkillRestored(removed.skill.name, index: removed.index)),

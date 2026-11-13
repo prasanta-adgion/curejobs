@@ -521,7 +521,7 @@ class _BottomBar extends StatelessWidget {
                       side: BorderSide(color: scheme.error),
                       minimumSize: const Size.fromHeight(48),
                     ),
-                    icon: const Icon(Icons.delete_outline_rounded, size: 18),
+                    icon: const Icon(AppIcons.delete, size: 18),
                     label: const Text('Remove'),
                   ),
                 ),

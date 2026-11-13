@@ -15,7 +15,7 @@ class JobRemoteDataSourceImpl implements JobRemoteDataSource {
   @override
   Future<JobPageModel> getJobs({required int page, required int limit}) {
     return _client.get<JobPageModel>(
-      ApiEndpoints.jobs,
+      ApiEndpoints.jobsRecommended,
       queryParameters: {'page': page, 'limit': limit},
       decoder: JobPageModel.fromJson,
     );

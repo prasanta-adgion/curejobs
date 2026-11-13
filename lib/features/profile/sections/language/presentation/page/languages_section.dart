@@ -64,10 +64,7 @@ class _LanguagesView extends StatelessWidget {
       case LanguageChange.updated:
         AppSnackbar.success(title: 'Language updated');
       case LanguageChange.removed:
-        AppSnackbar.info(
-          title: 'Language removed',
-          icon: Icons.delete_outline_rounded,
-        );
+        AppSnackbar.info(title: 'Language removed', icon: AppIcons.delete);
       case null:
         break;
     }

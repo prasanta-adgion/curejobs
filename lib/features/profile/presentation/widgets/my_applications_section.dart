@@ -1,3 +1,4 @@
+import 'package:curejobs/features/apply_application/presentation/page/my_applications_page.dart';
 import 'package:flutter/material.dart';
 
 import '../../../../app/theme/app_colors.dart';
@@ -37,12 +38,10 @@ class MyApplicationsSection extends StatelessWidget {
   const MyApplicationsSection({
     super.key,
     required this.counts,
-    this.onViewAll,
     this.showDivider = false,
   });
 
   final ApplicationCounts counts;
-  final VoidCallback? onViewAll;
   final bool showDivider;
 
   @override
@@ -63,7 +62,12 @@ class MyApplicationsSection extends StatelessWidget {
       action: SectionAction(
         label: 'View all',
         icon: Icons.chevron_right,
-        onPressed: onViewAll,
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const MyApplicationsPage()),
+          );
+        },
       ),
       child: Column(
         children: [

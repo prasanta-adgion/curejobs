@@ -37,6 +37,26 @@ class Job extends Equatable {
   final String? categoryName;
   final String? specializationName;
 
+  /// Job description as HTML (entities already decoded).
+  final String? description;
+  final String? qualificationText;
+  final String? additionalRequirements;
+  final String? address;
+  final String? area;
+  final String? country;
+  final String? postalCode;
+
+  /// API status, e.g. `PUBLISHED`, `PAUSED`, `CLOSED`, `EXPIRED`.
+  final String? status;
+  final DateTime? closedAt;
+  final DateTime? expiredAt;
+  final DateTime? pausedAt;
+  final bool isFeatured;
+  final String? featuredLabel;
+
+  /// Why this job was recommended, e.g. "Near you: Kolkata".
+  final List<String> matchReasons;
+
   const Job({
     required this.id,
     required this.title,
@@ -58,9 +78,32 @@ class Job extends Equatable {
     this.skills = const [],
     this.categoryName,
     this.specializationName,
+    this.description,
+    this.qualificationText,
+    this.additionalRequirements,
+    this.address,
+    this.area,
+    this.country,
+    this.postalCode,
+    this.status,
+    this.closedAt,
+    this.expiredAt,
+    this.pausedAt,
+    this.isFeatured = false,
+    this.featuredLabel,
+    this.matchReasons = const [],
   });
 
   bool get hasSalary => salaryMinMinor != null || salaryMaxMinor != null;
+
+  /// Not accepting applications: paused, closed, expired, or status says so.
+  bool get isClosed {
+    final s = status?.toUpperCase();
+    return closedAt != null ||
+        expiredAt != null ||
+        pausedAt != null ||
+        (s != null && s != 'PUBLISHED');
+  }
 
   /// Published within the last 24 hours of [now].
   bool isNewAt(DateTime now) {
@@ -90,6 +133,20 @@ class Job extends Equatable {
     organization,
     categoryName,
     specializationName,
+    description,
+    qualificationText,
+    additionalRequirements,
+    address,
+    area,
+    country,
+    postalCode,
+    status,
+    closedAt,
+    expiredAt,
+    pausedAt,
+    isFeatured,
+    featuredLabel,
+    matchReasons,
   ];
 }
 

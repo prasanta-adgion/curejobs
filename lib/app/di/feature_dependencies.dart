@@ -1,4 +1,6 @@
 import 'package:get_it/get_it.dart';
+import '../../features/job_details/di/job_details_dependencies.dart';
+import '../../features/apply_application/di/apply_application_dependencies.dart';
 
 import '../../features/auth/login/di/login_dependencies.dart';
 import '../../features/auth/otp_verification/di/otp_verification_dependencies.dart';
@@ -30,4 +32,6 @@ void registerFeatureDependencies(GetIt sl) {
   registerSpecializationDependencies(sl);
   registerMediaPreviewDependencies(sl);
   registerCreateAccountDependencies(sl);
+  registerApplyApplicationDependencies(sl);
+  registerJobDetailsDependencies(sl);
 }
