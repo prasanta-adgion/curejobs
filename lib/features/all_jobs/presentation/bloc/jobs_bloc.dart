@@ -2,16 +2,18 @@ import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../domain/entities/job.dart';
+import '../../domain/entities/job_feed.dart';
 import '../../domain/usecases/get_jobs_usecase.dart';
 
 part 'jobs_event.dart';
 part 'jobs_state.dart';
 
-/// Loads "Jobs for you" a page at a time.
+/// Loads one [JobFeed] a page at a time. Use one bloc per feed.
 class JobsBloc extends Bloc<JobsEvent, JobsState> {
   final GetJobsUseCase _getJobs;
+  final JobFeed feed;
 
-  JobsBloc(this._getJobs) : super(const JobsState()) {
+  JobsBloc(this._getJobs, {required this.feed}) : super(const JobsState()) {
     // Extra requests are ignored while one of the same kind is in flight.
     on<JobsRequested>(_onRequested);
     on<JobsNextPageRequested>(_onNextPage);
@@ -24,7 +26,7 @@ class JobsBloc extends Bloc<JobsEvent, JobsState> {
     if (state.status == JobsStatus.loading) return;
     emit(state.copyWith(status: JobsStatus.loading, clearError: true));
 
-    final result = await _getJobs(page: 1);
+    final result = await _getJobs(feed: feed, page: 1);
 
     result.fold(
       (page) => emit(
@@ -56,7 +58,7 @@ class JobsBloc extends Bloc<JobsEvent, JobsState> {
     }
     emit(state.copyWith(isLoadingMore: true, clearError: true));
 
-    final result = await _getJobs(page: state.page + 1);
+    final result = await _getJobs(feed: feed, page: state.page + 1);
 
     result.fold(
       (page) => emit(

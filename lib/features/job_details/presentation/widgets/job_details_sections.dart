@@ -3,8 +3,8 @@ import 'package:flutter_widget_from_html_core/flutter_widget_from_html_core.dart
 
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_radius.dart';
-import '../../../dashboard/domain/entities/job.dart';
-import '../../../dashboard/presentation/formatters/job_formatter.dart';
+import '../../../all_jobs/domain/entities/job.dart';
+import '../../../all_jobs/presentation/formatters/job_formatter.dart';
 
 part 'job_details_more_sections.dart';
 

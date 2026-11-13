@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../domain/entities/job.dart';
-import '../bloc/jobs_bloc.dart';
-import 'job_card.dart';
+import '../../../all_jobs/domain/entities/job.dart';
+import '../../../all_jobs/presentation/bloc/jobs_bloc.dart';
+import '../../../all_jobs/presentation/widgets/job_card.dart';
 
 /// "JOBS FOR YOU" heading and list, as slivers. Reads [JobsBloc] and shows
 /// placeholders, an error with retry, an empty message, or the jobs.

@@ -6,24 +6,13 @@ import '../../domain/entities/job.dart';
 import '../formatters/job_formatter.dart';
 
 /// A job listing as a white bordered card: title with badge, employer and
-/// city, highlighted requirements, then salary, posted date and Apply.
+/// city, highlighted requirements, match reasons, then salary and posted
+/// time. Tapping the card opens the job.
 class JobCard extends StatelessWidget {
-  const JobCard({
-    super.key,
-    required this.job,
-    this.isApplied = false,
-    this.onTap,
-    this.onApply,
-  });
+  const JobCard({super.key, required this.job, this.onTap});
 
   final Job job;
-
-  /// Shows a green "Applied" label instead of the Apply button.
-  final bool isApplied;
   final VoidCallback? onTap;
-
-  /// Defaults to [onTap] when not set.
-  final VoidCallback? onApply;
 
   @override
   Widget build(BuildContext context) {
@@ -35,7 +24,7 @@ class JobCard extends StatelessWidget {
     );
     final now = DateTime.now();
     final salary = JobFormatter.salary(job);
-    final posted = _postedLabel(JobFormatter.posted(job.publishedAt, now));
+    final posted = JobFormatter.posted(job.publishedAt, now);
     final subtitle = [
       job.organization.name,
       ?JobFormatter.location(job),
@@ -47,50 +36,59 @@ class JobCard extends StatelessWidget {
       if (job.specializationName case final specialization?)
         (Icons.monitor_heart_outlined, specialization),
     ];
+    final match = _matchSummary(job.matchReasons);
     final borderColor = isDark ? AppColors.darkBorder : AppColors.lightBorder;
-    final radius = BorderRadius.circular(AppRadius.medium);
+    final green = isDark ? AppColors.successDark : AppColors.success;
+
+    final Widget? badge = job.isSponsored
+        ? _Badge(
+            label: job.sponsoredLabel ?? 'Sponsored',
+            color: scheme.primary,
+            background: scheme.primaryContainer,
+          )
+        : job.isNewAt(now)
+        ? const _Badge(
+            label: 'New',
+            color: AppColors.success,
+            background: AppColors.successLight,
+          )
+        : null;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Material(
         color: scheme.surface,
         shape: RoundedRectangleBorder(
-          borderRadius: radius,
+          borderRadius: BorderRadius.circular(AppRadius.medium),
           side: BorderSide(color: borderColor),
         ),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
           onTap: onTap,
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
+            padding: const EdgeInsets.all(14),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Flexible(
+                    Expanded(
                       child: Text(
                         job.title,
-                        maxLines: 1,
+                        maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                         style: theme.textTheme.titleSmall?.copyWith(
                           fontWeight: FontWeight.w600,
+                          height: 1.3,
                         ),
                       ),
                     ),
-                    if (job.isSponsored) ...[
-                      const SizedBox(width: 6),
-                      _Badge(
-                        label: job.sponsoredLabel ?? 'Sponsored',
-                        color: scheme.primary,
-                        background: scheme.primaryContainer,
-                      ),
-                    ] else if (job.isNewAt(now)) ...[
-                      const SizedBox(width: 6),
-                      const _Badge(
-                        label: 'New',
-                        color: AppColors.success,
-                        background: AppColors.successLight,
+                    if (badge != null) ...[
+                      const SizedBox(width: 8),
+                      Padding(
+                        padding: const EdgeInsets.only(top: 1),
+                        child: badge,
                       ),
                     ],
                   ],
@@ -123,20 +121,39 @@ class JobCard extends StatelessWidget {
                       _Highlight(icon: icon, label: label),
                   ],
                 ),
+                if (match != null) ...[
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.check_circle_outline_rounded,
+                        size: 14,
+                        color: green,
+                      ),
+                      const SizedBox(width: 4),
+                      Expanded(
+                        child: Text(
+                          match,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: green,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
                 const SizedBox(height: 12),
                 Divider(height: 1, thickness: 1, color: borderColor),
                 const SizedBox(height: 10),
                 Row(
-                  crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          if (salary == null)
-                            Text('Salary not disclosed', style: muted)
-                          else
-                            Text.rich(
+                      child: salary == null
+                          ? Text('Salary not disclosed', style: muted)
+                          : Text.rich(
                               TextSpan(
                                 text: salary,
                                 style: theme.textTheme.titleSmall?.copyWith(
@@ -154,44 +171,22 @@ class JobCard extends StatelessWidget {
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                             ),
-                          if (posted != null) ...[
-                            const SizedBox(height: 3),
-                            Row(
-                              children: [
-                                Icon(
-                                  Icons.calendar_today_outlined,
-                                  size: 13,
-                                  color: scheme.outline,
-                                ),
-                                const SizedBox(width: 4),
-                                Text(posted, style: muted),
-                              ],
-                            ),
-                          ],
-                        ],
-                      ),
                     ),
-                    const SizedBox(width: 12),
-                    if (isApplied)
-                      const _AppliedLabel()
-                    else
-                      FilledButton(
-                        onPressed: onApply ?? onTap,
-                        style: FilledButton.styleFrom(
-                          minimumSize: const Size(0, 34),
-                          padding: const EdgeInsets.symmetric(horizontal: 18),
-                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                          textStyle: theme.textTheme.labelLarge?.copyWith(
-                            fontWeight: FontWeight.w600,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(
-                              AppRadius.small,
-                            ),
-                          ),
-                        ),
-                        child: const Text('Apply'),
+                    if (posted.isNotEmpty) ...[
+                      const SizedBox(width: 12),
+                      Icon(
+                        Icons.schedule_rounded,
+                        size: 13,
+                        color: scheme.outline,
                       ),
+                      const SizedBox(width: 4),
+                      Text(
+                        posted,
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: scheme.outline,
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ],
@@ -202,13 +197,10 @@ class JobCard extends StatelessWidget {
     );
   }
 
-  /// "Posted today", "Posted 4 days ago", "Posted 29 Sep".
-  static String? _postedLabel(String posted) {
-    if (posted.isEmpty) return null;
-    final lower = posted == 'Today' || posted == 'Yesterday'
-        ? posted.toLowerCase()
-        : posted;
-    return 'Posted $lower';
+  /// "Your field: Nursing", "Near you: Kolkata" → "Your field · Near you".
+  static String? _matchSummary(List<String> reasons) {
+    if (reasons.isEmpty) return null;
+    return reasons.map((r) => r.split(':').first.trim()).join(' · ');
   }
 }
 
@@ -249,39 +241,6 @@ class _Highlight extends StatelessWidget {
   }
 }
 
-class _AppliedLabel extends StatelessWidget {
-  const _AppliedLabel();
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final color = isDark ? AppColors.successDark : AppColors.success;
-    return Container(
-      height: 34,
-      padding: const EdgeInsets.symmetric(horizontal: 12),
-      decoration: BoxDecoration(
-        color: isDark ? color.withValues(alpha: 0.16) : AppColors.successLight,
-        borderRadius: BorderRadius.circular(AppRadius.small),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.check_rounded, size: 16, color: color),
-          const SizedBox(width: 4),
-          Text(
-            'Applied',
-            style: theme.textTheme.labelLarge?.copyWith(
-              color: color,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 class _Badge extends StatelessWidget {
   const _Badge({
     required this.label,
@@ -296,7 +255,7 @@ class _Badge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
       decoration: BoxDecoration(
         color: background,
         borderRadius: BorderRadius.circular(5),

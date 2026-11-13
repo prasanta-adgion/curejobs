@@ -7,7 +7,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../app/di/injection_container.dart';
 import '../../../profile/presentation/bloc/candidate_profile_bloc.dart';
-import '../bloc/jobs_bloc.dart';
+import '../../../all_jobs/domain/entities/job_feed.dart';
+import '../../../all_jobs/presentation/bloc/jobs_bloc.dart';
 import '../models/job_filters.dart';
 import '../widgets/dashboard_compact_search.dart';
 import '../widgets/dashboard_header.dart';
@@ -24,7 +25,11 @@ class DashboardHomePage extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiBlocProvider(
       providers: [
-        BlocProvider(create: (_) => sl<JobsBloc>()..add(const JobsRequested())),
+        BlocProvider(
+          create: (_) =>
+              sl<JobsBloc>(param1: JobFeed.recommended)
+                ..add(const JobsRequested()),
+        ),
         // Reuses the profile feature's bloc for the greeting and nudge.
         BlocProvider(
           create: (_) =>

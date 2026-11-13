@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import '../../../../app/di/injection_container.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_radius.dart';
-import '../../../dashboard/domain/entities/job.dart';
-import '../../../dashboard/presentation/formatters/job_formatter.dart';
+import '../../../all_jobs/domain/entities/job.dart';
+import '../../../all_jobs/presentation/formatters/job_formatter.dart';
 import '../../domain/usecases/track_job_view_usecase.dart';
 import '../widgets/job_details_sections.dart';
 
