@@ -310,7 +310,7 @@ class DeleteEducationButton extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
           child: Row(
             children: [
-              Icon(Icons.delete_outline_rounded, size: 20, color: error),
+              Icon(AppIcons.delete, size: 20, color: error),
               const SizedBox(width: 10),
               Expanded(
                 child: Text(

@@ -1,3 +1,4 @@
+import 'package:curejobs/core/constants/app_icons.dart';
 import 'package:flutter/material.dart';
 
 import '../../domain/entities/education.dart';
@@ -48,11 +49,7 @@ class DeleteEducationSheet extends StatelessWidget {
                   color: scheme.errorContainer,
                   borderRadius: BorderRadius.circular(16),
                 ),
-                child: Icon(
-                  Icons.delete_outline_rounded,
-                  color: scheme.error,
-                  size: 26,
-                ),
+                child: Icon(AppIcons.delete, color: scheme.error, size: 26),
               ),
             ),
             const SizedBox(height: 12),

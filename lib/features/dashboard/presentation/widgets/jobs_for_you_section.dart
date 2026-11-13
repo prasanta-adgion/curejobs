@@ -1,17 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../domain/entities/job.dart';
-import '../bloc/jobs_bloc.dart';
-import 'job_card.dart';
+import '../../../all_jobs/domain/entities/job.dart';
+import '../../../all_jobs/presentation/bloc/jobs_bloc.dart';
+import '../../../all_jobs/presentation/widgets/job_card.dart';
 
 /// "JOBS FOR YOU" heading and list, as slivers. Reads [JobsBloc] and shows
 /// placeholders, an error with retry, an empty message, or the jobs.
 class JobsForYouSection extends StatelessWidget {
-  const JobsForYouSection({super.key, this.onJobTap, this.onSaveTap});
+  const JobsForYouSection({super.key, this.onJobTap});
 
   final ValueChanged<Job>? onJobTap;
-  final ValueChanged<Job>? onSaveTap;
 
   @override
   Widget build(BuildContext context) {
@@ -51,18 +50,12 @@ class JobsForYouSection extends StatelessWidget {
             else ...[
               SliverList.separated(
                 itemCount: state.jobs.length,
-                separatorBuilder: (context, _) => Divider(
-                  height: 1,
-                  indent: 20,
-                  endIndent: 20,
-                  color: Theme.of(context).colorScheme.outlineVariant,
-                ),
+                separatorBuilder: (_, _) => const SizedBox(height: 10),
                 itemBuilder: (context, index) {
                   final job = state.jobs[index];
                   return JobCard(
                     job: job,
                     onTap: onJobTap == null ? null : () => onJobTap!(job),
-                    onSaveTap: onSaveTap == null ? null : () => onSaveTap!(job),
                   );
                 },
               ),
@@ -98,7 +91,7 @@ class _Heading extends StatelessWidget {
       child: Row(
         children: [
           Text(
-            'JOBS FOR YOU',
+            'Recommended JOBS FOR YOU'.toUpperCase(),
             style: theme.textTheme.labelSmall?.copyWith(
               // color: scheme.primary,
               fontWeight: FontWeight.w600,

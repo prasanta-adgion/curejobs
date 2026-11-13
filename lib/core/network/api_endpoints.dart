@@ -10,6 +10,7 @@ class ApiEndpoints {
   static const String candidateProfile = 'api/v1/candidates/me';
   static const String categories = 'api/v1/categories';
   static const String jobs = 'api/v1/jobs';
+  static const String jobsRecommended = 'api/v1/jobs/recommended';
   static const String unreadNotifications = 'api/v1/notifications/unread-count';
   static const String logout = 'api/v1/auth/logout';
   static String specializationsByCategory({required String categoryId}) =>
@@ -40,4 +41,15 @@ class ApiEndpoints {
 
   static const String certificates = 'api/v1/candidates/me/certifications';
   static String certificateById({required String id}) => '$certificates/$id';
+
+  static const String applyApplications = 'api/v1/applications/me';
+  static String applyApplicationById({required String id}) =>
+      'api/v1/applications/me/$id';
+
+  static String withdrawApplication({required String id}) =>
+      'api/v1/applications/me/$id/withdraw';
+
+  //job view analytics
+  static String jobViewAnalytics({required String id}) =>
+      'api/v1/jobs/$id/analytics/view';
 }

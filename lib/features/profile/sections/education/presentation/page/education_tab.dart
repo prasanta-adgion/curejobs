@@ -1,3 +1,4 @@
+import 'package:curejobs/core/constants/app_icons.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -67,10 +68,7 @@ class _EducationView extends StatelessWidget {
       return;
     }
     if (state.deleted) {
-      AppSnackbar.info(
-        title: 'Education deleted',
-        icon: Icons.delete_outline_rounded,
-      );
+      AppSnackbar.info(title: 'Education deleted', icon: AppIcons.delete);
     }
   }
 

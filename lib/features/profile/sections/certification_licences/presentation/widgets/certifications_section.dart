@@ -1,3 +1,4 @@
+import 'package:curejobs/core/constants/app_icons.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -30,10 +31,7 @@ class CertificationsSection extends StatelessWidget {
         message: failure.message,
       );
     } else if (state.deleted) {
-      AppSnackbar.info(
-        title: 'Certificate deleted',
-        icon: Icons.delete_outline_rounded,
-      );
+      AppSnackbar.info(title: 'Certificate deleted', icon: AppIcons.delete);
     }
   }
 

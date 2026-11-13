@@ -1,3 +1,4 @@
+import 'package:curejobs/core/constants/app_icons.dart';
 import 'package:flutter/material.dart';
 
 enum _EntryAction { edit, delete }
@@ -101,7 +102,7 @@ class _EntryMoreMenuState extends State<EntryMoreMenu> {
           height: 0,
           padding: EdgeInsets.zero,
           child: _MenuRow(
-            icon: Icons.delete_outline_rounded,
+            icon: AppIcons.delete,
             label: 'Delete',
             subtitle: 'Remove from your profile',
             color: scheme.error,
