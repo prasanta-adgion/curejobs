@@ -49,10 +49,8 @@ final class LocalSearchHistoryStorage implements SearchHistoryStorage {
   @override
   Future<List<SearchQuery>> save(SearchQuery query) async {
     if (query.isEmpty) return load();
-    final entry = SearchQuery(
-      keyword: query.keyword.trim(),
-      location: query.location.trim(),
-    );
+    // Keeps the ids and place parts so a recent search reruns the same way.
+    final entry = SearchQuery.fromJson(query.toJson());
     final items = [
       entry,
       ...(await load()).where((item) => !item.sameAs(entry)),

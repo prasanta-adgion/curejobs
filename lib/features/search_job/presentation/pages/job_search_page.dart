@@ -3,6 +3,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../app/di/injection_container.dart';
 import '../../../../app/theme/app_radius.dart';
+import '../../../create_account/domain/entities/location_suggestion.dart';
+import '../../../create_account/domain/enums/location_type.dart';
+import '../../domain/entities/job_suggestion.dart';
 import '../../domain/entities/search_query.dart';
 import '../bloc/job_suggestions_bloc.dart';
 import '../bloc/search_location_suggestions_bloc.dart';
@@ -69,6 +72,10 @@ class _JobSearchPageState extends State<JobSearchPage> {
   String? _lastKeyword;
   String? _lastLocation;
 
+  /// Ids and place parts from picked suggestions (and any filters the
+  /// screen was opened with). Not UI state, so no notifier.
+  late SearchQuery _filters = widget.initialQuery;
+
   @override
   void initState() {
     super.initState();
@@ -130,8 +137,24 @@ class _JobSearchPageState extends State<JobSearchPage> {
     _locationSuggestions.add(SearchLocationQueryChanged(text));
   }
 
-  /// Fills the keyword and moves on to the location field.
+  /// Plain keyword (popular or recent): clears any category/specialization.
   void _pickKeyword(String value) {
+    _filters = _filters.withKeyword(value);
+    _fillKeyword(value);
+  }
+
+  /// API suggestion: keeps whichever ids it has for the search.
+  void _pickJobSuggestion(JobSuggestion s) {
+    _filters = _filters.withKeyword(
+      s.value,
+      categoryId: s.categoryId,
+      specializationId: s.specializationId,
+    );
+    _fillKeyword(s.value);
+  }
+
+  /// Fills the keyword and moves on to the location field.
+  void _fillKeyword(String value) {
     _lastKeyword = value;
     _keywordController.value = TextEditingValue(
       text: value,
@@ -159,8 +182,29 @@ class _JobSearchPageState extends State<JobSearchPage> {
     });
   }
 
-  /// Fills the location and runs the search.
+  /// Plain location text: searched as `location`, no place parts.
   void _pickLocation(String value) {
+    _filters = _filters.withLocation(value);
+    _fillLocation(value);
+  }
+
+  /// API suggestion: sends its area/city/state, by type.
+  void _pickLocationSuggestion(LocationSuggestion s, String label) {
+    _filters = switch (s.type) {
+      LocationType.area => _filters.withLocation(
+        label,
+        area: s.value,
+        city: s.city,
+        state: s.state,
+      ),
+      LocationType.state => _filters.withLocation(label, state: s.value),
+      _ => _filters.withLocation(label, city: s.value, state: s.state),
+    };
+    _fillLocation(label);
+  }
+
+  /// Fills the location and runs the search.
+  void _fillLocation(String value) {
     _lastLocation = value;
     _locationController.text = value;
     _search();
@@ -181,13 +225,19 @@ class _JobSearchPageState extends State<JobSearchPage> {
     // TODO: open app settings when a permission package is added.
   }
 
+  /// The field text plus the picked filters. If the user edited a field
+  /// after picking, that field's ids/place parts no longer apply.
+  SearchQuery _currentQuery() {
+    final keyword = _keywordController.text.trim();
+    final location = _locationController.text.trim();
+    var q = _filters;
+    if (keyword != q.keyword.trim()) q = q.withKeyword(keyword);
+    if (location != q.location.trim()) q = q.withLocation(location);
+    return q;
+  }
+
   void _search([SearchQuery? query]) {
-    final q =
-        query ??
-        SearchQuery(
-          keyword: _keywordController.text.trim(),
-          location: _locationController.text.trim(),
-        );
+    final q = query ?? _currentQuery();
     if (q.isEmpty) {
       _keywordFocus.requestFocus();
       return;
@@ -258,6 +308,7 @@ class _JobSearchPageState extends State<JobSearchPage> {
                           text: _keywordController,
                           bloc: _keywordSuggestions,
                           onKeywordPicked: _pickKeyword,
+                          onSuggestionPicked: _pickJobSuggestion,
                           onRecentSearch: _search,
                         )
                       : LocationSuggestionList(
@@ -265,6 +316,7 @@ class _JobSearchPageState extends State<JobSearchPage> {
                           bloc: _locationSuggestions,
                           locating: _locating,
                           onLocationPicked: _pickLocation,
+                          onSuggestionPicked: _pickLocationSuggestion,
                           onUseCurrentLocation: _useCurrentLocation,
                         ),
                 ),

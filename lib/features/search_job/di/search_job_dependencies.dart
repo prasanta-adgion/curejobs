@@ -3,7 +3,12 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../core/network/api_client.dart';
 import '../../create_account/domain/usecases/get_location_suggestions_usecase.dart';
+import '../data/datasources/job_search_remote_data_source.dart';
 import '../data/datasources/job_suggestion_remote_data_source.dart';
+import '../data/repositories/job_search_repository_impl.dart';
+import '../domain/repositories/job_search_repository.dart';
+import '../domain/usecases/search_jobs_usecase.dart';
+import '../presentation/bloc/job_search_results_bloc.dart';
 import '../data/repositories/job_suggestion_repository_impl.dart';
 import '../data/search_history_storage.dart';
 import '../domain/repositories/job_suggestion_repository.dart';
@@ -40,6 +45,20 @@ void registerSearchJobDependencies(GetIt sl) {
   // New bloc per search screen.
   sl.registerFactory<JobSuggestionsBloc>(
     () => JobSuggestionsBloc(sl<GetJobSuggestionsUseCase>()),
+  );
+
+  // Job search (results screen).
+  sl.registerLazySingleton<JobSearchRemoteDataSource>(
+    () => JobSearchRemoteDataSourceImpl(sl<ApiClient>()),
+  );
+  sl.registerLazySingleton<JobSearchRepository>(
+    () => JobSearchRepositoryImpl(sl<JobSearchRemoteDataSource>()),
+  );
+  sl.registerLazySingleton<SearchJobsUseCase>(
+    () => SearchJobsUseCase(sl<JobSearchRepository>()),
+  );
+  sl.registerFactory<JobSearchResultsBloc>(
+    () => JobSearchResultsBloc(sl<SearchJobsUseCase>()),
   );
 
   // Location suggestions (AREA, CITY and STATE per query). Reuses the

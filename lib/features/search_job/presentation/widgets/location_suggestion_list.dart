@@ -16,6 +16,7 @@ class LocationSuggestionList extends StatelessWidget {
     required this.bloc,
     required this.locating,
     required this.onLocationPicked,
+    required this.onSuggestionPicked,
     required this.onUseCurrentLocation,
   });
 
@@ -25,7 +26,14 @@ class LocationSuggestionList extends StatelessWidget {
 
   /// True while the current location is being looked up.
   final ValueListenable<bool> locating;
+
+  /// Plain text picked (recent, typed or anywhere); no place parts.
   final ValueChanged<String> onLocationPicked;
+
+  /// An API suggestion picked, with the label shown for it; the page sends
+  /// its area/city/state to the search.
+  final void Function(LocationSuggestion suggestion, String label)
+  onSuggestionPicked;
   final VoidCallback onUseCurrentLocation;
 
   static const _minChars = SearchLocationSuggestionsBloc.minLength;
@@ -90,7 +98,7 @@ class LocationSuggestionList extends StatelessWidget {
       for (final s in state.suggestions)
         if (locationLabel(s) case final label
             when seen.add(label.toLowerCase()))
-          (label: label, type: s.type),
+          (label: label, type: s.type, suggestion: s),
     ];
     return [
       const SizedBox(height: 4),
@@ -100,7 +108,7 @@ class LocationSuggestionList extends StatelessWidget {
           title: row.label,
           subtitle: _typeLabel(row.type),
           query: query,
-          onTap: () => onLocationPicked(row.label),
+          onTap: () => onSuggestionPicked(row.suggestion, row.label),
         ),
       if (state.hasError)
         SearchListNote(

@@ -25,13 +25,19 @@ class JobSuggestionList extends StatefulWidget {
     required this.text,
     required this.bloc,
     required this.onKeywordPicked,
+    required this.onSuggestionPicked,
     required this.onRecentSearch,
   });
 
   /// The keyword field's text.
   final ValueListenable<TextEditingValue> text;
   final JobSuggestionsBloc bloc;
+
+  /// Plain text picked (popular or recent keyword); no ids.
   final ValueChanged<String> onKeywordPicked;
+
+  /// An API suggestion picked; carries its category/specialization ids.
+  final ValueChanged<JobSuggestion> onSuggestionPicked;
   final ValueChanged<SearchQuery> onRecentSearch;
 
   @override
@@ -131,11 +137,14 @@ class _JobSuggestionListState extends State<JobSuggestionList> {
     List<SearchQuery> history,
     JobSuggestionsState state,
   ) {
-    final recent = _matchingRecent(text, history);
-    final shown = recent.map((k) => k.toLowerCase()).toSet();
-    final suggestions = state.suggestions
-        .where((s) => !shown.contains(s.value.toLowerCase()))
-        .toList();
+    // API suggestions carry category/specialization ids, so when a recent
+    // keyword has the same text, keep the suggestion and drop the recent row.
+    final suggestions = state.suggestions;
+    final suggested = suggestions.map((s) => s.value.toLowerCase()).toSet();
+    final recent = _matchingRecent(
+      text,
+      history,
+    ).where((k) => !suggested.contains(k.toLowerCase())).toList();
 
     return [
       const SizedBox(height: 4),
@@ -153,7 +162,7 @@ class _JobSuggestionListState extends State<JobSuggestionList> {
           subtitle: _hint(s),
           query: text,
           trailingText: _jobCount(s),
-          onTap: () => widget.onKeywordPicked(s.value),
+          onTap: () => widget.onSuggestionPicked(s),
         ),
       if (state.hasError)
         SearchListNote(

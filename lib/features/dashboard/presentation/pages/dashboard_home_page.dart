@@ -126,10 +126,20 @@ class _DashboardHomeViewState extends State<_DashboardHomeView> {
     return parts.join(' · ');
   }
 
-  SearchQuery get _currentQuery => SearchQuery(
-    keyword: _keywordController.text,
-    location: _locationController.text,
-  );
+  /// Last query put in the fields (from a recent search), with its ids and
+  /// place parts, so Find jobs and the search screen keep them.
+  SearchQuery _lastQuery = const SearchQuery();
+
+  /// The field text plus [_lastQuery]'s filters; a field whose text no
+  /// longer matches loses its ids/place parts.
+  SearchQuery get _currentQuery {
+    final keyword = _keywordController.text.trim();
+    final location = _locationController.text.trim();
+    var q = _lastQuery;
+    if (keyword != q.keyword.trim()) q = q.withKeyword(keyword);
+    if (location != q.location.trim()) q = q.withLocation(location);
+    return q;
+  }
 
   void _openSearch([SearchField field = SearchField.keyword]) {
     Navigator.of(context).push(
@@ -150,6 +160,7 @@ class _DashboardHomeViewState extends State<_DashboardHomeView> {
 
   /// Runs a recent search again with its own keyword and location.
   void _openRecent(SearchQuery query) {
+    _lastQuery = query;
     _keywordController.text = query.keyword;
     _locationController.text = query.location;
     _showResults(query);
