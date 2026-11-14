@@ -1,5 +1,4 @@
 import 'package:curejobs/features/appearance_page.dart';
-import 'package:curejobs/features/create_account/presentation/pages/create_account_page.dart';
 import 'package:curejobs/features/profile/presentation/pages/profile_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -17,6 +16,12 @@ import '../widgets/job_filter_chips.dart';
 import '../widgets/jobs_for_you_section.dart';
 import '../widgets/profile_completion_card.dart';
 import '../../../job_details/presentation/pages/job_details_page.dart';
+import '../../../search_job/domain/entities/search_query.dart';
+import '../../../search_job/presentation/cubit/search_history_cubit.dart';
+import '../../../search_job/presentation/pages/job_search_page.dart';
+import '../../../search_job/presentation/pages/job_search_results_page.dart';
+import '../../../search_job/presentation/widgets/recent_search_chips.dart';
+import '../../../search_job/presentation/widgets/search_fields_card.dart';
 
 class DashboardHomePage extends StatelessWidget {
   const DashboardHomePage({super.key});
@@ -121,6 +126,52 @@ class _DashboardHomeViewState extends State<_DashboardHomeView> {
     return parts.join(' · ');
   }
 
+  /// Last query put in the fields (from a recent search), with its ids and
+  /// place parts, so Find jobs and the search screen keep them.
+  SearchQuery _lastQuery = const SearchQuery();
+
+  /// The field text plus [_lastQuery]'s filters; a field whose text no
+  /// longer matches loses its ids/place parts.
+  SearchQuery get _currentQuery {
+    final keyword = _keywordController.text.trim();
+    final location = _locationController.text.trim();
+    var q = _lastQuery;
+    if (keyword != q.keyword.trim()) q = q.withKeyword(keyword);
+    if (location != q.location.trim()) q = q.withLocation(location);
+    return q;
+  }
+
+  void _openSearch([SearchField field = SearchField.keyword]) {
+    Navigator.of(context).push(
+      JobSearchPage.route(initialQuery: _currentQuery, initialField: field),
+    );
+  }
+
+  /// Searches straight away when a keyword is set, otherwise opens the
+  /// search screen so the user can type one.
+  void _findJobs() {
+    final query = _currentQuery;
+    if (query.keyword.trim().isEmpty) {
+      _openSearch();
+      return;
+    }
+    _showResults(query);
+  }
+
+  /// Runs a recent search again with its own keyword and location.
+  void _openRecent(SearchQuery query) {
+    _lastQuery = query;
+    _keywordController.text = query.keyword;
+    _locationController.text = query.location;
+    _showResults(query);
+  }
+
+  void _showResults(SearchQuery query) {
+    FocusScope.of(context).unfocus();
+    sl<SearchHistoryCubit>().add(query);
+    Navigator.of(context).push(JobSearchResultsPage.route(query));
+  }
+
   Future<void> _backToSearch() async {
     await _scrollController.animateTo(
       0,
@@ -179,16 +230,12 @@ class _DashboardHomeViewState extends State<_DashboardHomeView> {
                             keywordController: _keywordController,
                             locationController: _locationController,
                             keywordFocusNode: _keywordFocus,
-                            onSearch: () {
-                              FocusScope.of(context).unfocus();
-
-                              Navigator.of(context).push(
-                                MaterialPageRoute(
-                                  builder: (context) => CreateAccountPage(),
-                                ),
-                              );
-                            },
-                            onUseCurrentLocation: () {},
+                            onSearch: _findJobs,
+                            onKeywordTap: _openSearch,
+                            onLocationTap: () =>
+                                _openSearch(SearchField.location),
+                            onUseCurrentLocation: () =>
+                                _openSearch(SearchField.location),
                           ),
                         ],
                       ),
@@ -214,6 +261,12 @@ class _DashboardHomeViewState extends State<_DashboardHomeView> {
                               _datePosted.value = value,
                         ),
                       ),
+                    ),
+                  ),
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.only(bottom: 14),
+                      child: RecentSearchChips(onSelected: _openRecent),
                     ),
                   ),
                   const SliverToBoxAdapter(child: _SectionBand()),
