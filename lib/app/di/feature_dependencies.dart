@@ -16,6 +16,7 @@ import '../../features/profile/sections/skill/di/skill_dependencies.dart';
 import '../../features/profile/sections/language/di/language_dependencies.dart';
 import '../../features/profile/sections/certification_licences/di/certification_dependencies.dart';
 import '../../features/specialization/di/specialization_dependencies.dart';
+import '../../features/search_job/di/search_job_dependencies.dart';
 
 void registerFeatureDependencies(GetIt sl) {
   registerLoginDependencies(sl);
@@ -34,4 +35,5 @@ void registerFeatureDependencies(GetIt sl) {
   registerCreateAccountDependencies(sl);
   registerApplyApplicationDependencies(sl);
   registerJobDetailsDependencies(sl);
+  registerSearchJobDependencies(sl);
 }

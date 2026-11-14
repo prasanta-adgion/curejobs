@@ -13,6 +13,8 @@ class DashboardSearchBar extends StatelessWidget {
     this.keywordFocusNode,
     this.onSearch,
     this.onUseCurrentLocation,
+    this.onKeywordTap,
+    this.onLocationTap,
   });
 
   final TextEditingController keywordController;
@@ -20,6 +22,12 @@ class DashboardSearchBar extends StatelessWidget {
   final FocusNode? keywordFocusNode;
   final VoidCallback? onSearch;
   final VoidCallback? onUseCurrentLocation;
+
+  /// When set, the keyword field is read-only and opens the search screen.
+  final VoidCallback? onKeywordTap;
+
+  /// When set, the location field is read-only and opens the search screen.
+  final VoidCallback? onLocationTap;
 
   @override
   Widget build(BuildContext context) {
@@ -39,6 +47,7 @@ class DashboardSearchBar extends StatelessWidget {
                 icon: Icons.search_rounded,
                 hint: 'Job title, skill or hospital',
                 textInputAction: TextInputAction.next,
+                onTap: onKeywordTap,
               ),
               const Divider(
                 height: 1,
@@ -51,6 +60,7 @@ class DashboardSearchBar extends StatelessWidget {
                 hint: 'City, state or area',
                 textInputAction: TextInputAction.search,
                 onSubmitted: (_) => onSearch?.call(),
+                onTap: onLocationTap,
                 trailing: IconButton(
                   onPressed: onUseCurrentLocation,
                   tooltip: 'Use current location',
@@ -94,6 +104,7 @@ class _SearchField extends StatelessWidget {
     this.focusNode,
     this.onSubmitted,
     this.trailing,
+    this.onTap,
   });
 
   final TextEditingController controller;
@@ -103,6 +114,7 @@ class _SearchField extends StatelessWidget {
   final TextInputAction textInputAction;
   final ValueChanged<String>? onSubmitted;
   final Widget? trailing;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -115,6 +127,8 @@ class _SearchField extends StatelessWidget {
         focusNode: focusNode,
         textInputAction: textInputAction,
         onSubmitted: onSubmitted,
+        readOnly: onTap != null,
+        onTap: onTap,
         cursorColor: AppColors.primary,
         style: theme.textTheme.bodyMedium?.copyWith(
           color: AppColors.lightTextPrimary,

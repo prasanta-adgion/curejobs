@@ -52,4 +52,9 @@ class ApiEndpoints {
   //job view analytics
   static String jobViewAnalytics({required String id}) =>
       'api/v1/jobs/$id/analytics/view';
+  static String jobImpressionAnalytics({required String id}) =>
+      'api/v1/jobs/$id/analytics/impression';
+
+  //job search
+  static const String jobSearchSuggestions = 'api/v1/jobs/suggestions';
 }
