@@ -1,3 +1,4 @@
+import 'package:curejobs/core/utils/date_time_utils.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_widget_from_html_core/flutter_widget_from_html_core.dart';
 
@@ -7,21 +8,6 @@ import '../../../all_jobs/domain/entities/job.dart';
 import '../../../all_jobs/presentation/formatters/job_formatter.dart';
 
 part 'job_details_more_sections.dart';
-
-const _months = [
-  'Jan',
-  'Feb',
-  'Mar',
-  'Apr',
-  'May',
-  'Jun',
-  'Jul',
-  'Aug',
-  'Sep',
-  'Oct',
-  'Nov',
-  'Dec',
-];
 
 String _titleCase(String s) => s
     .trim()
@@ -57,7 +43,7 @@ class DeadlineInfo {
   bool get isClosed => daysLeft < 0;
   bool get isUrgent => !isClosed && daysLeft <= 7;
 
-  String get dateLabel => '${date.day} ${_months[date.month - 1]}';
+  String get dateLabel => '${date.day} ${DateTimeUtils.months[date.month - 1]}';
 
   /// "17 days left", "Last day today", "Closed".
   String get countdown => switch (daysLeft) {

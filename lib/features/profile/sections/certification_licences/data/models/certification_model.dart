@@ -19,8 +19,8 @@ class CertificationModel extends Certification {
       name: JsonParser.string(json['name']).trim(),
       issuingOrganization: JsonParser.string(json['issuingOrganization'])
           .trim(),
-      issueDate: JsonParser.dateTime(json['issueDate']),
-      expiryDate: JsonParser.dateTime(json['expiryDate']),
+      issueDate: JsonParser.date(json['issueDate']),
+      expiryDate: JsonParser.date(json['expiryDate']),
       credentialId: JsonParser.nullableString(json['credentialId']),
       credentialUrl: JsonParser.nullableString(json['credentialUrl']),
       createdAt: JsonParser.dateTime(json['createdAt']),

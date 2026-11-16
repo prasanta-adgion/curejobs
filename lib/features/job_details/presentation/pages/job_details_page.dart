@@ -4,6 +4,7 @@ import '../../../../app/di/injection_container.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_radius.dart';
 import '../../../all_jobs/domain/entities/job.dart';
+import '../../../apply_job/presentation/pages/apply_eligibility_page.dart';
 import '../../../all_jobs/presentation/formatters/job_formatter.dart';
 import '../../domain/usecases/track_job_view_usecase.dart';
 import '../widgets/job_details_sections.dart';
@@ -58,10 +59,7 @@ class _JobDetailsPageState extends State<JobDetailsPage> {
       widget.onApply!();
       return;
     }
-    // TODO: hook up the apply flow.
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(const SnackBar(content: Text('Apply coming soon')));
+    Navigator.of(context).push(ApplyEligibilityPage.route(widget.job));
   }
 
   @override

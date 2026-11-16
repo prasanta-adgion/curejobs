@@ -3,7 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../domain/entities/candidate.dart';
 import '../../domain/usecases/get_candidate_profile_usecase.dart';
-import '../../domain/usecases/get_profile_photo_url_usecase.dart';
+import '../../../media_preview/domain/usecases/get_file_access_url_usecase.dart';
 
 part 'candidate_profile_event.dart';
 part 'candidate_profile_state.dart';
@@ -12,7 +12,7 @@ part 'candidate_profile_state.dart';
 class CandidateProfileBloc
     extends Bloc<CandidateProfileEvent, CandidateProfileState> {
   final GetCandidateProfileUseCase _getProfile;
-  final GetProfilePhotoUrlUseCase _getPhotoUrl;
+  final GetFileAccessUrlUseCase _getPhotoUrl;
 
   CandidateProfileBloc(this._getProfile, this._getPhotoUrl)
     : super(const CandidateProfileState()) {

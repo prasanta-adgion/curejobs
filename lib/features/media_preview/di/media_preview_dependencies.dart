@@ -7,7 +7,9 @@ import '../data/datasource/image_upload_remote_datasource.dart';
 import '../data/datasource/s3_upload_data_source.dart';
 import '../data/repositories/media_upload_repository_impl.dart';
 import '../domain/repositories/media_upload_repository.dart';
+import '../domain/usecases/get_file_access_url_usecase.dart';
 import '../domain/usecases/upload_media_usecase.dart';
+import '../presentation/bloc/file_access_cubit.dart';
 import '../presentation/bloc/media_upload_bloc.dart';
 
 const _s3DioName = 's3Dio';
@@ -37,8 +39,15 @@ void registerMediaPreviewDependencies(GetIt sl) {
     () => UploadMediaUseCase(sl<MediaUploadRepository>()),
   );
 
+  sl.registerLazySingleton<GetFileAccessUrlUseCase>(
+    () => GetFileAccessUrlUseCase(sl<MediaUploadRepository>()),
+  );
+
   // New bloc per screen.
   sl.registerFactory<MediaUploadBloc>(
     () => MediaUploadBloc(sl<UploadMediaUseCase>()),
+  );
+  sl.registerFactory<FileAccessCubit>(
+    () => FileAccessCubit(sl<GetFileAccessUrlUseCase>()),
   );
 }

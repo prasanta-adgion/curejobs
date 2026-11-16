@@ -1,15 +1,12 @@
+import 'package:curejobs/core/utils/date_time_utils.dart';
 import 'package:flutter/material.dart';
 
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_radius.dart';
 import '../models/application_ui_model.dart';
 
-const _months = [
-  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
-];
-
-String formatShortDate(DateTime d) => '${d.day} ${_months[d.month - 1]}';
+String formatShortDate(DateTime d) =>
+    '${d.day} ${DateTimeUtils.months[d.month - 1]}';
 
 /// One application as a white bordered card, matching the dashboard job
 /// card: title and status, location, highlights, then a footer with the
@@ -41,7 +38,9 @@ class ApplicationCard extends StatelessWidget {
     final colors = status.colors(context);
     final isWithdrawn = status == ApplicationStatus.withdrawn;
     final border = dark ? AppColors.darkBorder : AppColors.lightBorder;
-    final muted = dark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary;
+    final muted = dark
+        ? AppColors.darkTextTertiary
+        : AppColors.lightTextTertiary;
 
     final locationLine = [
       if (item.location.isNotEmpty) item.location,
@@ -176,7 +175,11 @@ class ApplicationCard extends StatelessWidget {
       case ApplicationStatus.selected:
         return Row(
           children: [
-            Icon(Icons.check_circle_outline_rounded, size: 16, color: colors.fg),
+            Icon(
+              Icons.check_circle_outline_rounded,
+              size: 16,
+              color: colors.fg,
+            ),
             const SizedBox(width: 6),
             Expanded(
               child: Text(
@@ -275,10 +278,8 @@ class _Badge extends StatelessWidget {
       ),
       child: Text(
         label,
-        style: Theme.of(context).textTheme.labelSmall?.copyWith(
-          color: colors.fg,
-          fontWeight: FontWeight.w600,
-        ),
+        style: Theme.of(context).textTheme.labelSmall
+            ?.copyWith(color: colors.fg, fontWeight: FontWeight.w600),
       ),
     );
   }
