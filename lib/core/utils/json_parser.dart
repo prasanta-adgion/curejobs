@@ -46,13 +46,28 @@ abstract final class JsonParser {
     return fallback;
   }
 
+  /// A timestamp such as `2026-11-16T07:53:11.521Z` (ISO 8601, UTC), as the
+  /// API sends it. Returned in the device's local time so it displays
+  /// correctly without callers converting it.
   static DateTime? dateTime(Object? value) {
+    final parsed = _parse(value);
+    return parsed?.toLocal();
+  }
+
+  /// A calendar date (birth date, start date, expiry). The API may send it as
+  /// `2022-06-01` or `2022-06-01T00:00:00.000Z`; the day is kept as sent and
+  /// not shifted by the time zone, so it never shows a day early or late.
+  static DateTime? date(Object? value) {
+    final parsed = _parse(value);
+    if (parsed == null) return null;
+    return DateTime(parsed.year, parsed.month, parsed.day);
+  }
+
+  static DateTime? _parse(Object? value) {
     if (value is DateTime) return value;
-
-    if (value is String) {
-      return DateTime.tryParse(value);
+    if (value is String && value.trim().isNotEmpty) {
+      return DateTime.tryParse(value.trim());
     }
-
     return null;
   }
 

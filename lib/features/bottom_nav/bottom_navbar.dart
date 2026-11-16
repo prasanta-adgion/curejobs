@@ -1,4 +1,4 @@
-import 'package:curejobs/features/apply_application/presentation/page/my_applications_page.dart';
+import 'package:curejobs/features/applied_application/presentation/page/my_applications_page.dart';
 import 'package:flutter/material.dart';
 
 import '../all_jobs/presentation/pages/all_jobs_page.dart';

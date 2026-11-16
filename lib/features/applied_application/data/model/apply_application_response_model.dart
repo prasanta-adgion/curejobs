@@ -66,7 +66,7 @@ class JobApplicationModel extends JobApplication {
                   JsonParser.dateTime(json['createdAt']) ??
                   DateTime.now())
               .toLocal(),
-      withdrawnAt: JsonParser.dateTime(json['withdrawnAt'])?.toLocal(),
+      withdrawnAt: JsonParser.dateTime(json['withdrawnAt']),
       isJobOpen: JsonParser.string(job['status']) == 'PUBLISHED',
     );
   }

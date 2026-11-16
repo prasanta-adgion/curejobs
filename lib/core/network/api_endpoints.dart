@@ -26,6 +26,7 @@ class ApiEndpoints {
   static String getFileAccess({required String fileId}) =>
       'api/v1/files/$fileId/access';
 
+  //profile part
   static const String candidateEducation = 'api/v1/candidates/me/education';
   static String candidateEducationById({required String id}) =>
       '$candidateEducation/$id';
@@ -46,6 +47,13 @@ class ApiEndpoints {
   static String applyApplicationById({required String id}) =>
       'api/v1/applications/me/$id';
 
+  static const String resumes = 'api/v1/resumes';
+
+  static String setDefaultResume({required String cvId}) =>
+      'api/v1/resumes/$cvId/default';
+
+  static String deleteResume({required String cvId}) => 'api/v1/resumes/$cvId';
+
   static String withdrawApplication({required String id}) =>
       'api/v1/applications/me/$id/withdraw';
 
@@ -54,7 +62,12 @@ class ApiEndpoints {
       'api/v1/jobs/$id/analytics/view';
   static String jobImpressionAnalytics({required String id}) =>
       'api/v1/jobs/$id/analytics/impression';
+  static String applyStartAnalytics({required String id}) =>
+      'api/v1/jobs/$id/analytics/apply-start';
 
   //job search
   static const String jobSearchSuggestions = 'api/v1/jobs/suggestions';
+
+  static String jobApplicationEligibility({required String id}) =>
+      'api/v1/jobs/$id/application-eligibility';
 }
