@@ -14,4 +14,7 @@ abstract interface class MediaUploadRepository {
     required void Function(int sent, int total) onProgress,
     CancelToken? cancelToken,
   });
+
+  /// Short-lived signed URL for any uploaded file.
+  Future<Result<String>> getFileAccessUrl({required String fileId});
 }

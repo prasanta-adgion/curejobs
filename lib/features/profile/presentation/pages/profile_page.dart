@@ -23,10 +23,7 @@ import '../../sections/resume/presentation/page/resume_tab.dart';
 /// qualifications and resume. Each section handles its own actions; only
 /// leaving the screen after logout is left to the caller.
 class ProfilePage extends StatelessWidget {
-  const ProfilePage({
-    super.key,
-    this.onLoggedOut,
-  });
+  const ProfilePage({super.key, this.onLoggedOut});
 
   /// Called once the user has been signed out, to leave this screen.
   final VoidCallback? onLoggedOut;

@@ -4,6 +4,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../../../app/di/injection_container.dart';
 import '../../../../../../core/widgets/app_snackbar.dart';
+import '../../../../../media_preview/presentation/pages/file_viewer_page.dart';
 import '../../../../shared/widgets/profile_section.dart';
 import '../bloc/resume_bloc.dart';
 import '../widget/add_cv_options.dart';
@@ -11,7 +12,6 @@ import '../widget/cv_card.dart';
 import '../widget/delete_cv_dialog.dart';
 import '../widget/empty_cv.dart';
 import '../widget/resume_load_error.dart';
-import 'resume_viewer_page.dart';
 
 /// Resume tab: an "Add a CV" section (create or upload) on top, then
 /// "Your CVs" with the default CV first.
@@ -147,8 +147,12 @@ class _CvList extends StatelessWidget {
           CvCard(
             resume: resume,
             isBusy: state.isBusy(resume.id),
-            onView: () =>
-                Navigator.of(context).push(ResumeViewerPage.route(resume)),
+            onView: () => Navigator.of(context).push(
+              FileViewerPage.route(
+                fileId: resume.generatedFileId!,
+                title: resume.title.isEmpty ? 'My Resume' : resume.title,
+              ),
+            ),
             onDownload: () =>
                 context.read<ResumeBloc>().add(ResumeDownloadRequested(resume)),
             onEdit: () => _comingSoon('Editing CVs'),

@@ -3,45 +3,51 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:pdfrx/pdfrx.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import '../../../../../../app/di/injection_container.dart';
-import '../../../../../../core/widgets/app_snackbar.dart';
-import '../../domain/entities/resume.dart';
-import '../bloc/resume_viewer_bloc.dart';
-import '../widget/resume_viewer_error.dart';
-import '../widget/resume_viewer_loading.dart';
+import '../../../../app/di/injection_container.dart';
+import '../../../../core/widgets/app_snackbar.dart';
+import '../bloc/file_access_cubit.dart';
+import '../widgets/file_viewer_error.dart';
+import '../widgets/file_viewer_loading.dart';
 
-/// Full-screen in-app viewer for the resume's generated PDF: vertical
-/// scrolling, pinch zoom, a page counter and a download action.
-class ResumeViewerPage extends StatelessWidget {
-  const ResumeViewerPage({super.key, required this.resume});
+/// Full-screen in-app viewer for any uploaded PDF (CV, certificate, document):
+/// vertical scrolling, pinch zoom, a page counter and a download action.
+///
+/// ```dart
+/// Navigator.of(context).push(FileViewerPage.route(fileId: id, title: name));
+/// ```
+class FileViewerPage extends StatelessWidget {
+  const FileViewerPage({super.key, required this.fileId, required this.title});
 
-  /// Must have a generated file ([Resume.hasFile]).
-  final Resume resume;
+  final String fileId;
 
-  static Route<void> route(Resume resume) =>
-      MaterialPageRoute(builder: (_) => ResumeViewerPage(resume: resume));
+  /// Shown in the app bar.
+  final String title;
+
+  static Route<void> route({required String fileId, required String title}) =>
+      MaterialPageRoute(
+        builder: (_) => FileViewerPage(fileId: fileId, title: title),
+      );
 
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (_) =>
-          sl<ResumeViewerBloc>()
-            ..add(ResumeViewerUrlRequested(resume.generatedFileId!)),
-      child: _ResumeViewerView(resume: resume),
+      create: (_) => sl<FileAccessCubit>()..load(fileId),
+      child: _FileViewerView(fileId: fileId, title: title),
     );
   }
 }
 
-class _ResumeViewerView extends StatefulWidget {
-  const _ResumeViewerView({required this.resume});
+class _FileViewerView extends StatefulWidget {
+  const _FileViewerView({required this.fileId, required this.title});
 
-  final Resume resume;
+  final String fileId;
+  final String title;
 
   @override
-  State<_ResumeViewerView> createState() => _ResumeViewerViewState();
+  State<_FileViewerView> createState() => _FileViewerViewState();
 }
 
-class _ResumeViewerViewState extends State<_ResumeViewerView> {
+class _FileViewerViewState extends State<_FileViewerView> {
   /// Set once the PDF has loaded; null while loading or after an error.
   int? _pageCount;
   int _currentPage = 1;
@@ -51,9 +57,7 @@ class _ResumeViewerViewState extends State<_ResumeViewerView> {
       _pageCount = null;
       _currentPage = 1;
     });
-    context.read<ResumeViewerBloc>().add(
-      ResumeViewerUrlRequested(widget.resume.generatedFileId!),
-    );
+    context.read<FileAccessCubit>().load(widget.fileId);
   }
 
   Future<void> _download(String url) async {
@@ -61,17 +65,14 @@ class _ResumeViewerViewState extends State<_ResumeViewerView> {
     final opened =
         uri != null &&
         await launchUrl(uri, mode: LaunchMode.externalApplication);
-    if (!opened) AppSnackbar.error(title: 'Couldn\'t download CV');
+    if (!opened) AppSnackbar.error(title: 'Couldn\'t download file');
   }
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final title = widget.resume.title.isEmpty
-        ? 'My Resume'
-        : widget.resume.title;
 
-    return BlocBuilder<ResumeViewerBloc, ResumeViewerState>(
+    return BlocBuilder<FileAccessCubit, FileAccessState>(
       builder: (context, state) {
         final url = state.url;
         final loaded = url != null && _pageCount != null;
@@ -79,7 +80,7 @@ class _ResumeViewerViewState extends State<_ResumeViewerView> {
         return Scaffold(
           backgroundColor: scheme.surfaceContainerLow,
           appBar: AppBar(
-            title: Text(title),
+            title: Text(widget.title),
             actions: [
               IconButton(
                 tooltip: 'Download',
@@ -89,13 +90,13 @@ class _ResumeViewerViewState extends State<_ResumeViewerView> {
             ],
           ),
           body: switch (state.status) {
-            ResumeViewerStatus.initial ||
-            ResumeViewerStatus.loading => const ResumeViewerLoading(),
-            ResumeViewerStatus.failure => ResumeViewerError(
+            FileAccessStatus.initial ||
+            FileAccessStatus.loading => const FileViewerLoading(),
+            FileAccessStatus.failure => FileViewerError(
               message: state.failure?.message,
               onRetry: _retry,
             ),
-            ResumeViewerStatus.ready => Stack(
+            FileAccessStatus.ready => Stack(
               children: [
                 PdfViewer.uri(
                   // New key per URL so a retry reloads the document.
@@ -104,13 +105,13 @@ class _ResumeViewerViewState extends State<_ResumeViewerView> {
                   params: PdfViewerParams(
                     backgroundColor: scheme.surfaceContainerLow,
                     loadingBannerBuilder: (context, downloaded, total) =>
-                        ResumeViewerLoading(
+                        FileViewerLoading(
                           progress: total == null || total == 0
                               ? null
                               : downloaded / total,
                         ),
                     errorBannerBuilder: (context, error, stackTrace, ref) =>
-                        ResumeViewerError(onRetry: _retry),
+                        FileViewerError(onRetry: _retry),
                     onViewerReady: (document, controller) =>
                         setState(() => _pageCount = document.pages.length),
                     onPageChanged: (page) {

@@ -40,60 +40,70 @@ class EligibilityBanner extends StatelessWidget {
     final scheme = theme.colorScheme;
     final n = eligibility.questions.length;
 
-    final (IconData icon, String title, String body, Color fg, Color bg) =
-        switch (eligibility.status) {
-          EligibilityStatus.notEligible => (
-            Icons.block_rounded,
-            "You can't apply to this job",
-            'Check the items marked in red below.',
-            StatusTone.of(context, CheckStatus.fail).foreground,
-            StatusTone.of(context, CheckStatus.fail).background,
-          ),
-          EligibilityStatus.screeningRequired => (
-            Icons.assignment_turned_in_outlined,
-            'You can apply to this job',
-            'Answer $n short ${n == 1 ? 'question' : 'questions'} from the recruiter to finish.',
-            scheme.primary,
-            scheme.primaryContainer.withValues(alpha: 0.5),
-          ),
-          _ => (
-            Icons.assignment_turned_in_outlined,
-            'You can apply to this job',
-            'Review the details below, then send your application.',
-            scheme.primary,
-            scheme.primaryContainer.withValues(alpha: 0.5),
-          ),
-        };
+    final (
+      IconData icon,
+      String title,
+      String body,
+      Color fg,
+      Color bg,
+    ) = switch (eligibility.status) {
+      EligibilityStatus.notEligible => (
+        Icons.block_rounded,
+        "You can't apply to this job",
+        'Check the items marked in red below.',
+        StatusTone.of(context, CheckStatus.fail).foreground,
+        StatusTone.of(context, CheckStatus.fail).background,
+      ),
+      EligibilityStatus.screeningRequired => (
+        Icons.assignment_turned_in_outlined,
+        'You can apply to this job',
+        'Answer $n short ${n == 1 ? 'question' : 'questions'} from the recruiter to finish.',
+        scheme.primary,
+        scheme.primaryContainer.withValues(alpha: 0.5),
+      ),
+      _ => (
+        Icons.assignment_turned_in_outlined,
+        'You can apply to this job',
+        'Review the details below, then send your application.',
+        scheme.primary,
+        scheme.primaryContainer.withValues(alpha: 0.5),
+      ),
+    };
 
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(14),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, color: fg, size: 26),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    color: fg,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(body, style: theme.textTheme.bodySmall?.copyWith(color: fg)),
-              ],
-            ),
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: 42,
+          height: 42,
+          decoration: BoxDecoration(
+            color: bg,
+            borderRadius: BorderRadius.circular(12),
           ),
-        ],
-      ),
+          child: Icon(icon, color: fg, size: 22),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                body,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: scheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }
@@ -241,7 +251,10 @@ class EligibilityCheckTile extends StatelessWidget {
       return "$n required ${n == 1 ? "skill isn't" : "skills aren't"} on your profile";
     }
     if (check.code == 'EMPLOYMENT_TYPE') {
-      return check.message.replaceFirst('Employment type:', '').trim().capitalized;
+      return check.message
+          .replaceFirst('Employment type:', '')
+          .trim()
+          .capitalized;
     }
     return check.message;
   }
@@ -260,13 +273,8 @@ class EligibilityCheckTile extends StatelessWidget {
       _ => _icons[check.code] ?? Icons.warning_amber_rounded,
     };
 
-    return Container(
+    return Padding(
       padding: const EdgeInsets.symmetric(vertical: 12),
-      decoration: BoxDecoration(
-        border: Border(
-          bottom: BorderSide(color: scheme.outlineVariant.withValues(alpha: 0.5)),
-        ),
-      ),
       child: Row(
         crossAxisAlignment: isPass
             ? CrossAxisAlignment.center
@@ -308,7 +316,10 @@ class EligibilityCheckTile extends StatelessWidget {
                               visualDensity: VisualDensity.compact,
                             ),
                             iconAlignment: IconAlignment.end,
-                            icon: const Icon(Icons.chevron_right_rounded, size: 18),
+                            icon: const Icon(
+                              Icons.chevron_right_rounded,
+                              size: 18,
+                            ),
                             label: const Text('Add skills to profile'),
                           ),
                       ],
@@ -380,5 +391,6 @@ class _SkillChipsState extends State<_SkillChips> {
 }
 
 extension on String {
-  String get capitalized => isEmpty ? this : this[0].toUpperCase() + substring(1);
+  String get capitalized =>
+      isEmpty ? this : this[0].toUpperCase() + substring(1);
 }

@@ -102,7 +102,30 @@ class ScreeningQuestion extends Equatable {
   final int? maxAnswerLength;
 
   @override
-  List<Object?> get props => [id, type, prompt, required, options, maxAnswerLength];
+  List<Object?> get props => [
+    id,
+    type,
+    prompt,
+    required,
+    options,
+    maxAnswerLength,
+  ];
+}
+
+/// The candidate's answer to one screening question.
+class ScreeningAnswer extends Equatable {
+  const ScreeningAnswer({required this.questionId, this.optionId, this.text});
+
+  final String questionId;
+
+  /// Set for `SINGLE_CHOICE`.
+  final String? optionId;
+
+  /// Set for `SHORT_ANSWER`.
+  final String? text;
+
+  @override
+  List<Object?> get props => [questionId, optionId, text];
 }
 
 class ApplicationEligibility extends Equatable {

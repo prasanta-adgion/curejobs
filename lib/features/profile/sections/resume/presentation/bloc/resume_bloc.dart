@@ -4,7 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../../../core/error/failure.dart';
 import '../../domain/entities/resume.dart';
 import '../../domain/usecases/delete_resume_usecase.dart';
-import '../../domain/usecases/get_resume_file_url_usecase.dart';
+import '../../../../../media_preview/domain/usecases/get_file_access_url_usecase.dart';
 import '../../domain/usecases/get_resumes_usecase.dart';
 import '../../domain/usecases/set_default_resume_usecase.dart';
 
@@ -12,16 +12,16 @@ part 'resume_event.dart';
 part 'resume_state.dart';
 
 /// Loads the candidate's resumes and resolves a resume PDF's signed URL for
-/// downloading, sets the default CV and deletes CVs. Viewing happens in `ResumeViewerPage`.
+/// downloading, sets the default CV and deletes CVs. Viewing happens in `FileViewerPage`.
 class ResumeBloc extends Bloc<ResumeEvent, ResumeState> {
   final GetResumesUseCase _getResumes;
-  final GetResumeFileUrlUseCase _getFileUrl;
+  final GetFileAccessUrlUseCase _getFileUrl;
   final SetDefaultResumeUseCase _setDefault;
   final DeleteResumeUseCase _deleteResume;
 
   ResumeBloc({
     required GetResumesUseCase getResumes,
-    required GetResumeFileUrlUseCase getFileUrl,
+    required GetFileAccessUrlUseCase getFileUrl,
     required SetDefaultResumeUseCase setDefault,
     required DeleteResumeUseCase deleteResume,
   }) : _getResumes = getResumes,

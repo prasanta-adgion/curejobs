@@ -12,11 +12,6 @@ class ResumeRepositoryImpl implements ResumeRepository {
   Future<Result<List<Resume>>> getResumes() => Result.guard(_remote.getResumes);
 
   @override
-  Future<Result<String>> getFileAccessUrl({required String fileId}) {
-    return Result.guard(() => _remote.getFileAccessUrl(fileId: fileId));
-  }
-
-  @override
   Future<Result<void>> setDefault({required String resumeId}) {
     return Result.guard(() => _remote.setDefault(resumeId: resumeId));
   }

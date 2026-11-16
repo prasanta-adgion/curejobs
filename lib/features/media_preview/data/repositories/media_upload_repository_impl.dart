@@ -70,6 +70,11 @@ class MediaUploadRepositoryImpl implements MediaUploadRepository {
     });
   }
 
+  @override
+  Future<Result<String>> getFileAccessUrl({required String fileId}) {
+    return Result.guard(() => _remote.getFileAccessUrl(fileId: fileId));
+  }
+
   static String _mimeType(String filename) {
     final extension = filename.split('.').last.toLowerCase();
     final mimeType = _mimeTypes[extension];

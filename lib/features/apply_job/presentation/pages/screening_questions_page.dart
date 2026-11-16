@@ -2,21 +2,26 @@ import 'package:flutter/material.dart';
 
 import '../../../all_jobs/domain/entities/job.dart';
 import '../../domain/entities/application_eligibility.dart';
+import '../widgets/apply_flow_widgets.dart';
+import 'choose_cv_page.dart';
 
 /// Step 2 of applying: the recruiter's screening questions.
 class ScreeningQuestionsPage extends StatefulWidget {
   const ScreeningQuestionsPage({
     super.key,
     required this.job,
-    required this.questions,
+    required this.eligibility,
   });
 
   final Job job;
-  final List<ScreeningQuestion> questions;
+  final ApplicationEligibility eligibility;
 
-  static Route<void> route(Job job, List<ScreeningQuestion> questions) =>
+  List<ScreeningQuestion> get questions => eligibility.questions;
+
+  static Route<void> route(Job job, ApplicationEligibility eligibility) =>
       MaterialPageRoute(
-        builder: (_) => ScreeningQuestionsPage(job: job, questions: questions),
+        builder: (_) =>
+            ScreeningQuestionsPage(job: job, eligibility: eligibility),
       );
 
   @override
@@ -53,7 +58,9 @@ class _ScreeningQuestionsPageState extends State<ScreeningQuestionsPage> {
   int get _answeredCount => widget.questions.where(_isAnswered).length;
 
   void _submit() {
-    final missing = widget.questions.where((q) => q.required && !_isAnswered(q));
+    final missing = widget.questions.where(
+      (q) => q.required && !_isAnswered(q),
+    );
     if (missing.isNotEmpty) {
       setState(() => _showErrors = true);
       ScaffoldMessenger.of(context)
@@ -68,41 +75,35 @@ class _ScreeningQuestionsPageState extends State<ScreeningQuestionsPage> {
         );
       return;
     }
-    // Answers ready to send, shaped as { questionId, optionId | answer }.
-    // TODO: call the submit-application API once it's available.
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(const SnackBar(content: Text('Submit coming soon')));
+    final answers = [
+      for (final q in widget.questions)
+        if (_isAnswered(q) && q.type != QuestionType.unknown)
+          ScreeningAnswer(
+            questionId: q.id,
+            optionId: _choices[q.id],
+            text: _text[q.id]?.text.trim(),
+          ),
+    ];
+    Navigator.of(context).push(
+      ChooseCvPage.route(
+        widget.job,
+        eligibility: widget.eligibility,
+        answers: answers,
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final total = widget.questions.length;
     final answered = _answeredCount;
 
     return Scaffold(
-      appBar: AppBar(
-        titleSpacing: 0,
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('Screening questions'),
-            Text(
-              '$answered of $total answered',
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
-          ],
-        ),
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(4),
-          child: LinearProgressIndicator(
-            value: total == 0 ? 1 : answered / total,
-            minHeight: 4,
-          ),
-        ),
+      backgroundColor: ApplyFlowColors.page(context),
+      appBar: ApplyStepAppBar(
+        title: 'Screening questions',
+        subtitle: '$answered of $total answered',
+        step: ApplyStep.questions,
       ),
       body: GestureDetector(
         onTap: () => FocusScope.of(context).unfocus(),
@@ -140,13 +141,8 @@ class _ScreeningQuestionsPageState extends State<ScreeningQuestionsPage> {
           },
         ),
       ),
-      bottomNavigationBar: SafeArea(
-        minimum: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-        child: FilledButton(
-          onPressed: _submit,
-          style: FilledButton.styleFrom(minimumSize: const Size(0, 50)),
-          child: const Text('Submit application'),
-        ),
+      bottomNavigationBar: ApplyBottomBar(
+        child: ApplyPrimaryButton(label: 'Continue', onPressed: _submit),
       ),
     );
   }

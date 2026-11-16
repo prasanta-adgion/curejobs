@@ -5,7 +5,9 @@ import '../../../../app/di/injection_container.dart';
 import '../../../all_jobs/domain/entities/job.dart';
 import '../../domain/entities/application_eligibility.dart';
 import '../bloc/eligibility_cubit.dart';
+import '../widgets/apply_flow_widgets.dart';
 import '../widgets/eligibility_widgets.dart';
+import 'choose_cv_page.dart';
 import 'screening_questions_page.dart';
 
 /// Step 1 of applying: shows what the candidate meets and what to review.
@@ -33,35 +35,20 @@ class _EligibilityView extends StatelessWidget {
 
   void _continue(BuildContext context, ApplicationEligibility e) {
     if (e.hasQuestions) {
-      Navigator.of(context).push(ScreeningQuestionsPage.route(job, e.questions));
+      Navigator.of(context).push(ScreeningQuestionsPage.route(job, e));
       return;
     }
-    // TODO: call the submit-application API once it's available.
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(const SnackBar(content: Text('Submit coming soon')));
+    Navigator.of(context).push(ChooseCvPage.route(job, eligibility: e));
   }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     return Scaffold(
-      appBar: AppBar(
-        titleSpacing: 0,
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('Before you apply'),
-            Text(
-              '${job.title} · ${job.organization.name}',
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
-          ],
-        ),
+      backgroundColor: ApplyFlowColors.page(context),
+      appBar: ApplyStepAppBar(
+        title: 'Before you apply',
+        subtitle: '${job.title} · ${job.organization.name}',
+        step: ApplyStep.eligibility,
       ),
       body: BlocBuilder<EligibilityCubit, EligibilityState>(
         builder: (context, state) => switch (state.status) {
@@ -87,46 +74,112 @@ class _EligibilityView extends StatelessWidget {
       children: [
         Expanded(
           child: ListView(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+            padding: const EdgeInsets.only(bottom: 16),
             children: [
-              EligibilityBanner(eligibility: e),
-              const SizedBox(height: 12),
-              EligibilityCounts(eligibility: e),
-              if (e.failed.isNotEmpty) ...[
-                const CheckSectionTitle('Not met'),
-                for (final c in e.failed) EligibilityCheckTile(check: c),
-              ],
-              if (e.warnings.isNotEmpty) ...[
-                const CheckSectionTitle('Worth a look'),
-                // TODO: pass onAddSkills to open the profile skills screen.
-                for (final c in e.warnings) EligibilityCheckTile(check: c),
-              ],
-              if (e.passed.isNotEmpty) ...[
-                const CheckSectionTitle("You're a match"),
-                for (final c in e.passed) EligibilityCheckTile(check: c),
+              ApplySection(
+                child: Column(
+                  children: [
+                    EligibilityBanner(eligibility: e),
+                    const SizedBox(height: 14),
+                    EligibilityCounts(eligibility: e),
+                  ],
+                ),
+              ),
+              if (e.failed.isNotEmpty)
+                _checksSection(
+                  context,
+                  title: 'Not met',
+                  icon: Icons.cancel_outlined,
+                  status: CheckStatus.fail,
+                  checks: e.failed,
+                ),
+              // TODO: pass onAddSkills to open the profile skills screen.
+              if (e.warnings.isNotEmpty)
+                _checksSection(
+                  context,
+                  title: 'Worth a look',
+                  icon: Icons.error_outline_rounded,
+                  status: CheckStatus.warning,
+                  checks: e.warnings,
+                ),
+              if (e.passed.isNotEmpty)
+                _checksSection(
+                  context,
+                  title: "You're a match",
+                  icon: Icons.check_circle_outline_rounded,
+                  status: CheckStatus.pass,
+                  checks: e.passed,
+                ),
+            ],
+          ),
+        ),
+        ApplyBottomBar(
+          child: ApplyPrimaryButton(
+            onPressed: canApply ? () => _continue(context, e) : null,
+            label: !canApply
+                ? "Can't apply"
+                : e.hasQuestions
+                ? 'Continue to questions'
+                : 'Continue to choose CV',
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// A gap, then a full-width section: header with count, then the rows.
+  Widget _checksSection(
+    BuildContext context, {
+    required String title,
+    required IconData icon,
+    required CheckStatus status,
+    required List<EligibilityCheck> checks,
+  }) {
+    final tone = StatusTone.of(context, status);
+    return Column(
+      children: [
+        const ApplySectionGap(),
+        ApplySection(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+          child: Column(
+            children: [
+              ApplySectionHeader(
+                icon: icon,
+                iconColor: tone.foreground,
+                title: title,
+                trailing: _CountPill(count: checks.length, tone: tone),
+              ),
+              for (final c in checks) ...[
+                const ApplyRowDivider(),
+                EligibilityCheckTile(check: c),
               ],
             ],
           ),
         ),
-        SafeArea(
-          top: false,
-          minimum: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-          child: SizedBox(
-            width: double.infinity,
-            child: FilledButton(
-              onPressed: canApply ? () => _continue(context, e) : null,
-              style: FilledButton.styleFrom(minimumSize: const Size(0, 50)),
-              child: Text(
-                !canApply
-                    ? "Can't apply"
-                    : e.hasQuestions
-                    ? 'Continue to questions'
-                    : 'Submit application',
-              ),
-            ),
-          ),
-        ),
       ],
+    );
+  }
+}
+
+class _CountPill extends StatelessWidget {
+  const _CountPill({required this.count, required this.tone});
+
+  final int count;
+  final StatusTone tone;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 2),
+      decoration: BoxDecoration(
+        color: tone.background,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Text(
+        '$count',
+        style: Theme.of(context).textTheme.labelSmall
+            ?.copyWith(color: tone.foreground, fontWeight: FontWeight.w700),
+      ),
     );
   }
 }
