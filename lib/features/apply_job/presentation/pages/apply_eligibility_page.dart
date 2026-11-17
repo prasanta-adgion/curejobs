@@ -69,7 +69,9 @@ class _EligibilityView extends StatelessWidget {
   }
 
   Widget _content(BuildContext context, ApplicationEligibility e) {
+    final theme = Theme.of(context);
     final canApply = e.status.canApply;
+    final total = e.passed.length + e.warnings.length + e.failed.length;
     return Column(
       children: [
         Expanded(
@@ -77,14 +79,10 @@ class _EligibilityView extends StatelessWidget {
             padding: const EdgeInsets.only(bottom: 16),
             children: [
               ApplySection(
-                child: Column(
-                  children: [
-                    EligibilityBanner(eligibility: e),
-                    const SizedBox(height: 14),
-                    EligibilityCounts(eligibility: e),
-                  ],
-                ),
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 18),
+                child: EligibilityResult(eligibility: e),
               ),
+              // Problems first, so the candidate sees what matters most.
               if (e.failed.isNotEmpty)
                 _checksSection(
                   context,
@@ -101,6 +99,7 @@ class _EligibilityView extends StatelessWidget {
                   icon: Icons.error_outline_rounded,
                   status: CheckStatus.warning,
                   checks: e.warnings,
+                  note: canApply ? 'Optional, you can still apply' : null,
                 ),
               if (e.passed.isNotEmpty)
                 _checksSection(
@@ -109,32 +108,72 @@ class _EligibilityView extends StatelessWidget {
                   icon: Icons.check_circle_outline_rounded,
                   status: CheckStatus.pass,
                   checks: e.passed,
+                  note: '${e.passed.length} of $total',
                 ),
+              if (canApply) ...[
+                const ApplySectionGap(),
+                ApplySection(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+                  child: Column(
+                    children: [
+                      const ApplySectionHeader(
+                        icon: Icons.route_outlined,
+                        title: 'What happens next',
+                      ),
+                      const SizedBox(height: 8),
+                      ApplyNextSteps(questionCount: e.questions.length),
+                    ],
+                  ),
+                ),
+              ],
             ],
           ),
         ),
         ApplyBottomBar(
-          child: ApplyPrimaryButton(
-            onPressed: canApply ? () => _continue(context, e) : null,
-            label: !canApply
-                ? "Can't apply"
-                : e.hasQuestions
-                ? 'Continue to questions'
-                : 'Continue to choose CV',
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              canApply
+                  ? ApplyPrimaryButton(
+                      onPressed: () => _continue(context, e),
+                      icon: Icons.arrow_forward_rounded,
+                      label: e.hasQuestions
+                          ? 'Continue to questions'
+                          : 'Continue to choose CV',
+                    )
+                  // Nothing to continue to: offer a way back instead of a
+                  // dead disabled button.
+                  : ApplyPrimaryButton(
+                      onPressed: () => Navigator.of(context).maybePop(),
+                      icon: Icons.arrow_back_rounded,
+                      label: 'Back to job',
+                    ),
+              if (canApply) ...[
+                const SizedBox(height: 8),
+                Text(
+                  'Step 1 of 4  ·  Nothing is sent until you review',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ],
           ),
         ),
       ],
     );
   }
 
-  /// A gap, then a full-width section: header with count, then the rows.
+  /// A gap, then a full-width section: header with a note, then the rows.
   Widget _checksSection(
     BuildContext context, {
     required String title,
     required IconData icon,
     required CheckStatus status,
     required List<EligibilityCheck> checks,
+    String? note,
   }) {
+    final theme = Theme.of(context);
     final tone = StatusTone.of(context, status);
     return Column(
       children: [
@@ -147,7 +186,14 @@ class _EligibilityView extends StatelessWidget {
                 icon: icon,
                 iconColor: tone.foreground,
                 title: title,
-                trailing: _CountPill(count: checks.length, tone: tone),
+                trailing: note == null
+                    ? null
+                    : Text(
+                        note,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
               ),
               for (final c in checks) ...[
                 const ApplyRowDivider(),
@@ -157,29 +203,6 @@ class _EligibilityView extends StatelessWidget {
           ),
         ),
       ],
-    );
-  }
-}
-
-class _CountPill extends StatelessWidget {
-  const _CountPill({required this.count, required this.tone});
-
-  final int count;
-  final StatusTone tone;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 2),
-      decoration: BoxDecoration(
-        color: tone.background,
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Text(
-        '$count',
-        style: Theme.of(context).textTheme.labelSmall
-            ?.copyWith(color: tone.foreground, fontWeight: FontWeight.w700),
-      ),
     );
   }
 }

@@ -7,4 +7,10 @@ abstract interface class ResumeRepository {
   Future<Result<void>> setDefault({required String resumeId});
 
   Future<Result<void>> deleteResume({required String resumeId});
+
+  Future<Result<void>> createResume({
+    required String title,
+    required String fileId,
+    required bool isDefault,
+  });
 }

@@ -10,6 +10,13 @@ abstract interface class ResumeRemoteDataSource {
   Future<void> setDefault({required String resumeId});
 
   Future<void> deleteResume({required String resumeId});
+
+  /// Saves an uploaded file (by [fileId]) as a new CV.
+  Future<void> createResume({
+    required String title,
+    required String fileId,
+    required bool isDefault,
+  });
 }
 
 class ResumeRemoteDataSourceImpl implements ResumeRemoteDataSource {
@@ -37,6 +44,24 @@ class ResumeRemoteDataSourceImpl implements ResumeRemoteDataSource {
   Future<void> deleteResume({required String resumeId}) {
     return _client.delete<void>(
       ApiEndpoints.deleteResume(cvId: resumeId),
+      decoder: (_) {},
+    );
+  }
+
+  @override
+  Future<void> createResume({
+    required String title,
+    required String fileId,
+    required bool isDefault,
+  }) {
+    return _client.post<void>(
+      ApiEndpoints.resumes,
+      body: {
+        'title': title,
+        'contentJson': <String, dynamic>{},
+        'generatedFileId': fileId,
+        'isDefault': isDefault,
+      },
       decoder: (_) {},
     );
   }

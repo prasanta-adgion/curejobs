@@ -5,6 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../../../../app/di/injection_container.dart';
 import '../../../../../../core/widgets/app_snackbar.dart';
 import '../../../../../media_preview/presentation/pages/file_viewer_page.dart';
+import '../../../../../media_preview/presentation/pick_and_upload_document.dart';
 import '../../../../shared/widgets/profile_section.dart';
 import '../bloc/resume_bloc.dart';
 import '../widget/add_cv_options.dart';
@@ -36,6 +37,11 @@ class ResumeTab extends StatelessWidget {
           ),
           BlocListener<ResumeBloc, ResumeState>(
             listenWhen: (prev, curr) =>
+                curr.created || curr.createFailure != null,
+            listener: _onCreateState,
+          ),
+          BlocListener<ResumeBloc, ResumeState>(
+            listenWhen: (prev, curr) =>
                 curr.deleted || curr.deleteFailure != null,
             listener: _onDeleteState,
           ),
@@ -57,7 +63,7 @@ class ResumeTab extends StatelessWidget {
                     showDivider: false,
                     child: AddCvOptions(
                       onCreate: () => _comingSoon('Create CV'),
-                      onUpload: () => _comingSoon('Upload CV'),
+                      onUpload: () => _uploadCv(context),
                     ),
                   ),
                   ProfileSection(
@@ -89,6 +95,25 @@ class ResumeTab extends StatelessWidget {
       title: 'Default CV updated',
       message: 'This CV will be sent when you apply.',
     );
+  }
+
+  /// Picks a CV from the device, previews and uploads it, then saves it.
+  Future<void> _uploadCv(BuildContext context) async {
+    final bloc = context.read<ResumeBloc>();
+    final uploaded = await pickAndUploadDocument(context);
+    if (uploaded == null) return;
+    bloc.add(
+      ResumeUploaded(title: uploaded.file.name, fileId: uploaded.fileId),
+    );
+  }
+
+  void _onCreateState(BuildContext context, ResumeState state) {
+    final failure = state.createFailure;
+    if (failure != null) {
+      AppSnackbar.error(title: 'Couldn\x27t save CV', message: failure.message);
+      return;
+    }
+    AppSnackbar.success(title: 'CV uploaded');
   }
 
   void _onDeleteState(BuildContext context, ResumeState state) {

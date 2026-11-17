@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../../../core/error/failure.dart';
 import '../../domain/entities/resume.dart';
+import '../../domain/usecases/create_resume_usecase.dart';
 import '../../domain/usecases/delete_resume_usecase.dart';
 import '../../../../../media_preview/domain/usecases/get_file_access_url_usecase.dart';
 import '../../domain/usecases/get_resumes_usecase.dart';
@@ -18,21 +19,25 @@ class ResumeBloc extends Bloc<ResumeEvent, ResumeState> {
   final GetFileAccessUrlUseCase _getFileUrl;
   final SetDefaultResumeUseCase _setDefault;
   final DeleteResumeUseCase _deleteResume;
+  final CreateResumeUseCase _createResume;
 
   ResumeBloc({
     required GetResumesUseCase getResumes,
     required GetFileAccessUrlUseCase getFileUrl,
     required SetDefaultResumeUseCase setDefault,
     required DeleteResumeUseCase deleteResume,
+    required CreateResumeUseCase createResume,
   }) : _getResumes = getResumes,
        _getFileUrl = getFileUrl,
        _setDefault = setDefault,
        _deleteResume = deleteResume,
+       _createResume = createResume,
        super(const ResumeState()) {
     on<ResumesRequested>(_onRequested);
     on<ResumeDownloadRequested>(_onDownloadRequested);
     on<ResumeSetDefaultRequested>(_onSetDefaultRequested);
     on<ResumeDeleteRequested>(_onDeleteRequested);
+    on<ResumeUploaded>(_onUploaded);
   }
 
   Future<void> _onRequested(
@@ -113,5 +118,29 @@ class ResumeBloc extends Bloc<ResumeEvent, ResumeState> {
       ),
       (failure) => emit(state.copyWith(deleteFailure: failure)),
     );
+  }
+
+  /// Saves the CV, then reloads the list so it shows with server data.
+  Future<void> _onUploaded(
+    ResumeUploaded event,
+    Emitter<ResumeState> emit,
+  ) async {
+    if (state.creating) return;
+    emit(state.copyWith(creating: true));
+
+    final result = await _createResume(
+      title: event.title,
+      fileId: event.fileId,
+      isDefault: state.items.isEmpty,
+    );
+    await result.fold((_) async {
+      emit(state.copyWith(created: true));
+      final reloaded = await _getResumes();
+      reloaded.fold(
+        (items) =>
+            emit(state.copyWith(status: ResumeStatus.success, items: items)),
+        (_) {},
+      );
+    }, (failure) async => emit(state.copyWith(createFailure: failure)));
   }
 }

@@ -1,6 +1,6 @@
 part of 'job_details_sections.dart';
 
-/// "Why this job matches you", from `matchReasons`.
+/// "Why you're a match", from `matchReasons`.
 class JobMatchSection extends StatelessWidget {
   const JobMatchSection({super.key, required this.reasons});
 
@@ -11,44 +11,33 @@ class JobMatchSection extends StatelessWidget {
     final theme = Theme.of(context);
     final dark = theme.brightness == Brightness.dark;
     final green = dark ? AppColors.successDark : AppColors.success;
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: dark ? green.withValues(alpha: 0.12) : AppColors.successLight,
-        borderRadius: BorderRadius.circular(AppRadius.medium),
-      ),
+    final greenBg = dark
+        ? AppColors.successDark.withValues(alpha: 0.16)
+        : AppColors.successLight;
+    return _Section(
+      icon: Icons.verified_outlined,
+      iconColor: green,
+      title: "Why you're a match",
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Icon(Icons.thumb_up_alt_outlined, size: 18, color: green),
-              const SizedBox(width: 6),
-              Text(
-                'Why this job matches you',
-                style: theme.textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: green,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 6),
           for (final reason in reasons)
             Padding(
-              padding: const EdgeInsets.only(top: 4),
+              padding: const EdgeInsets.symmetric(vertical: 6),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(Icons.check_rounded, size: 16, color: green),
-                  const SizedBox(width: 6),
-                  Expanded(
-                    child: Text(
-                      reason,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: theme.colorScheme.onSurface,
-                      ),
+                  Container(
+                    width: 20,
+                    height: 20,
+                    decoration: BoxDecoration(
+                      color: greenBg,
+                      shape: BoxShape.circle,
                     ),
+                    child: Icon(Icons.check_rounded, size: 14, color: green),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(reason, style: theme.textTheme.bodyMedium),
                   ),
                 ],
               ),
@@ -73,44 +62,40 @@ class JobRequirementsSection extends StatelessWidget {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final items = [
-      if (job.qualificationText case final q?)
-        (Icons.school_outlined, 'Qualification', q),
-      if (job.additionalRequirements case final a?)
-        (Icons.info_outline_rounded, 'Also required', a),
+      if (job.qualificationText case final q?) ('Qualification', q),
+      if (job.additionalRequirements case final a?) ('Also needed', a),
     ];
     return _Section(
-      icon: Icons.fact_check_outlined,
+      icon: Icons.school_outlined,
       title: 'Requirements',
       child: Column(
         children: [
-          for (var i = 0; i < items.length; i++) ...[
-            if (i > 0) Divider(height: 21, color: _border(context)),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Icon(items[i].$1, size: 18, color: scheme.outline),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        items[i].$2,
-                        style: theme.textTheme.labelSmall?.copyWith(
-                          color: scheme.onSurfaceVariant,
-                        ),
+          for (final item in items) ...[
+            const ApplyRowDivider(),
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 11),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(
+                    width: 104,
+                    child: Text(
+                      item.$1,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: scheme.onSurfaceVariant,
                       ),
-                      const SizedBox(height: 2),
-                      Text(
-                        items[i].$3,
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
-                ),
-              ],
+                  Expanded(
+                    child: Text(
+                      item.$2,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ],
         ],
@@ -130,7 +115,7 @@ class JobDescriptionSection extends StatefulWidget {
 }
 
 class _JobDescriptionSectionState extends State<JobDescriptionSection> {
-  static const _collapsedHeight = 180.0;
+  static const _collapsedHeight = 140.0;
   bool _expanded = false;
 
   @override
@@ -166,6 +151,7 @@ class _JobDescriptionSectionState extends State<JobDescriptionSection> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          const SizedBox(height: 4),
           AnimatedSize(
             duration: const Duration(milliseconds: 200),
             alignment: Alignment.topCenter,
@@ -213,7 +199,7 @@ class _JobDescriptionSectionState extends State<JobDescriptionSection> {
   }
 }
 
-/// Full address: street, area, city, state, postal code and country.
+/// Full address with an "Open in Maps" link.
 class JobLocationSection extends StatelessWidget {
   const JobLocationSection({super.key, required this.job});
 
@@ -221,6 +207,22 @@ class JobLocationSection extends StatelessWidget {
 
   static bool hasAddress(Job job) =>
       job.address != null || job.area != null || job.postalCode != null;
+
+  String get _fullAddress => [
+    job.address,
+    job.area,
+    fullLocation(job),
+    job.postalCode,
+    job.country,
+  ].whereType<String>().where((p) => p.trim().isNotEmpty).join(', ');
+
+  Future<void> _openMaps() async {
+    final uri = Uri.https('www.google.com', '/maps/search/', {
+      'api': '1',
+      'query': '${job.organization.name}, $_fullAddress',
+    });
+    await launchUrl(uri, mode: LaunchMode.externalApplication);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -240,6 +242,7 @@ class JobLocationSection extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          const SizedBox(height: 4),
           if (street.isNotEmpty)
             Text(
               street,
@@ -252,6 +255,17 @@ class JobLocationSection extends StatelessWidget {
             Text(region, style: muted),
           ],
           if (job.country case final c?) Text(c, style: muted),
+          TextButton.icon(
+            onPressed: _openMaps,
+            style: TextButton.styleFrom(
+              foregroundColor: _brand(context),
+              padding: EdgeInsets.zero,
+              minimumSize: const Size(0, 36),
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+            icon: const Icon(Icons.map_outlined, size: 18),
+            label: const Text('Open in Maps'),
+          ),
         ],
       ),
     );

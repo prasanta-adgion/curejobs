@@ -5,6 +5,7 @@ import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_radius.dart';
 import '../../../all_jobs/domain/entities/job.dart';
 import '../../../apply_job/presentation/pages/apply_eligibility_page.dart';
+import '../../../apply_job/presentation/widgets/apply_flow_widgets.dart';
 import '../../../all_jobs/presentation/formatters/job_formatter.dart';
 import '../../domain/usecases/track_job_view_usecase.dart';
 import '../widgets/job_details_sections.dart';
@@ -65,41 +66,29 @@ class _JobDetailsPageState extends State<JobDetailsPage> {
   @override
   Widget build(BuildContext context) {
     final job = widget.job;
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
     final now = DateTime.now();
-    final isDark = theme.brightness == Brightness.dark;
     final deadline = DeadlineInfo.of(job.applicationDeadline, now);
 
+    // Ordered by what a candidate decides on first: what/where, does it fit
+    // me, how long do I have, then the details.
+    final sections = <Widget>[
+      if (job.matchReasons.isNotEmpty)
+        JobMatchSection(reasons: job.matchReasons),
+      JobOverviewSection(job: job, now: now, deadline: deadline),
+      if (job.description case final html?) JobDescriptionSection(html: html),
+      if (JobRequirementsSection.hasAny(job)) JobRequirementsSection(job: job),
+      if (job.skills.isNotEmpty) JobSkillsSection(skills: job.skills),
+      if (job.categoryName != null || job.specializationName != null)
+        JobDepartmentSection(job: job),
+      if (JobLocationSection.hasAddress(job)) JobLocationSection(job: job),
+      JobEmployerSection(job: job),
+    ];
+
     return Scaffold(
-      backgroundColor: isDark
-          ? AppColors.darkBackground
-          : AppColors.lightBackground,
-      appBar: AppBar(
-        backgroundColor: scheme.surface,
-        surfaceTintColor: Colors.transparent,
-        titleSpacing: 0,
-        shape: Border(
-          bottom: BorderSide(
-            color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
-          ),
-        ),
-        // Shows the job title once the header has scrolled away.
-        title: ValueListenableBuilder(
-          valueListenable: _showBottomBar,
-          builder: (context, scrolled, _) => AnimatedSwitcher(
-            duration: const Duration(milliseconds: 180),
-            child: Text(
-              scrolled ? job.title : 'Job details',
-              key: ValueKey(scrolled),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-        ),
+      backgroundColor: ApplyFlowColors.page(context),
+      appBar: ApplyStepAppBar(
+        title: 'Job details',
+        subtitle: job.organization.name,
       ),
       body: CustomScrollView(
         controller: _scroll,
@@ -112,42 +101,17 @@ class _JobDetailsPageState extends State<JobDetailsPage> {
               onApply: _apply,
             ),
           ),
-          SliverPadding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-            sliver: SliverList.list(
-              children: [
-                if (job.matchReasons.isNotEmpty) ...[
-                  JobMatchSection(reasons: job.matchReasons),
-                  const SizedBox(height: 10),
-                ],
-                JobOverviewSection(job: job, now: now, deadline: deadline),
-                if (job.description case final html?) ...[
-                  const SizedBox(height: 10),
-                  JobDescriptionSection(html: html),
-                ],
-                if (JobRequirementsSection.hasAny(job)) ...[
-                  const SizedBox(height: 10),
-                  JobRequirementsSection(job: job),
-                ],
-                if (job.skills.isNotEmpty) ...[
-                  const SizedBox(height: 10),
-                  JobSkillsSection(skills: job.skills),
-                ],
-                if (job.categoryName != null ||
-                    job.specializationName != null) ...[
-                  const SizedBox(height: 10),
-                  JobDepartmentSection(job: job),
-                ],
-                if (JobLocationSection.hasAddress(job)) ...[
-                  const SizedBox(height: 10),
-                  JobLocationSection(job: job),
-                ],
-                const SizedBox(height: 10),
-                JobEmployerSection(job: job),
-                // Room so the bottom bar never covers the last section.
-                const SizedBox(height: 72),
+          if (deadline != null)
+            SliverToBoxAdapter(child: JobDeadlineStrip(deadline: deadline)),
+          SliverList.list(
+            children: [
+              for (final section in sections) ...[
+                const ApplySectionGap(),
+                section,
               ],
-            ),
+              // Room so the bottom bar never covers the last section.
+              const SizedBox(height: 88),
+            ],
           ),
         ],
       ),
@@ -188,7 +152,7 @@ class _ApplyBar extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: scheme.surface,
+        color: ApplyFlowColors.section(context),
         border: Border(
           top: BorderSide(
             color: isDark ? AppColors.darkBorder : AppColors.lightBorder,

@@ -70,4 +70,7 @@ class ApiEndpoints {
 
   static String jobApplicationEligibility({required String id}) =>
       'api/v1/jobs/$id/application-eligibility';
+
+  static String jobApplicationSubmit({required String id}) =>
+      'api/v1/jobs/$id/applications';
 }

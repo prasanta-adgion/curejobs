@@ -93,7 +93,7 @@ class _ReviewViewState extends State<_ReviewView> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
-    final warnings = p.eligibility.warnings.length;
+    final accent = ApplyFlowColors.appBar(context);
 
     return Scaffold(
       backgroundColor: ApplyFlowColors.page(context),
@@ -105,7 +105,22 @@ class _ReviewViewState extends State<_ReviewView> {
       body: ListView(
         padding: const EdgeInsets.only(bottom: 16),
         children: [
-          ApplySection(child: _JobSummary(job: p.job)),
+          ApplySection(
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  "Almost done! You're applying for",
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: scheme.onSurfaceVariant,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                _JobSummary(job: p.job),
+              ],
+            ),
+          ),
           _ReviewCard(
             icon: Icons.description_outlined,
             title: 'CV',
@@ -113,17 +128,15 @@ class _ReviewViewState extends State<_ReviewView> {
             onAction: _changeCv,
             child: _CvRow(resume: p.resume),
           ),
-          _ReviewCard(
-            icon: Icons.person_outline_rounded,
+          _ReadySection(
             title: 'Your details',
             action: 'Edit profile',
             onAction: _editProfile,
             child: const _DetailsBody(),
           ),
           if (p.eligibility.questions.isNotEmpty)
-            _ReviewCard(
-              icon: Icons.quiz_outlined,
-              title: 'Screening answers (${p.answers.length})',
+            _ReadySection(
+              title: 'Screening answers',
               action: 'Edit',
               onAction: _editAnswers,
               child: _AnswersBody(
@@ -131,51 +144,60 @@ class _ReviewViewState extends State<_ReviewView> {
                 answers: p.answers,
               ),
             ),
-          if (warnings > 0) ...[
+          if (p.eligibility.warnings.isNotEmpty) ...[
             const ApplySectionGap(),
-            _WarningNote(count: warnings),
+            _WarningNote(eligibility: p.eligibility),
           ],
+          const ApplySectionGap(),
+          const _AfterSend(),
         ],
       ),
       bottomNavigationBar: ApplyBottomBar(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            InkWell(
-              borderRadius: BorderRadius.circular(8),
-              onTap: () => setState(() => _confirmed = !_confirmed),
-              child: Padding(
-                padding: const EdgeInsets.only(bottom: 10),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    SizedBox(
-                      width: 24,
-                      height: 24,
-                      child: Checkbox(
-                        value: _confirmed,
-                        activeColor: ApplyFlowColors.appBar(context),
-                        onChanged: (v) =>
-                            setState(() => _confirmed = v ?? false),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                        'I confirm these details are correct and agree to '
-                        'share my profile with this employer.',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: scheme.onSurfaceVariant,
-                          height: 1.4,
+            // Whole box is tappable so the checkbox is easy to hit.
+            Material(
+              color: scheme.primaryContainer,
+              borderRadius: BorderRadius.circular(10),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(10),
+                onTap: () => setState(() => _confirmed = !_confirmed),
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(10, 10, 12, 10),
+                  child: Row(
+                    children: [
+                      SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: Checkbox(
+                          value: _confirmed,
+                          activeColor: accent,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(5),
+                          ),
+                          onChanged: (v) =>
+                              setState(() => _confirmed = v ?? false),
                         ),
                       ),
-                    ),
-                  ],
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          'I confirm these details are correct',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: scheme.onSurface,
+                            height: 1.4,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
+            const SizedBox(height: 10),
             ApplyPrimaryButton(
-              label: 'Submit application',
+              label: 'Send application',
               icon: Icons.send_rounded,
               onPressed: _confirmed ? _submit : null,
             ),
@@ -204,52 +226,59 @@ class _JobSummary extends StatelessWidget {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final meta = [
-      job.organization.name,
       if (job.city case final c? when c.trim().isNotEmpty) c,
       JobFormatter.employmentType(job.employmentType),
     ].join(' · ');
 
     final accent = ApplyFlowColors.appBar(context);
-    return Row(
-      children: [
-        Container(
-          width: 44,
-          height: 44,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: accent.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Text(
-            _initials,
-            style: theme.textTheme.titleSmall?.copyWith(
-              color: accent,
-              fontWeight: FontWeight.w700,
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: scheme.primaryContainer,
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 48,
+            height: 48,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: ApplyFlowColors.section(context),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Text(
+              _initials,
+              style: theme.textTheme.titleMedium?.copyWith(
+                color: accent,
+                fontWeight: FontWeight.w700,
+              ),
             ),
           ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                job.title,
-                style: theme.textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.w600,
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  job.title,
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                meta,
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: scheme.onSurfaceVariant,
+                const SizedBox(height: 2),
+                Text(job.organization.name, style: theme.textTheme.bodySmall),
+                Text(
+                  meta,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: scheme.onSurfaceVariant,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
@@ -292,6 +321,121 @@ class _ReviewCard extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// A gap, then a full-width section with a green "ready" tick, the title
+/// and an action link on the right.
+class _ReadySection extends StatelessWidget {
+  const _ReadySection({
+    required this.title,
+    required this.action,
+    required this.onAction,
+    required this.child,
+  });
+
+  final String title;
+  final String action;
+  final VoidCallback onAction;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final tone = StatusTone.of(context, CheckStatus.pass);
+    return Column(
+      children: [
+        const ApplySectionGap(),
+        ApplySection(
+          padding: const EdgeInsets.fromLTRB(16, 6, 8, 14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  CircleAvatar(
+                    radius: 10,
+                    backgroundColor: tone.background,
+                    child: Icon(
+                      Icons.check_rounded,
+                      size: 13,
+                      color: tone.foreground,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      title,
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: onAction,
+                    style: TextButton.styleFrom(
+                      foregroundColor: ApplyFlowColors.appBar(context),
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      visualDensity: VisualDensity.compact,
+                      textStyle: theme.textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    child: Text(action),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 4),
+              Padding(padding: const EdgeInsets.only(right: 8), child: child),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// "After you send": what happens next, so sending doesn't feel final and
+/// unknown.
+class _AfterSend extends StatelessWidget {
+  const _AfterSend();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final accent = ApplyFlowColors.appBar(context);
+    Widget line(IconData icon, String text) => Padding(
+      padding: const EdgeInsets.only(top: 10),
+      child: Row(
+        children: [
+          Icon(icon, size: 18, color: accent),
+          const SizedBox(width: 10),
+          Expanded(child: Text(text, style: theme.textTheme.bodyMedium)),
+        ],
+      ),
+    );
+    return ApplySection(
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'After you send',
+            style: theme.textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          line(
+            Icons.mail_outline_rounded,
+            'The recruiter gets your CV, profile and answers',
+          ),
+          line(
+            Icons.send_outlined,
+            'Track the status anytime in the Applied tab',
+          ),
+        ],
+      ),
     );
   }
 }
@@ -403,18 +547,71 @@ class _DetailsBody extends StatelessWidget {
             child: LinearProgressIndicator(),
           );
         }
+        final initials = c.fullName
+            .split(RegExp(r'\s+'))
+            .where((w) => w.isNotEmpty)
+            .take(2)
+            .map((w) => w[0].toUpperCase())
+            .join();
+        final accent = ApplyFlowColors.appBar(context);
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              c.fullName,
-              style: theme.textTheme.bodyLarge?.copyWith(
-                fontWeight: FontWeight.w600,
+            Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  CircleAvatar(
+                    radius: 22,
+                    backgroundColor: theme.colorScheme.primaryContainer,
+                    child: Text(
+                      initials,
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        color: accent,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          c.fullName,
+                          style: theme.textTheme.bodyLarge?.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        if (c.professionalTitle case final t?
+                            when t.trim().isNotEmpty)
+                          Text(t, style: muted),
+                        if (c.location case final l?)
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.location_on_outlined,
+                                size: 14,
+                                color: theme.colorScheme.onSurfaceVariant,
+                              ),
+                              const SizedBox(width: 3),
+                              Expanded(child: Text(l, style: muted)),
+                            ],
+                          ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
             ),
-            if (c.professionalTitle case final t? when t.trim().isNotEmpty)
-              Text(t, style: muted),
-            if (c.location case final l?) Text(l, style: muted),
+            const SizedBox(height: 10),
+            Text(
+              'The recruiter sees your full profile with this application.',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
           ],
         );
       },
@@ -453,20 +650,42 @@ class _AnswersBody extends StatelessWidget {
                 top: BorderSide(color: ApplyFlowColors.divider(context)),
               ),
             ),
-            child: Column(
+            child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  questions[i].prompt,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: scheme.onSurfaceVariant,
+                SizedBox(
+                  width: 30,
+                  child: Text(
+                    'Q${i + 1}',
+                    style: theme.textTheme.labelMedium?.copyWith(
+                      color: ApplyFlowColors.appBar(context),
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                 ),
-                const SizedBox(height: 2),
-                Text(
-                  _answerFor(questions[i]) ?? 'Not answered',
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        questions[i].prompt,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: scheme.onSurfaceVariant,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        _answerFor(questions[i]) ?? 'Not answered',
+                        maxLines: 3,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: _answerFor(questions[i]) == null
+                              ? scheme.onSurfaceVariant
+                              : null,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],
@@ -477,28 +696,46 @@ class _AnswersBody extends StatelessWidget {
   }
 }
 
+/// Amber strip: "You meet 4 of 6 requirements. The recruiter will check
+/// skills and location. You can still send."
 class _WarningNote extends StatelessWidget {
-  const _WarningNote({required this.count});
+  const _WarningNote({required this.eligibility});
 
-  final int count;
+  final ApplicationEligibility eligibility;
+
+  String get _text {
+    final e = eligibility;
+    final total = e.passed.length + e.warnings.length + e.failed.length;
+    final names = e.warnings
+        .map((w) => checkTitle(w.code).toLowerCase())
+        .toSet()
+        .toList();
+    final list = names.length <= 1
+        ? names.join()
+        : '${names.sublist(0, names.length - 1).join(', ')} and ${names.last}';
+    return 'You meet ${e.passed.length} of $total requirements. '
+        'The recruiter will check $list. You can still send.';
+  }
 
   @override
   Widget build(BuildContext context) {
     final tone = StatusTone.of(context, CheckStatus.warning);
+    final color = StatusTone.text(context, CheckStatus.warning);
     return ApplySection(
       color: tone.background,
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(Icons.info_outline_rounded, size: 20, color: tone.foreground),
+          Icon(Icons.info_outline_rounded, size: 20, color: color),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
-              'The recruiter will review $count '
-              '${count == 1 ? 'item' : 'items'}, like skills and location. '
-              'You can still apply.',
-              style: Theme.of(context).textTheme.bodySmall
-                  ?.copyWith(color: tone.foreground, height: 1.4),
+              _text,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: color,
+                fontWeight: FontWeight.w600,
+                height: 1.4,
+              ),
             ),
           ),
         ],

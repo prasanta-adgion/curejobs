@@ -53,6 +53,7 @@ class _FileViewerViewState extends State<_FileViewerView> {
   int _currentPage = 1;
 
   void _retry() {
+    if (!mounted) return;
     setState(() {
       _pageCount = null;
       _currentPage = 1;
