@@ -4,6 +4,7 @@ import '../../../core/network/api_client.dart';
 import '../data/datasources/job_details_remote_data_source.dart';
 import '../data/repositories/job_details_repository_impl.dart';
 import '../domain/repositories/job_details_repository.dart';
+import '../domain/usecases/track_apply_start_usecase.dart';
 import '../domain/usecases/track_job_view_usecase.dart';
 
 void registerJobDetailsDependencies(GetIt sl) {
@@ -15,5 +16,8 @@ void registerJobDetailsDependencies(GetIt sl) {
   );
   sl.registerLazySingleton<TrackJobViewUseCase>(
     () => TrackJobViewUseCase(sl<JobDetailsRepository>()),
+  );
+  sl.registerLazySingleton<TrackApplyStartUseCase>(
+    () => TrackApplyStartUseCase(sl<JobDetailsRepository>()),
   );
 }

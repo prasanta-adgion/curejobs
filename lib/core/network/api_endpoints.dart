@@ -62,8 +62,8 @@ class ApiEndpoints {
       'api/v1/jobs/$id/analytics/view';
   static String jobImpressionAnalytics({required String id}) =>
       'api/v1/jobs/$id/analytics/impression';
-  static String applyStartAnalytics({required String id}) =>
-      'api/v1/jobs/$id/analytics/apply-start';
+  static String applyStartAnalytics({required String jobId}) =>
+      'api/v1/jobs/$jobId/analytics/apply-start';
 
   //job search
   static const String jobSearchSuggestions = 'api/v1/jobs/suggestions';
@@ -71,6 +71,6 @@ class ApiEndpoints {
   static String jobApplicationEligibility({required String id}) =>
       'api/v1/jobs/$id/application-eligibility';
 
-  static String jobApplicationSubmit({required String id}) =>
-      'api/v1/jobs/$id/applications';
+  static String jobApplicationSubmit({required String jobId}) =>
+      'api/v1/jobs/$jobId/applications';
 }

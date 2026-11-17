@@ -7,6 +7,7 @@ import '../../../all_jobs/domain/entities/job.dart';
 import '../../../apply_job/presentation/pages/apply_eligibility_page.dart';
 import '../../../apply_job/presentation/widgets/apply_flow_widgets.dart';
 import '../../../all_jobs/presentation/formatters/job_formatter.dart';
+import '../../domain/usecases/track_apply_start_usecase.dart';
 import '../../domain/usecases/track_job_view_usecase.dart';
 import '../widgets/job_details_sections.dart';
 
@@ -36,7 +37,6 @@ class _JobDetailsPageState extends State<JobDetailsPage> {
   void initState() {
     super.initState();
     _scroll.addListener(_onScroll);
-    // Fire and forget: a failed analytics call never affects the screen.
     sl<TrackJobViewUseCase>()(widget.job.id);
   }
 
@@ -56,6 +56,8 @@ class _JobDetailsPageState extends State<JobDetailsPage> {
   }
 
   void _apply() {
+    // Fire and forget, like the view event.
+    sl<TrackApplyStartUseCase>()(widget.job.id);
     if (widget.onApply != null) {
       widget.onApply!();
       return;

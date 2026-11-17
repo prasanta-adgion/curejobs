@@ -73,6 +73,8 @@ class ApplyStepAppBar extends StatelessWidget implements PreferredSizeWidget {
       backgroundColor: backgroundColor ?? ApplyFlowColors.appBar(context),
       foregroundColor: Colors.white,
       surfaceTintColor: Colors.transparent,
+      iconTheme: const IconThemeData(color: Colors.white),
+      actionsIconTheme: const IconThemeData(color: Colors.white),
       automaticallyImplyLeading: showBack,
       titleSpacing: showBack ? 0 : 16,
       actions: actions,

@@ -5,7 +5,9 @@ import '../data/datasources/apply_job_remote_data_source.dart';
 import '../data/repositories/apply_job_repository_impl.dart';
 import '../domain/repositories/apply_job_repository.dart';
 import '../domain/usecases/get_application_eligibility_usecase.dart';
+import '../domain/usecases/submit_application_usecase.dart';
 import '../presentation/bloc/eligibility_cubit.dart';
+import '../presentation/bloc/submit_application_bloc.dart';
 
 void registerApplyJobDependencies(GetIt sl) {
   sl.registerLazySingleton<ApplyJobRemoteDataSource>(
@@ -18,8 +20,15 @@ void registerApplyJobDependencies(GetIt sl) {
     () => GetApplicationEligibilityUseCase(sl<ApplyJobRepository>()),
   );
 
+  sl.registerLazySingleton<SubmitApplicationUseCase>(
+    () => SubmitApplicationUseCase(sl<ApplyJobRepository>()),
+  );
+
   // New cubit per screen.
   sl.registerFactory<EligibilityCubit>(
     () => EligibilityCubit(sl<GetApplicationEligibilityUseCase>()),
+  );
+  sl.registerFactory<SubmitApplicationBloc>(
+    () => SubmitApplicationBloc(sl<SubmitApplicationUseCase>()),
   );
 }

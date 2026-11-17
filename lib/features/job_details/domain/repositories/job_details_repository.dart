@@ -5,4 +5,9 @@ abstract interface class JobDetailsRepository {
     required String jobId,
     required String listingContext,
   });
+
+  Future<Result<void>> trackApplyStart({
+    required String jobId,
+    required String listingContext,
+  });
 }

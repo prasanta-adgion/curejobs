@@ -16,4 +16,15 @@ class JobDetailsRepositoryImpl implements JobDetailsRepository {
       () => _remote.trackJobView(jobId: jobId, listingContext: listingContext),
     );
   }
+
+  @override
+  Future<Result<void>> trackApplyStart({
+    required String jobId,
+    required String listingContext,
+  }) {
+    return Result.guard(
+      () =>
+          _remote.trackApplyStart(jobId: jobId, listingContext: listingContext),
+    );
+  }
 }

@@ -2,12 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../app/di/injection_container.dart';
+import '../../../../core/widgets/app_snackbar.dart';
 import '../../../all_jobs/domain/entities/job.dart';
 import '../../../all_jobs/presentation/formatters/job_formatter.dart';
 import '../../../media_preview/presentation/pages/file_viewer_page.dart';
 import '../../../profile/presentation/bloc/candidate_profile_bloc.dart';
 import '../../../profile/sections/resume/domain/entities/resume.dart';
 import '../../domain/entities/application_eligibility.dart';
+import '../bloc/submit_application_bloc.dart';
+import 'application_sent_page.dart';
 import '../widgets/apply_flow_widgets.dart';
 import '../widgets/eligibility_widgets.dart';
 
@@ -42,9 +45,15 @@ class ReviewApplicationPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (_) =>
-          sl<CandidateProfileBloc>()..add(const CandidateProfileRequested()),
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider(
+          create: (_) =>
+              sl<CandidateProfileBloc>()
+                ..add(const CandidateProfileRequested()),
+        ),
+        BlocProvider(create: (_) => sl<SubmitApplicationBloc>()),
+      ],
       child: _ReviewView(page: this),
     );
   }
@@ -60,7 +69,14 @@ class _ReviewView extends StatefulWidget {
 }
 
 class _ReviewViewState extends State<_ReviewView> {
-  bool _confirmed = false;
+  /// Whether "I confirm these details are correct" is ticked.
+  final _confirmed = ValueNotifier<bool>(false);
+
+  @override
+  void dispose() {
+    _confirmed.dispose();
+    super.dispose();
+  }
 
   ReviewApplicationPage get p => widget.page;
 
@@ -79,14 +95,27 @@ class _ReviewViewState extends State<_ReviewView> {
       const SnackBar(content: Text('Edit your profile from the Profile tab')),
     );
 
-  void _submit() {
-    // Ready to send: p.job.id, p.resume.id and p.answers.
-    // TODO: call the submit-application API, then on success:
-    // Navigator.of(context).pushAndRemoveUntil(
-    //   ApplicationSentPage.route(p.job), (r) => r.isFirst);
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(const SnackBar(content: Text('Submit coming soon')));
+  void _submit() => context.read<SubmitApplicationBloc>().add(
+    SubmitApplicationRequested(
+      jobId: p.job.id,
+      resumeId: p.resume.id,
+      answers: p.answers,
+    ),
+  );
+
+  /// On success, shows the "Application sent" page in place of the flow.
+  void _onSubmitState(BuildContext context, SubmitApplicationState state) {
+    if (state.status == SubmitStatus.failure) {
+      AppSnackbar.error(
+        title: "Couldn't send application",
+        message: state.failure?.message,
+      );
+      return;
+    }
+    Navigator.of(context).pushAndRemoveUntil(
+      ApplicationSentPage.route(p.job, sentAt: DateTime.now()),
+      (r) => r.isFirst,
+    );
   }
 
   @override
@@ -95,113 +124,126 @@ class _ReviewViewState extends State<_ReviewView> {
     final scheme = theme.colorScheme;
     final accent = ApplyFlowColors.appBar(context);
 
-    return Scaffold(
-      backgroundColor: ApplyFlowColors.page(context),
-      appBar: const ApplyStepAppBar(
-        title: 'Review application',
-        subtitle: 'Check everything before you send',
-        step: ApplyStep.review,
-      ),
-      body: ListView(
-        padding: const EdgeInsets.only(bottom: 16),
-        children: [
-          ApplySection(
-            padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  "Almost done! You're applying for",
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: scheme.onSurfaceVariant,
-                  ),
-                ),
-                const SizedBox(height: 10),
-                _JobSummary(job: p.job),
-              ],
-            ),
-          ),
-          _ReviewCard(
-            icon: Icons.description_outlined,
-            title: 'CV',
-            action: 'Change',
-            onAction: _changeCv,
-            child: _CvRow(resume: p.resume),
-          ),
-          _ReadySection(
-            title: 'Your details',
-            action: 'Edit profile',
-            onAction: _editProfile,
-            child: const _DetailsBody(),
-          ),
-          if (p.eligibility.questions.isNotEmpty)
-            _ReadySection(
-              title: 'Screening answers',
-              action: 'Edit',
-              onAction: _editAnswers,
-              child: _AnswersBody(
-                questions: p.eligibility.questions,
-                answers: p.answers,
-              ),
-            ),
-          if (p.eligibility.warnings.isNotEmpty) ...[
-            const ApplySectionGap(),
-            _WarningNote(eligibility: p.eligibility),
-          ],
-          const ApplySectionGap(),
-          const _AfterSend(),
-        ],
-      ),
-      bottomNavigationBar: ApplyBottomBar(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
+    return BlocListener<SubmitApplicationBloc, SubmitApplicationState>(
+      listenWhen: (prev, curr) =>
+          curr.status == SubmitStatus.success ||
+          curr.status == SubmitStatus.failure,
+      listener: _onSubmitState,
+      child: Scaffold(
+        backgroundColor: ApplyFlowColors.page(context),
+        appBar: const ApplyStepAppBar(
+          title: 'Review application',
+          subtitle: 'Check everything before you send',
+          step: ApplyStep.review,
+        ),
+        body: ListView(
+          padding: const EdgeInsets.only(bottom: 16),
           children: [
-            // Whole box is tappable so the checkbox is easy to hit.
-            Material(
-              color: scheme.primaryContainer,
-              borderRadius: BorderRadius.circular(10),
-              child: InkWell(
+            ApplySection(
+              padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "Almost done! You're applying for",
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: scheme.onSurfaceVariant,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  _JobSummary(job: p.job),
+                ],
+              ),
+            ),
+            _ReviewCard(
+              icon: Icons.description_outlined,
+              title: 'CV',
+              action: 'Change',
+              onAction: _changeCv,
+              child: _CvRow(resume: p.resume),
+            ),
+            _ReadySection(
+              title: 'Your details',
+              action: 'Edit profile',
+              onAction: _editProfile,
+              child: const _DetailsBody(),
+            ),
+            if (p.eligibility.questions.isNotEmpty)
+              _ReadySection(
+                title: 'Screening answers',
+                action: 'Edit',
+                onAction: _editAnswers,
+                child: _AnswersBody(
+                  questions: p.eligibility.questions,
+                  answers: p.answers,
+                ),
+              ),
+            if (p.eligibility.warnings.isNotEmpty) ...[
+              const ApplySectionGap(),
+              _WarningNote(eligibility: p.eligibility),
+            ],
+            const ApplySectionGap(),
+            const _AfterSend(),
+          ],
+        ),
+        bottomNavigationBar: ApplyBottomBar(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Whole box is tappable so the checkbox is easy to hit.
+              Material(
+                color: scheme.primaryContainer,
                 borderRadius: BorderRadius.circular(10),
-                onTap: () => setState(() => _confirmed = !_confirmed),
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(10, 10, 12, 10),
-                  child: Row(
-                    children: [
-                      SizedBox(
-                        width: 24,
-                        height: 24,
-                        child: Checkbox(
-                          value: _confirmed,
-                          activeColor: accent,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(5),
-                          ),
-                          onChanged: (v) =>
-                              setState(() => _confirmed = v ?? false),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Text(
-                          'I confirm these details are correct',
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: scheme.onSurface,
-                            height: 1.4,
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(10),
+                  onTap: () => _confirmed.value = !_confirmed.value,
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(10, 10, 12, 10),
+                    child: Row(
+                      children: [
+                        SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: ValueListenableBuilder<bool>(
+                            valueListenable: _confirmed,
+                            builder: (context, confirmed, _) => Checkbox(
+                              value: confirmed,
+                              activeColor: accent,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(5),
+                              ),
+                              onChanged: (v) => _confirmed.value = v ?? false,
+                            ),
                           ),
                         ),
-                      ),
-                    ],
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            'I confirm these details are correct',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: scheme.onSurface,
+                              height: 1.4,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
-            ),
-            const SizedBox(height: 10),
-            ApplyPrimaryButton(
-              label: 'Send application',
-              icon: Icons.send_rounded,
-              onPressed: _confirmed ? _submit : null,
-            ),
-          ],
+              const SizedBox(height: 10),
+              BlocBuilder<SubmitApplicationBloc, SubmitApplicationState>(
+                builder: (context, submit) => ValueListenableBuilder<bool>(
+                  valueListenable: _confirmed,
+                  builder: (context, confirmed, _) => ApplyPrimaryButton(
+                    label: submit.isSending ? 'Sending…' : 'Send application',
+                    icon: Icons.send_rounded,
+                    onPressed: confirmed && !submit.isSending ? _submit : null,
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
