@@ -41,3 +41,15 @@ final class ResumeDeleteRequested extends ResumeEvent {
   @override
   List<Object?> get props => [resume];
 }
+
+/// Saves an uploaded file ([fileId]) as a new CV. The first CV becomes the
+/// default.
+final class ResumeUploaded extends ResumeEvent {
+  const ResumeUploaded({required this.title, required this.fileId});
+
+  final String title;
+  final String fileId;
+
+  @override
+  List<Object?> get props => [title, fileId];
+}

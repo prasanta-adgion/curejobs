@@ -7,6 +7,12 @@ abstract interface class JobDetailsRemoteDataSource {
     required String jobId,
     required String listingContext,
   });
+
+  /// Records that the candidate tapped Apply now.
+  Future<void> trackApplyStart({
+    required String jobId,
+    required String listingContext,
+  });
 }
 
 class JobDetailsRemoteDataSourceImpl implements JobDetailsRemoteDataSource {
@@ -21,6 +27,17 @@ class JobDetailsRemoteDataSourceImpl implements JobDetailsRemoteDataSource {
   }) {
     return _client.post<void>(
       ApiEndpoints.jobViewAnalytics(id: jobId),
+      body: {'listingContext': listingContext},
+    );
+  }
+
+  @override
+  Future<void> trackApplyStart({
+    required String jobId,
+    required String listingContext,
+  }) {
+    return _client.post<void>(
+      ApiEndpoints.applyStartAnalytics(jobId: jobId),
       body: {'listingContext': listingContext},
     );
   }

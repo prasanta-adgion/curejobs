@@ -62,7 +62,7 @@ class ApplyStepAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   @override
   Size get preferredSize =>
-      Size.fromHeight(kToolbarHeight + (step == null ? 0 : 34));
+      Size.fromHeight(kToolbarHeight + (step == null ? 0 : 58));
 
   @override
   Widget build(BuildContext context) {
@@ -73,6 +73,8 @@ class ApplyStepAppBar extends StatelessWidget implements PreferredSizeWidget {
       backgroundColor: backgroundColor ?? ApplyFlowColors.appBar(context),
       foregroundColor: Colors.white,
       surfaceTintColor: Colors.transparent,
+      iconTheme: const IconThemeData(color: Colors.white),
+      actionsIconTheme: const IconThemeData(color: Colors.white),
       automaticallyImplyLeading: showBack,
       titleSpacing: showBack ? 0 : 16,
       actions: actions,
@@ -98,58 +100,108 @@ class ApplyStepAppBar extends StatelessWidget implements PreferredSizeWidget {
       bottom: current == null
           ? null
           : PreferredSize(
-              preferredSize: const Size.fromHeight(34),
+              preferredSize: const Size.fromHeight(58),
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
-                child: Column(
+                padding: const EdgeInsets.fromLTRB(8, 2, 8, 10),
+                child: Row(
                   children: [
-                    Row(
-                      children: [
-                        for (final s in ApplyStep.values) ...[
-                          if (s.index > 0) const SizedBox(width: 4),
-                          Expanded(
-                            child: Container(
-                              height: 4,
-                              decoration: BoxDecoration(
-                                color: s.index <= current.index
-                                    ? Colors.white
-                                    : Colors.white.withValues(alpha: 0.3),
-                                borderRadius: BorderRadius.circular(2),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                    const SizedBox(height: 6),
-                    Row(
-                      children: [
-                        for (final s in ApplyStep.values)
-                          Expanded(
-                            child: Text(
-                              s.label,
-                              textAlign: switch (s) {
-                                ApplyStep.eligibility => TextAlign.start,
-                                ApplyStep.review => TextAlign.end,
-                                _ => TextAlign.center,
-                              },
-                              style: theme.textTheme.labelSmall?.copyWith(
-                                fontSize: 10,
-                                color: s == current
-                                    ? Colors.white
-                                    : _subtitleColor,
-                                fontWeight: s == current
-                                    ? FontWeight.w700
-                                    : FontWeight.w400,
-                              ),
-                            ),
-                          ),
-                      ],
-                    ),
+                    for (final s in ApplyStep.values)
+                      Expanded(
+                        child: _StepDot(
+                          step: s,
+                          current: current,
+                          labelStyle: theme.textTheme.labelSmall,
+                        ),
+                      ),
                   ],
                 ),
               ),
             ),
+    );
+  }
+}
+
+/// One numbered step in the app bar tracker: a circle (tick when done,
+/// filled white when current, outlined when upcoming), lines joining it to
+/// its neighbours, and the step name below.
+class _StepDot extends StatelessWidget {
+  const _StepDot({
+    required this.step,
+    required this.current,
+    required this.labelStyle,
+  });
+
+  final ApplyStep step;
+  final ApplyStep current;
+  final TextStyle? labelStyle;
+
+  static const _size = 26.0;
+
+  @override
+  Widget build(BuildContext context) {
+    final appBar = ApplyFlowColors.appBar(context);
+    final done = step.index < current.index;
+    final isCurrent = step == current;
+    final dim = Colors.white.withValues(alpha: 0.35);
+
+    Widget line(bool active) => Expanded(
+      child: Container(height: 2, color: active ? Colors.white : dim),
+    );
+
+    return Column(
+      children: [
+        SizedBox(
+          height: _size,
+          child: Row(
+            children: [
+              step.index == 0
+                  ? const Spacer()
+                  : line(step.index <= current.index),
+              Container(
+                width: _size,
+                height: _size,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: done || isCurrent ? Colors.white : appBar,
+                  border: Border.all(
+                    color: done || isCurrent
+                        ? Colors.white
+                        : ApplyStepAppBar._subtitleColor,
+                    width: 1.5,
+                  ),
+                ),
+                child: done
+                    ? Icon(Icons.check_rounded, size: 16, color: appBar)
+                    : Text(
+                        '${step.index + 1}',
+                        style: labelStyle?.copyWith(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: isCurrent
+                              ? appBar
+                              : ApplyStepAppBar._subtitleColor,
+                        ),
+                      ),
+              ),
+              step.index == ApplyStep.values.length - 1
+                  ? const Spacer()
+                  : line(step.index < current.index),
+            ],
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          step.label,
+          style: labelStyle?.copyWith(
+            fontSize: 11,
+            color: isCurrent || done
+                ? Colors.white
+                : ApplyStepAppBar._subtitleColor,
+            fontWeight: isCurrent ? FontWeight.w700 : FontWeight.w400,
+          ),
+        ),
+      ],
     );
   }
 }

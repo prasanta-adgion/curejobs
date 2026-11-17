@@ -36,6 +36,15 @@ class ResumeState extends Equatable {
   /// Set for one state when deleting a CV fails.
   final Failure? deleteFailure;
 
+  /// True while a new CV is being saved.
+  final bool creating;
+
+  /// True for one state after a new CV was saved.
+  final bool created;
+
+  /// Set for one state when saving a new CV fails.
+  final Failure? createFailure;
+
   const ResumeState({
     this.status = ResumeStatus.initial,
     this.items = const [],
@@ -49,6 +58,9 @@ class ResumeState extends Equatable {
     this.deletingId,
     this.deleted = false,
     this.deleteFailure,
+    this.creating = false,
+    this.created = false,
+    this.createFailure,
   });
 
   bool get isLoading =>
@@ -85,6 +97,9 @@ class ResumeState extends Equatable {
     String? deletingId,
     bool deleted = false,
     Failure? deleteFailure,
+    bool creating = false,
+    bool created = false,
+    Failure? createFailure,
   }) {
     return ResumeState(
       status: status ?? this.status,
@@ -99,6 +114,9 @@ class ResumeState extends Equatable {
       deletingId: deletingId,
       deleted: deleted,
       deleteFailure: deleteFailure,
+      creating: creating,
+      created: created,
+      createFailure: createFailure,
     );
   }
 
@@ -116,5 +134,8 @@ class ResumeState extends Equatable {
     deletingId,
     deleted,
     deleteFailure,
+    creating,
+    created,
+    createFailure,
   ];
 }

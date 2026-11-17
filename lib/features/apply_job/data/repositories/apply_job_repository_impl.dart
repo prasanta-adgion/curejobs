@@ -12,4 +12,19 @@ class ApplyJobRepositoryImpl implements ApplyJobRepository {
   Future<Result<ApplicationEligibility>> getEligibility(String jobId) {
     return Result.guard(() => _remote.getEligibility(jobId));
   }
+
+  @override
+  Future<Result<void>> submitApplication({
+    required String jobId,
+    required String resumeId,
+    required List<ScreeningAnswer> answers,
+  }) {
+    return Result.guard(
+      () => _remote.submitApplication(
+        jobId: jobId,
+        resumeId: resumeId,
+        answers: answers,
+      ),
+    );
+  }
 }

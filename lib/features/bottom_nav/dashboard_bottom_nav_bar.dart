@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'dashboard_tab.dart';
+import 'dashboard_tab_enum.dart';
 
 /// Bottom navigation for the dashboard shell.
 class DashboardBottomNavBar extends StatelessWidget {
@@ -25,7 +25,7 @@ class DashboardBottomNavBar extends StatelessWidget {
       child: SafeArea(
         top: false,
         child: SizedBox(
-          height: 64,
+          height: 68,
           child: Row(
             children: [
               for (final tab in DashboardTab.values)
@@ -59,7 +59,9 @@ class _NavItem extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
+    // Icons are tinted from the theme, so dark mode gets the lighter primary.
     final color = selected ? scheme.primary : scheme.onSurfaceVariant;
+    const duration = Duration(milliseconds: 220);
 
     return Semantics(
       selected: selected,
@@ -68,31 +70,63 @@ class _NavItem extends StatelessWidget {
       child: InkResponse(
         onTap: onTap,
         radius: 36,
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+        child: Stack(
+          alignment: Alignment.center,
           children: [
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-              decoration: BoxDecoration(
-                color: selected
-                    ? scheme.primary.withValues(alpha: 0.14)
-                    : Colors.transparent,
-                borderRadius: BorderRadius.circular(100),
-              ),
-              child: Icon(
-                selected ? tab.activeIcon : tab.icon,
-                size: 22,
-                color: color,
+            // Top indicator line on the selected tab.
+            Positioned(
+              top: 0,
+              child: AnimatedContainer(
+                duration: duration,
+                curve: Curves.easeOutCubic,
+                width: selected ? 32 : 0,
+                height: 3,
+                decoration: BoxDecoration(
+                  color: scheme.primary,
+                  borderRadius: const BorderRadius.vertical(
+                    bottom: Radius.circular(3),
+                  ),
+                ),
               ),
             ),
-            const SizedBox(height: 4),
-            Text(
-              tab.label,
-              style: theme.textTheme.labelSmall?.copyWith(
-                color: color,
-                fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
-              ),
+            Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                // Soft tile behind the selected icon.
+                AnimatedContainer(
+                  duration: duration,
+                  curve: Curves.easeOutCubic,
+                  width: 52,
+                  height: 32,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: selected
+                        ? scheme.primaryContainer
+                        : scheme.primaryContainer.withValues(alpha: 0),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Image.asset(
+                    tab.iconAsset(selected: selected),
+                    width: 24,
+                    height: 24,
+                    color: color,
+                    // Keep both states decoded so switching doesn't flicker.
+                    gaplessPlayback: true,
+                    excludeFromSemantics: true,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                AnimatedDefaultTextStyle(
+                  duration: duration,
+                  style: (theme.textTheme.labelSmall ?? const TextStyle())
+                      .copyWith(
+                        color: color,
+                        fontWeight:
+                            selected ? FontWeight.w700 : FontWeight.w500,
+                      ),
+                  child: Text(tab.label),
+                ),
+              ],
             ),
           ],
         ),

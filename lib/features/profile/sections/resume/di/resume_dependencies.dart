@@ -5,6 +5,7 @@ import '../data/datasources/resume_remote_data_source.dart';
 import '../data/repositories/resume_repository_impl.dart';
 import '../domain/repositories/resume_repository.dart';
 import '../../../../media_preview/domain/usecases/get_file_access_url_usecase.dart';
+import '../domain/usecases/create_resume_usecase.dart';
 import '../domain/usecases/delete_resume_usecase.dart';
 import '../domain/usecases/get_resumes_usecase.dart';
 import '../domain/usecases/set_default_resume_usecase.dart';
@@ -29,6 +30,10 @@ void registerResumeDependencies(GetIt sl) {
     () => DeleteResumeUseCase(sl<ResumeRepository>()),
   );
 
+  sl.registerLazySingleton<CreateResumeUseCase>(
+    () => CreateResumeUseCase(sl<ResumeRepository>()),
+  );
+
   // New bloc per screen.
   sl.registerFactory<ResumeBloc>(
     () => ResumeBloc(
@@ -36,6 +41,7 @@ void registerResumeDependencies(GetIt sl) {
       getFileUrl: sl<GetFileAccessUrlUseCase>(),
       setDefault: sl<SetDefaultResumeUseCase>(),
       deleteResume: sl<DeleteResumeUseCase>(),
+      createResume: sl<CreateResumeUseCase>(),
     ),
   );
 }

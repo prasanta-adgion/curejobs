@@ -20,4 +20,19 @@ class ResumeRepositoryImpl implements ResumeRepository {
   Future<Result<void>> deleteResume({required String resumeId}) {
     return Result.guard(() => _remote.deleteResume(resumeId: resumeId));
   }
+
+  @override
+  Future<Result<void>> createResume({
+    required String title,
+    required String fileId,
+    required bool isDefault,
+  }) {
+    return Result.guard(
+      () => _remote.createResume(
+        title: title,
+        fileId: fileId,
+        isDefault: isDefault,
+      ),
+    );
+  }
 }
