@@ -131,10 +131,11 @@ class _ReviewViewState extends State<_ReviewView> {
       listener: _onSubmitState,
       child: Scaffold(
         backgroundColor: ApplyFlowColors.page(context),
-        appBar: const ApplyStepAppBar(
+        appBar: ApplyStepAppBar(
           title: 'Review application',
           subtitle: 'Check everything before you send',
           step: ApplyStep.review,
+          hasQuestions: p.eligibility.questions.isNotEmpty,
         ),
         body: ListView(
           padding: const EdgeInsets.only(bottom: 16),

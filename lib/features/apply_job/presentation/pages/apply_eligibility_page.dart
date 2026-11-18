@@ -43,12 +43,17 @@ class _EligibilityView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // All steps while loading; drop Questions once we know there are none.
+    final hasQuestions = context.select(
+      (EligibilityCubit c) => c.state.eligibility?.questions.isNotEmpty ?? true,
+    );
     return Scaffold(
       backgroundColor: ApplyFlowColors.page(context),
       appBar: ApplyStepAppBar(
         title: 'Before you apply',
         subtitle: '${job.title} · ${job.organization.name}',
         step: ApplyStep.eligibility,
+        hasQuestions: hasQuestions,
       ),
       body: BlocBuilder<EligibilityCubit, EligibilityState>(
         builder: (context, state) => switch (state.status) {

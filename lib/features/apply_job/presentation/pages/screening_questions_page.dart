@@ -68,6 +68,7 @@ class _ScreeningQuestionsPageState extends State<ScreeningQuestionsPage> {
   void _submit() {
     final missing = _missingRequired;
     if (missing.isNotEmpty) {
+      if (!mounted) return;
       setState(() => _showErrors = true);
       FocusScope.of(context).unfocus();
       final target = _keys[missing.first.id]?.currentContext;

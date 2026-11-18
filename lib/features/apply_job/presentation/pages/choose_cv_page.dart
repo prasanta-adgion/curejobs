@@ -149,6 +149,7 @@ class _ChooseCvViewState extends State<_ChooseCvView> {
         title: 'Choose your CV',
         subtitle: '${p.job.title} · ${p.job.organization.name}',
         step: ApplyStep.cv,
+        hasQuestions: p.eligibility.questions.isNotEmpty,
       ),
       body: BlocConsumer<ResumeBloc, ResumeState>(
         listenWhen: (prev, curr) =>

@@ -44,6 +44,7 @@ class ApplyStepAppBar extends StatelessWidget implements PreferredSizeWidget {
     required this.title,
     this.subtitle,
     this.step,
+    this.hasQuestions = true,
     this.backgroundColor,
     this.showBack = true,
     this.actions,
@@ -54,6 +55,10 @@ class ApplyStepAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   /// Current step; null hides the tracker.
   final ApplyStep? step;
+
+  /// False when the job has no screening questions: the Questions step is
+  /// left out of the tracker.
+  final bool hasQuestions;
   final Color? backgroundColor;
   final bool showBack;
   final List<Widget>? actions;
@@ -68,6 +73,10 @@ class ApplyStepAppBar extends StatelessWidget implements PreferredSizeWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final current = step;
+    final steps = [
+      for (final s in ApplyStep.values)
+        if (hasQuestions || s != ApplyStep.questions) s,
+    ];
 
     return AppBar(
       backgroundColor: backgroundColor ?? ApplyFlowColors.appBar(context),
@@ -105,11 +114,13 @@ class ApplyStepAppBar extends StatelessWidget implements PreferredSizeWidget {
                 padding: const EdgeInsets.fromLTRB(8, 2, 8, 10),
                 child: Row(
                   children: [
-                    for (final s in ApplyStep.values)
+                    for (final (i, s) in steps.indexed)
                       Expanded(
                         child: _StepDot(
                           step: s,
-                          current: current,
+                          index: i,
+                          count: steps.length,
+                          currentIndex: steps.indexOf(current),
                           labelStyle: theme.textTheme.labelSmall,
                         ),
                       ),
@@ -127,12 +138,18 @@ class ApplyStepAppBar extends StatelessWidget implements PreferredSizeWidget {
 class _StepDot extends StatelessWidget {
   const _StepDot({
     required this.step,
-    required this.current,
+    required this.index,
+    required this.count,
+    required this.currentIndex,
     required this.labelStyle,
   });
 
   final ApplyStep step;
-  final ApplyStep current;
+
+  /// Position among the visible steps, and how many there are.
+  final int index;
+  final int count;
+  final int currentIndex;
   final TextStyle? labelStyle;
 
   static const _size = 26.0;
@@ -140,8 +157,8 @@ class _StepDot extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final appBar = ApplyFlowColors.appBar(context);
-    final done = step.index < current.index;
-    final isCurrent = step == current;
+    final done = index < currentIndex;
+    final isCurrent = index == currentIndex;
     final dim = Colors.white.withValues(alpha: 0.35);
 
     Widget line(bool active) => Expanded(
@@ -154,9 +171,7 @@ class _StepDot extends StatelessWidget {
           height: _size,
           child: Row(
             children: [
-              step.index == 0
-                  ? const Spacer()
-                  : line(step.index <= current.index),
+              index == 0 ? const Spacer() : line(index <= currentIndex),
               Container(
                 width: _size,
                 height: _size,
@@ -174,7 +189,7 @@ class _StepDot extends StatelessWidget {
                 child: done
                     ? Icon(Icons.check_rounded, size: 16, color: appBar)
                     : Text(
-                        '${step.index + 1}',
+                        '${index + 1}',
                         style: labelStyle?.copyWith(
                           fontSize: 12,
                           fontWeight: FontWeight.w700,
@@ -184,9 +199,7 @@ class _StepDot extends StatelessWidget {
                         ),
                       ),
               ),
-              step.index == ApplyStep.values.length - 1
-                  ? const Spacer()
-                  : line(step.index < current.index),
+              index == count - 1 ? const Spacer() : line(index < currentIndex),
             ],
           ),
         ),

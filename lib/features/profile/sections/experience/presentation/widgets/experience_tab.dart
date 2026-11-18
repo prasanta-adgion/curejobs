@@ -269,7 +269,14 @@ class _TimelineEntry extends StatefulWidget {
 }
 
 class _TimelineEntryState extends State<_TimelineEntry> {
-  bool _expanded = false;
+  /// Whether responsibilities are shown in full.
+  final _expanded = ValueNotifier(false);
+
+  @override
+  void dispose() {
+    _expanded.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -421,10 +428,13 @@ class _TimelineEntryState extends State<_TimelineEntry> {
                   const SizedBox(height: 10),
                   Padding(
                     padding: const EdgeInsets.only(right: 10),
-                    child: _Responsibilities(
-                      text: responsibilities,
-                      expanded: _expanded,
-                      onToggle: () => setState(() => _expanded = !_expanded),
+                    child: ValueListenableBuilder<bool>(
+                      valueListenable: _expanded,
+                      builder: (context, expanded, _) => _Responsibilities(
+                        text: responsibilities,
+                        expanded: expanded,
+                        onToggle: () => _expanded.value = !expanded,
+                      ),
                     ),
                   ),
                 ],
