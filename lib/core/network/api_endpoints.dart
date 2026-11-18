@@ -73,4 +73,11 @@ class ApiEndpoints {
 
   static String jobApplicationSubmit({required String jobId}) =>
       'api/v1/jobs/$jobId/applications';
+
+  //plans
+  static const String packages = 'api/v1/packages';
+  static const String currentPlan = 'api/v1/subscriptions/me';
+
+  static const String subscribeToPlan = 'api/v1/payments/me';
+  static const String planHistory = 'api/v1/subscriptions/me/history';
 }

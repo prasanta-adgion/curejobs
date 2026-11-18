@@ -553,14 +553,30 @@ class _Overview extends StatefulWidget {
 }
 
 class _OverviewState extends State<_Overview> {
-  SkillCategory _tab = SkillSuggestions.suggestedTabs.first;
+  /// Selected suggestion tab.
+  final _tab = ValueNotifier<SkillCategory>(
+    SkillSuggestions.suggestedTabs.first,
+  );
+
+  @override
+  void dispose() {
+    _tab.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
+    return ValueListenableBuilder<SkillCategory>(
+      valueListenable: _tab,
+      builder: (context, tab, _) => _build(context, tab),
+    );
+  }
+
+  Widget _build(BuildContext context, SkillCategory tab) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final suggestions = [
-      for (final option in SkillSuggestions.inCategory(_tab))
+      for (final option in SkillSuggestions.inCategory(tab))
         if (!widget.isAdded(option.name)) option.name,
     ];
     final forWhom = widget.suggestedFor;
@@ -620,11 +636,11 @@ class _OverviewState extends State<_Overview> {
             itemCount: SkillSuggestions.suggestedTabs.length,
             separatorBuilder: (_, _) => const SizedBox(width: 8),
             itemBuilder: (context, i) {
-              final tab = SkillSuggestions.suggestedTabs[i];
+              final item = SkillSuggestions.suggestedTabs[i];
               return _TabPill(
-                label: tab.label,
-                selected: tab == _tab,
-                onTap: () => setState(() => _tab = tab),
+                label: item.label,
+                selected: item == tab,
+                onTap: () => _tab.value = item,
               );
             },
           ),
@@ -634,7 +650,7 @@ class _OverviewState extends State<_Overview> {
           padding: const EdgeInsets.symmetric(horizontal: 20),
           child: suggestions.isEmpty
               ? Text(
-                  "You've added every ${_tab.label.toLowerCase()} "
+                  "You've added every ${tab.label.toLowerCase()} "
                   'suggestion. Search to find more.',
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: scheme.onSurfaceVariant,

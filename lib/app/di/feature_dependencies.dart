@@ -20,6 +20,8 @@ import '../../features/profile/sections/resume/di/resume_dependencies.dart';
 import '../../features/profile/sections/certification_licences/di/certification_dependencies.dart';
 import '../../features/specialization/di/specialization_dependencies.dart';
 import '../../features/search_job/di/search_job_dependencies.dart';
+import '../../features/subscription_packages/di/subscription_packages_dependencies.dart';
+import '../../features/subscription_plan_buy_history/di/billing_history_dependencies.dart';
 
 void registerFeatureDependencies(GetIt sl) {
   registerLoginDependencies(sl);
@@ -41,4 +43,6 @@ void registerFeatureDependencies(GetIt sl) {
   registerJobDetailsDependencies(sl);
   registerSearchJobDependencies(sl);
   registerApplyJobDependencies(sl);
+  registerSubscriptionPackagesDependencies(sl);
+  registerBillingHistoryDependencies(sl);
 }

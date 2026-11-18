@@ -1,3 +1,4 @@
+import 'package:curejobs/core/constants/asset_paths.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -131,10 +132,11 @@ class _ReviewViewState extends State<_ReviewView> {
       listener: _onSubmitState,
       child: Scaffold(
         backgroundColor: ApplyFlowColors.page(context),
-        appBar: const ApplyStepAppBar(
+        appBar: ApplyStepAppBar(
           title: 'Review application',
           subtitle: 'Check everything before you send',
           step: ApplyStep.review,
+          hasQuestions: p.eligibility.questions.isNotEmpty,
         ),
         body: ListView(
           padding: const EdgeInsets.only(bottom: 16),
@@ -237,7 +239,12 @@ class _ReviewViewState extends State<_ReviewView> {
                   valueListenable: _confirmed,
                   builder: (context, confirmed, _) => ApplyPrimaryButton(
                     label: submit.isSending ? 'Sending…' : 'Send application',
-                    icon: Icons.send_rounded,
+                    // icon: Icons.send_rounded,
+                    icon: Image.asset(
+                        AssetPaths.forwordArrow,
+                        width: 18,
+                        height: 18,
+                      ),
                     onPressed: confirmed && !submit.isSending ? _submit : null,
                   ),
                 ),

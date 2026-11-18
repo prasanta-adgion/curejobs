@@ -1,3 +1,4 @@
+import 'package:curejobs/core/constants/asset_paths.dart';
 import 'package:curejobs/core/utils/date_time_utils.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -149,6 +150,7 @@ class _ChooseCvViewState extends State<_ChooseCvView> {
         title: 'Choose your CV',
         subtitle: '${p.job.title} · ${p.job.organization.name}',
         step: ApplyStep.cv,
+        hasQuestions: p.eligibility.questions.isNotEmpty,
       ),
       body: BlocConsumer<ResumeBloc, ResumeState>(
         listenWhen: (prev, curr) =>
@@ -245,7 +247,13 @@ class _ChooseCvViewState extends State<_ChooseCvView> {
                         ],
                         ApplyPrimaryButton(
                           label: 'Continue to review',
-                          icon: Icons.arrow_forward_rounded,
+                          // icon: Icons.arrow_forward_rounded,
+                          icon: Image.asset(
+                            AssetPaths.forwordArrow,
+                            width: 18,
+                            height: 18,
+                            color: Colors.white,
+                          ),
                           onPressed: selected == null
                               ? null
                               : () => _continue(selected),

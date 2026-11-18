@@ -53,13 +53,20 @@ class _DraggableInspectorButtonState extends State<_DraggableInspectorButton> {
       left: position.dx,
       top: position.dy,
       child: GestureDetector(
-        onPanUpdate: (details) => setState(() {
-          final next = position + details.delta;
-          _position = Offset(
-            next.dx.clamp(0, screen.width - _size),
-            next.dy.clamp(padding.top, screen.height - _size - padding.bottom),
-          );
-        }),
+        onPanUpdate: (details) {
+          if (!mounted) return;
+
+          setState(() {
+            final next = position + details.delta;
+            _position = Offset(
+              next.dx.clamp(0, screen.width - _size),
+              next.dy.clamp(
+                padding.top,
+                screen.height - _size - padding.bottom,
+              ),
+            );
+          });
+        },
         child: NetworkLoggerButton(
           color: Theme.of(context).colorScheme.primary,
         ),

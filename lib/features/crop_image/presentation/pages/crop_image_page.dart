@@ -84,6 +84,8 @@ class _CropImagePageState extends State<CropImagePage> {
         frame.image.dispose();
         return;
       }
+      if (!mounted) return;
+
       setState(() => _image = frame.image);
     } catch (_) {
       if (mounted) setState(() => _failed = true);
@@ -91,12 +93,16 @@ class _CropImagePageState extends State<CropImagePage> {
   }
 
   void _setZoom(double zoom) {
+    if (!mounted) return;
+
     setState(() {
       _transform = _transform.copyWith(zoom: zoom).clampedTo(_image!);
     });
   }
 
   Future<void> _continue() async {
+    if (!mounted) return;
+
     setState(() => _isBusy = true);
     final bytes = await _transform.export(_image!);
     if (!mounted) return;
@@ -108,6 +114,8 @@ class _CropImagePageState extends State<CropImagePage> {
 
   Future<void> _usePhoto() async {
     final bytes = _cropped!;
+    if (!mounted) return;
+
     setState(() => _isBusy = true);
     final stamp = DateTime.now().millisecondsSinceEpoch;
     final name = 'profile_photo_$stamp.png';

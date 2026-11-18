@@ -8,6 +8,7 @@ import '../../sections/skill/presentation/page/skills_section.dart';
 import '../../sections/skill/presentation/widgets/edit_skills_sheet.dart';
 import 'logout_section.dart';
 import 'my_applications_section.dart';
+import 'my_plan_section.dart';
 import 'next_step_banner.dart';
 
 /// First tab: activity numbers, next step, skills and languages. Each
@@ -50,7 +51,8 @@ class OverviewTab extends StatelessWidget {
         builder: (context, skills) => ListView(
           padding: const EdgeInsets.only(bottom: 24),
           children: [
-            const MyApplicationsSection(counts: ApplicationCounts.sample),
+            const MyApplicationsSection(),
+            const MyPlanSection(),
             NextStepBanner(steps: _nextSteps(context, skills)),
             const SkillsSection(),
             const LanguagesSection(),

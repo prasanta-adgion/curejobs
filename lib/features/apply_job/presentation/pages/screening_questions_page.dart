@@ -1,3 +1,4 @@
+import 'package:curejobs/core/constants/asset_paths.dart';
 import 'package:flutter/material.dart';
 
 import '../../../all_jobs/domain/entities/job.dart';
@@ -68,6 +69,7 @@ class _ScreeningQuestionsPageState extends State<ScreeningQuestionsPage> {
   void _submit() {
     final missing = _missingRequired;
     if (missing.isNotEmpty) {
+      if (!mounted) return;
       setState(() => _showErrors = true);
       FocusScope.of(context).unfocus();
       final target = _keys[missing.first.id]?.currentContext;
@@ -148,7 +150,13 @@ class _ScreeningQuestionsPageState extends State<ScreeningQuestionsPage> {
             const SizedBox(height: 8),
             ApplyPrimaryButton(
               label: 'Continue to choose CV',
-              icon: Icons.arrow_forward_rounded,
+              // icon: Icons.arrow_forward_rounded,
+              icon: Image.asset(
+                AssetPaths.forwordArrow,
+                width: 18,
+                height: 18,
+                color: Colors.white,
+              ),
               onPressed: _submit,
             ),
           ],
@@ -161,13 +169,19 @@ class _ScreeningQuestionsPageState extends State<ScreeningQuestionsPage> {
     QuestionType.singleChoice => _ChoiceOptions(
       options: q.options,
       selectedId: _choices[q.id],
-      onSelected: (id) => setState(() => _choices[q.id] = id),
+      onSelected: (id) {
+        if (!mounted) return;
+        setState(() => _choices[q.id] = id);
+      },
     ),
     QuestionType.shortAnswer => _ShortAnswer(
       controller: _text[q.id]!,
       maxLength: q.maxAnswerLength,
       showError: _showErrors && q.required && !_isAnswered(q),
-      onChanged: () => setState(() {}),
+      onChanged: () {
+        if (!mounted) return;
+        setState(() {});
+      },
     ),
     QuestionType.unknown => const SizedBox.shrink(),
   };

@@ -1,3 +1,4 @@
+import 'package:curejobs/core/constants/asset_paths.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -43,12 +44,17 @@ class _EligibilityView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // All steps while loading; drop Questions once we know there are none.
+    final hasQuestions = context.select(
+      (EligibilityCubit c) => c.state.eligibility?.questions.isNotEmpty ?? true,
+    );
     return Scaffold(
       backgroundColor: ApplyFlowColors.page(context),
       appBar: ApplyStepAppBar(
         title: 'Before you apply',
         subtitle: '${job.title} · ${job.organization.name}',
         step: ApplyStep.eligibility,
+        hasQuestions: hasQuestions,
       ),
       body: BlocBuilder<EligibilityCubit, EligibilityState>(
         builder: (context, state) => switch (state.status) {
@@ -136,7 +142,13 @@ class _EligibilityView extends StatelessWidget {
               canApply
                   ? ApplyPrimaryButton(
                       onPressed: () => _continue(context, e),
-                      icon: Icons.arrow_forward_rounded,
+                      // icon: Icons.arrow_forward_rounded,
+                      icon: Image.asset(
+                        AssetPaths.forwordArrow,
+                        width: 18,
+                        height: 18,
+                        color: Colors.white,
+                      ),
                       label: e.hasQuestions
                           ? 'Continue to questions'
                           : 'Continue to choose CV',
@@ -145,7 +157,13 @@ class _EligibilityView extends StatelessWidget {
                   // dead disabled button.
                   : ApplyPrimaryButton(
                       onPressed: () => Navigator.of(context).maybePop(),
-                      icon: Icons.arrow_back_rounded,
+                      // icon: Icons.arrow_back_rounded,
+                      icon: Image.asset(
+                        AssetPaths.backArrow,
+                        width: 18,
+                        height: 18,
+                        color: Colors.white,
+                      ),
                       label: 'Back to job',
                     ),
               if (canApply) ...[
