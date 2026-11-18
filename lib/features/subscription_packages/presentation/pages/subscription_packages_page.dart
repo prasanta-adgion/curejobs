@@ -1,13 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../app/di/injection_container.dart';
+import '../../../../app/theme/app_colors.dart';
 import '../../../../core/widgets/app_snackbar.dart';
+import '../../../subscription_plan_buy_history/presentation/pages/billing_history_page.dart';
 import '../../domain/entities/subscription_package.dart';
-import '../bloc/subscription_packages_cubit.dart';
+import '../bloc/current_plan_bloc.dart';
+import '../bloc/subscription_packages_bloc.dart';
 import '../widgets/package_widgets.dart';
 
-/// Lets the candidate compare plans and pick one.
+/// Lets the candidate see their current plan, compare plans and pick one.
 ///
 /// [onContinue] runs when the user taps the bottom button. Until checkout
 /// is wired up, it defaults to an info snackbar.
@@ -32,8 +36,18 @@ class SubscriptionPackagesPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (_) => sl<SubscriptionPackagesCubit>()..load(type),
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider(
+          create: (_) =>
+              sl<SubscriptionPackagesBloc>()
+                ..add(SubscriptionPackagesRequested(type)),
+        ),
+        BlocProvider(
+          create: (_) =>
+              sl<CurrentPlanBloc>()..add(const CurrentPlanRequested()),
+        ),
+      ],
       child: _PackagesView(type: type, onContinue: onContinue),
     );
   }
@@ -58,98 +72,133 @@ class _PackagesView extends StatelessWidget {
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Scaffold(
-      backgroundColor: theme.colorScheme.surface,
-      appBar: AppBar(
-        title: const Text('Choose your plan'),
-        backgroundColor: packageAccent(
-          context,
-        ).withValues(alpha: theme.brightness == Brightness.dark ? 0.22 : 0.08),
-        surfaceTintColor: Colors.transparent,
-        elevation: 0,
-      ),
-      body: BlocBuilder<SubscriptionPackagesCubit, SubscriptionPackagesState>(
-        builder: (context, state) => switch (state.status) {
-          PackagesLoadStatus.loading => const Center(
-            child: CircularProgressIndicator(),
-          ),
-          PackagesLoadStatus.failure => _ErrorView(
-            message: state.failure?.message ?? 'Couldn\'t load plans.',
-            onRetry: () => context.read<SubscriptionPackagesCubit>().load(type),
-          ),
-          PackagesLoadStatus.success when state.packages.isEmpty =>
-            const _ErrorView(message: 'No plans are available right now.'),
-          PackagesLoadStatus.success => _content(context, state),
-        },
-      ),
-      bottomNavigationBar:
-          BlocBuilder<SubscriptionPackagesCubit, SubscriptionPackagesState>(
-            buildWhen: (a, b) => a.selected != b.selected,
-            builder: (context, state) {
-              final p = state.selected;
-              if (p == null) return const SizedBox.shrink();
-              return _BottomBar(
-                package: p,
-                onPressed: () => _continue(context, p),
-              );
-            },
-          ),
+  Future<void> _refresh(BuildContext context) {
+    final packages = context.read<SubscriptionPackagesBloc>();
+    context.read<CurrentPlanBloc>().add(const CurrentPlanRequested());
+    packages.add(SubscriptionPackagesRequested(type));
+    // Keep the spinner until the plans reload finishes.
+    return packages.stream.firstWhere(
+      (s) => s.status != PackagesLoadStatus.loading,
     );
   }
 
-  Widget _content(BuildContext context, SubscriptionPackagesState state) {
-    final theme = Theme.of(context);
-    final cubit = context.read<SubscriptionPackagesCubit>();
-    final selected = state.selected;
-    return RefreshIndicator(
-      onRefresh: () => cubit.load(type),
-      child: ListView(
-        padding: EdgeInsets.zero,
-        children: [
-          PackagesHeader(highlights: _highlights(state.packages)),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 20, 16, 24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Select a plan',
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(height: 10),
-                for (final p in state.packages)
-                  PackageOptionCard(
-                    package: p,
-                    selected: p.id == state.selectedId,
-                    recommended: p.id == state.recommendedId,
-                    onTap: () => cubit.select(p.id),
-                  ),
-                const SizedBox(height: 14),
-                Text(
-                  'What you get',
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(height: 10),
-                PackageComparisonTable(
-                  packages: state.packages,
-                  selectedId: state.selectedId,
-                ),
-                if (selected?.requiresVerification ?? false) ...[
-                  const SizedBox(height: 14),
-                  const VerificationNote(),
-                ],
-              ],
+  @override
+  Widget build(BuildContext context) {
+    final currentId = context.select(
+      (CurrentPlanBloc b) => b.state.subscription?.package.id,
+    );
+
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      // Light status-bar icons over the navy header in both themes.
+      value: SystemUiOverlayStyle.light,
+      child: Scaffold(
+        backgroundColor: Theme.of(context).colorScheme.surface,
+        body: BlocBuilder<SubscriptionPackagesBloc, SubscriptionPackagesState>(
+          builder: (context, state) => switch (state.status) {
+            PackagesLoadStatus.loading => const _Shell(
+              child: Center(child: CircularProgressIndicator()),
             ),
-          ),
-        ],
+            PackagesLoadStatus.failure => _Shell(
+              child: _ErrorView(
+                message: state.failure?.message ?? "Couldn't load plans.",
+                onRetry: () => context.read<SubscriptionPackagesBloc>().add(
+                  SubscriptionPackagesRequested(type),
+                ),
+              ),
+            ),
+            PackagesLoadStatus.success when state.packages.isEmpty =>
+              const _Shell(
+                child: _ErrorView(message: 'No plans are available right now.'),
+              ),
+            PackagesLoadStatus.success => RefreshIndicator(
+              onRefresh: () => _refresh(context),
+              child: _content(context, state, currentId),
+            ),
+          },
+        ),
+        bottomNavigationBar:
+            BlocBuilder<SubscriptionPackagesBloc, SubscriptionPackagesState>(
+              buildWhen: (a, b) => a.selected != b.selected,
+              builder: (context, state) {
+                final p = state.selected;
+                if (p == null) return const SizedBox.shrink();
+                return _BottomBar(
+                  package: p,
+                  isCurrent: p.id == currentId,
+                  onPressed: () => _continue(context, p),
+                );
+              },
+            ),
       ),
+    );
+  }
+
+  Widget _content(
+    BuildContext context,
+    SubscriptionPackagesState state,
+    String? currentId,
+  ) {
+    final bloc = context.read<SubscriptionPackagesBloc>();
+    final c = PlanColors.of(context);
+    final theme = Theme.of(context);
+    final selected = state.selected;
+
+    return ListView(
+      padding: const EdgeInsets.only(bottom: 8),
+      children: [
+        PackagesHeader(highlights: _highlights(state.packages)),
+        const _CurrentPlanSection(),
+        PlanSection(
+          title: 'Choose a plan',
+          child: Column(
+            children: [
+              for (final p in state.packages)
+                PackageOptionCard(
+                  package: p,
+                  selected: p.id == state.selectedId,
+                  recommended: p.id == state.recommendedId,
+                  isCurrent: p.id == currentId,
+                  onTap: () => bloc.add(SubscriptionPackageSelected(p.id)),
+                ),
+            ],
+          ),
+        ),
+        PlanSection(
+          title: 'What you get',
+          trailing: selected == null
+              ? null
+              : Text(
+                  '${PackageFormat.shortName(selected.name)} selected',
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: c.accentText,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (selected != null) ...[
+                SelectedPlanBanner(
+                  package: selected,
+                  isCurrent: selected.id == currentId,
+                ),
+                const SizedBox(height: 12),
+              ],
+              PackageComparisonTable(
+                packages: state.packages,
+                selectedId: state.selectedId,
+              ),
+              if (selected?.requiresVerification ?? false) ...[
+                const SizedBox(height: 14),
+                VerificationNote(
+                  planName: PackageFormat.shortName(selected!.name),
+                ),
+              ],
+            ],
+          ),
+        ),
+        const _BillingHistoryLink(),
+      ],
     );
   }
 
@@ -172,34 +221,150 @@ class _PackagesView extends StatelessWidget {
       out.add('Verified badge');
     }
     if (packages.any((p) => p.has(PackageFeature.jobAlerts))) {
-      out.add('Instant job alerts');
+      out.add('Job alerts');
     }
     return out;
   }
 }
 
+/// "Your current plan". Hidden if it fails to load, so the plans still show.
+class _CurrentPlanSection extends StatelessWidget {
+  const _CurrentPlanSection();
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocBuilder<CurrentPlanBloc, CurrentPlanState>(
+      builder: (context, state) {
+        final sub = state.subscription;
+        if (sub == null) {
+          if (state.status == CurrentPlanStatus.failure) {
+            return const SizedBox.shrink();
+          }
+          return const PlanSection(
+            title: 'Your current plan',
+            showBand: false,
+            child: SizedBox(
+              height: 96,
+              child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+            ),
+          );
+        }
+        return PlanSection(
+          title: 'Your current plan',
+          showBand: false,
+          child: CurrentPlanSummary(subscription: sub),
+        );
+      },
+    );
+  }
+}
+
+/// "Billing history ›" row at the bottom of the plans list.
+class _BillingHistoryLink extends StatelessWidget {
+  const _BillingHistoryLink();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final c = PlanColors.of(context);
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        border: Border(top: BorderSide(color: c.band, width: 8)),
+      ),
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 20),
+        leading: Icon(Icons.receipt_long_outlined, color: c.muted),
+        title: Text(
+          'Billing history',
+          style: theme.textTheme.bodyMedium?.copyWith(
+            color: c.text,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        subtitle: Text(
+          'Payments and plan changes',
+          style: theme.textTheme.bodySmall?.copyWith(color: c.muted),
+        ),
+        trailing: Icon(Icons.chevron_right_rounded, color: c.muted),
+        onTap: () => Navigator.of(context).push(BillingHistoryPage.route()),
+      ),
+    );
+  }
+}
+
+/// Navy header plus [child], for loading and error states.
+class _Shell extends StatelessWidget {
+  const _Shell({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        const PackagesHeader(highlights: []),
+        Expanded(child: child),
+      ],
+    );
+  }
+}
+
 class _BottomBar extends StatelessWidget {
-  const _BottomBar({required this.package, required this.onPressed});
+  const _BottomBar({
+    required this.package,
+    required this.isCurrent,
+    required this.onPressed,
+  });
 
   final SubscriptionPackage package;
+  final bool isCurrent;
   final VoidCallback onPressed;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final c = PlanColors.of(context);
     final p = package;
-    final label = p.isFree
-        ? 'Continue with ${p.name}'
-        : 'Continue · ${PackageFormat.price(p.priceMinor, currency: p.currency)}';
-    final muted = theme.textTheme.labelSmall?.copyWith(
-      color: theme.colorScheme.onSurfaceVariant,
+    final name = PackageFormat.shortName(p.name);
+    final price = PackageFormat.price(p.priceMinor, currency: p.currency);
+    final muted = theme.textTheme.labelSmall?.copyWith(color: c.muted);
+    final shape = RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(12),
     );
+
+    final Widget button;
+    if (p.isFree || (isCurrent && p.isFree)) {
+      button = OutlinedButton(
+        onPressed: isCurrent ? null : onPressed,
+        style: OutlinedButton.styleFrom(
+          minimumSize: const Size(double.infinity, 52),
+          shape: shape,
+          foregroundColor: c.text,
+          disabledForegroundColor: c.muted,
+          side: BorderSide(color: c.border),
+        ),
+        child: Text(isCurrent ? "You're on $name" : 'Continue with $name'),
+      );
+    } else {
+      button = FilledButton(
+        onPressed: p.purchaseAvailable ? onPressed : null,
+        style: FilledButton.styleFrom(
+          minimumSize: const Size(double.infinity, 52),
+          backgroundColor: c.accentFill,
+          foregroundColor: AppColors.white,
+          shape: shape,
+          textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+        ),
+        child: Text(
+          isCurrent ? 'Renew $name · $price' : 'Upgrade to $name · $price',
+        ),
+      );
+    }
+
     return Container(
       decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        border: Border(
-          top: BorderSide(color: theme.colorScheme.outlineVariant),
-        ),
+        color: c.surface,
+        border: Border(top: BorderSide(color: c.border)),
       ),
       child: SafeArea(
         top: false,
@@ -207,51 +372,23 @@ class _BottomBar extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            p.isFree
-                ? OutlinedButton(
-                    onPressed: onPressed,
-                    style: OutlinedButton.styleFrom(
-                      minimumSize: const Size(double.infinity, 52),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    child: Text(label),
-                  )
-                : FilledButton(
-                    onPressed: p.purchaseAvailable ? onPressed : null,
-                    style: FilledButton.styleFrom(
-                      minimumSize: const Size(double.infinity, 52),
-                      backgroundColor: packageAccent(context),
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      textStyle: const TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    child: Text(label),
+            button,
+            if (!p.isFree) ...[
+              const SizedBox(height: 8),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.lock_outline_rounded, size: 13, color: c.muted),
+                  const SizedBox(width: 4),
+                  Text('Secure payment', style: muted),
+                  Text('  ·  ', style: muted),
+                  Text(
+                    'Valid for ${PackageFormat.duration(p.durationDays)}',
+                    style: muted,
                   ),
-            const SizedBox(height: 8),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.lock_outline_rounded,
-                  size: 13,
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
-                const SizedBox(width: 4),
-                Text('Secure payment', style: muted),
-                Text('  ·  ', style: muted),
-                Text(
-                  'Valid for ${PackageFormat.duration(p.durationDays)}',
-                  style: muted,
-                ),
-              ],
-            ),
+                ],
+              ),
+            ],
           ],
         ),
       ),
@@ -267,20 +404,20 @@ class _ErrorView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final c = PlanColors.of(context);
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              Icons.cloud_off_rounded,
-              size: 48,
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
+            Icon(Icons.cloud_off_rounded, size: 48, color: c.muted),
             const SizedBox(height: 12),
-            Text(message, textAlign: TextAlign.center),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: TextStyle(color: c.text),
+            ),
             if (onRetry != null) ...[
               const SizedBox(height: 16),
               OutlinedButton(

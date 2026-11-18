@@ -1,3 +1,4 @@
+import 'package:curejobs/core/constants/asset_paths.dart';
 import 'package:flutter/material.dart';
 
 import '../../../../app/theme/app_colors.dart';
@@ -79,7 +80,7 @@ class ApplyStepAppBar extends StatelessWidget implements PreferredSizeWidget {
     ];
 
     return AppBar(
-      backgroundColor: backgroundColor ?? ApplyFlowColors.appBar(context),
+      backgroundColor: backgroundColor ?? AppColors.logoNavy,
       foregroundColor: Colors.white,
       surfaceTintColor: Colors.transparent,
       iconTheme: const IconThemeData(color: Colors.white),
@@ -87,6 +88,30 @@ class ApplyStepAppBar extends StatelessWidget implements PreferredSizeWidget {
       automaticallyImplyLeading: showBack,
       titleSpacing: showBack ? 0 : 16,
       actions: actions,
+      leading: showBack
+          ? Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.35),
+                  ),
+                ),
+                child: IconButton(
+                  onPressed: () => Navigator.of(context).maybePop(),
+                  icon: Image.asset(
+                    AssetPaths.backArrow,
+                    width: 18,
+                    height: 18,
+                    color: Colors.white,
+                  ),
+                  tooltip: 'Back',
+                ),
+              ),
+            )
+          : null,
       title: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -347,7 +372,7 @@ class ApplyPrimaryButton extends StatelessWidget {
 
   final String label;
   final VoidCallback? onPressed;
-  final IconData? icon;
+  final Widget? icon;
 
   @override
   Widget build(BuildContext context) {
@@ -362,7 +387,8 @@ class ApplyPrimaryButton extends StatelessWidget {
         : FilledButton.icon(
             onPressed: onPressed,
             style: style,
-            icon: Icon(icon, size: 18),
+            // icon: Icon(icon, size: 18),
+            icon: icon!,
             label: Text(label),
           );
   }

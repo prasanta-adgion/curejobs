@@ -4,8 +4,10 @@ import '../../../core/network/api_client.dart';
 import '../data/datasources/subscription_packages_remote_data_source.dart';
 import '../data/repositories/subscription_packages_repository_impl.dart';
 import '../domain/repositories/subscription_packages_repository.dart';
+import '../domain/usecases/get_current_plan_usecase.dart';
 import '../domain/usecases/get_subscription_packages_usecase.dart';
-import '../presentation/bloc/subscription_packages_cubit.dart';
+import '../presentation/bloc/current_plan_bloc.dart';
+import '../presentation/bloc/subscription_packages_bloc.dart';
 
 void registerSubscriptionPackagesDependencies(GetIt sl) {
   sl.registerLazySingleton<SubscriptionPackagesRemoteDataSource>(
@@ -20,8 +22,15 @@ void registerSubscriptionPackagesDependencies(GetIt sl) {
     () => GetSubscriptionPackagesUseCase(sl<SubscriptionPackagesRepository>()),
   );
 
-  // New cubit per screen.
-  sl.registerFactory<SubscriptionPackagesCubit>(
-    () => SubscriptionPackagesCubit(sl<GetSubscriptionPackagesUseCase>()),
+  sl.registerLazySingleton<GetCurrentPlanUseCase>(
+    () => GetCurrentPlanUseCase(sl<SubscriptionPackagesRepository>()),
+  );
+
+  // New bloc per screen.
+  sl.registerFactory<CurrentPlanBloc>(
+    () => CurrentPlanBloc(sl<GetCurrentPlanUseCase>()),
+  );
+  sl.registerFactory<SubscriptionPackagesBloc>(
+    () => SubscriptionPackagesBloc(sl<GetSubscriptionPackagesUseCase>()),
   );
 }

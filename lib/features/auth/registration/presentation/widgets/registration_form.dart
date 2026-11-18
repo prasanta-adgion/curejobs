@@ -103,12 +103,15 @@ class _RegistrationFormState extends State<RegistrationForm> {
                 errorText: state.passwordError,
                 suffixIcon: _VisibilityToggle(
                   obscured: _obscurePassword,
-                  onPressed: () =>
-                      setState(() => _obscurePassword = !_obscurePassword),
+                  onPressed: () {
+                    if (!mounted) return;
+                    setState(() => _obscurePassword = !_obscurePassword);
+                  },
                 ),
               ),
               validator: InputValidators.strongPassword,
               onChanged: (_) {
+                if (!mounted) return;
                 setState(() {});
                 _clearServerErrors();
               },
@@ -145,15 +148,20 @@ class _RegistrationFormState extends State<RegistrationForm> {
                       ),
                     _VisibilityToggle(
                       obscured: _obscureConfirm,
-                      onPressed: () =>
-                          setState(() => _obscureConfirm = !_obscureConfirm),
+                      onPressed: () {
+                        if (!mounted) return;
+                        setState(() => _obscureConfirm = !_obscureConfirm);
+                      },
                     ),
                   ],
                 ),
               ),
               validator: (value) =>
                   InputValidators.confirmPassword(value, _password.text),
-              onChanged: (_) => setState(() {}),
+              onChanged: (_) {
+                if (!mounted) return;
+                setState(() {});
+              },
               onFieldSubmitted: (_) => _submit(),
             ),
             if (state.errorMessage != null) ...[

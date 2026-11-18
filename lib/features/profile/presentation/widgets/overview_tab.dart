@@ -52,7 +52,7 @@ class OverviewTab extends StatelessWidget {
           padding: const EdgeInsets.only(bottom: 24),
           children: [
             const MyApplicationsSection(),
-            MyPlanSection(summary: MyPlanSummary.sample),
+            const MyPlanSection(),
             NextStepBanner(steps: _nextSteps(context, skills)),
             const SkillsSection(),
             const LanguagesSection(),

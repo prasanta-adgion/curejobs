@@ -404,7 +404,10 @@ class _SkillChipsState extends State<_SkillChips> {
           chip(
             _expanded ? 'Show less' : '+$hidden more',
             accent: true,
-            onTap: () => setState(() => _expanded = !_expanded),
+            onTap: () {
+              if (!mounted) return;
+              setState(() => _expanded = !_expanded);
+            },
           ),
       ],
     );
