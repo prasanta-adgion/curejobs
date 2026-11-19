@@ -121,8 +121,9 @@ class _NavItem extends StatelessWidget {
                   style: (theme.textTheme.labelSmall ?? const TextStyle())
                       .copyWith(
                         color: color,
-                        fontWeight:
-                            selected ? FontWeight.w700 : FontWeight.w500,
+                        fontWeight: selected
+                            ? FontWeight.w700
+                            : FontWeight.w500,
                       ),
                   child: Text(tab.label),
                 ),

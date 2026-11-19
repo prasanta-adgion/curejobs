@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+
+import '../../../../shared/widgets/app_back_button.dart';
+
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../app/di/injection_container.dart';
@@ -82,6 +85,7 @@ class _JobSearchResultsPageState extends State<JobSearchResultsPage> {
     return Scaffold(
       backgroundColor: scheme.surfaceContainerLowest,
       appBar: AppBar(
+        leading: AppBackButton.leadingOf(context),
         titleSpacing: 0,
         title: ValueListenableBuilder(
           valueListenable: _query,

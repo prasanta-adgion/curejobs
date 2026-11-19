@@ -6,6 +6,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../app/di/injection_container.dart';
 import '../../../profile/presentation/bloc/candidate_profile_bloc.dart';
+import '../../../notification/presentation/cubit/unread_notification_count_cubit.dart';
+import '../../../notification/presentation/pages/notifications_page.dart';
 import '../../../all_jobs/domain/entities/job_feed.dart';
 import '../../../all_jobs/presentation/bloc/jobs_bloc.dart';
 import '../models/job_filters.dart';
@@ -41,6 +43,8 @@ class DashboardHomePage extends StatelessWidget {
               sl<CandidateProfileBloc>()
                 ..add(const CandidateProfileRequested()),
         ),
+        // Shared singleton: .value so the page doesn't close it.
+        BlocProvider.value(value: sl<UnreadNotificationCountCubit>()..load()),
       ],
       child: const _DashboardHomeView(),
     );
@@ -112,6 +116,7 @@ class _DashboardHomeViewState extends State<_DashboardHomeView> {
   }
 
   Future<void> _refresh() async {
+    context.read<UnreadNotificationCountCubit>().load();
     final bloc = context.read<JobsBloc>()..add(const JobsRequested());
     await bloc.stream.firstWhere((state) => state.status != JobsStatus.loading);
   }
@@ -208,22 +213,20 @@ class _DashboardHomeViewState extends State<_DashboardHomeView> {
                       padding: EdgeInsets.fromLTRB(20, topInset + 16, 20, 20),
                       child: Column(
                         children: [
-                          DashboardHeader(
-                            hasUnreadNotifications: true,
-                            onNotificationsTap: () {
-                              Navigator.of(context).push(
-                                MaterialPageRoute(
-                                  builder: (context) => AppearancePage(),
-                                ),
-                              );
-                            },
-                            onAvatarTap: () {
-                              Navigator.of(context).push(
-                                MaterialPageRoute(
-                                  builder: (context) => const ProfilePage(),
-                                ),
-                              );
-                            },
+                          BlocBuilder<UnreadNotificationCountCubit, int>(
+                            builder: (context, unreadCount) => DashboardHeader(
+                              unreadNotificationCount: unreadCount,
+                              onNotificationsTap: () =>
+                                  Navigator.of(context)
+                                      .push(NotificationsPage.route()),
+                              onAvatarTap: () {
+                                Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                    builder: (context) => const ProfilePage(),
+                                  ),
+                                );
+                              },
+                            ),
                           ),
                           const SizedBox(height: 18),
                           DashboardSearchBar(

@@ -13,9 +13,8 @@ void registerApplyApplicationDependencies(GetIt sl) {
     () => ApplyApplicationRemoteDataSourceImpl(sl<ApiClient>()),
   );
   sl.registerLazySingleton<ApplyApplicationRepository>(
-    () => ApplyApplicationRepositoryImpl(
-      sl<ApplyApplicationRemoteDataSource>(),
-    ),
+    () =>
+        ApplyApplicationRepositoryImpl(sl<ApplyApplicationRemoteDataSource>()),
   );
   sl.registerLazySingleton<GetMyApplicationsUseCase>(
     () => GetMyApplicationsUseCase(sl<ApplyApplicationRepository>()),

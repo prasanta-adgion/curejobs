@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+
+import '../../../../shared/widgets/app_back_button.dart';
+
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../app/di/injection_container.dart';
@@ -253,7 +256,10 @@ class _JobSearchPageState extends State<JobSearchPage> {
 
     return Scaffold(
       backgroundColor: scheme.surfaceContainerLowest,
-      appBar: AppBar(title: const Text('Search jobs')),
+      appBar: AppBar(
+        leading: AppBackButton.leadingOf(context),
+        title: const Text('Search jobs'),
+      ),
       body: ValueListenableBuilder(
         valueListenable: _activeField,
         builder: (context, active, _) => Column(

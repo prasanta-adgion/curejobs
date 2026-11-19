@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../../shared/widgets/app_back_button.dart';
+
 import '../../../../app/theme/app_colors.dart';
 import '../../../subscription_plan_buy_history/presentation/pages/billing_history_page.dart';
 import '../../domain/entities/current_subscription.dart';
@@ -178,7 +180,7 @@ class PackagesHeader extends StatelessWidget {
           children: [
             Row(
               children: [
-                const BackButton(color: AppColors.white),
+                const AppBackButton(padding: EdgeInsets.fromLTRB(4, 8, 8, 8)),
                 Text(
                   'Plans',
                   style: theme.textTheme.titleMedium?.copyWith(

@@ -70,8 +70,8 @@ class WithdrawApplicationSheet extends StatelessWidget {
                   ),
                   const TextSpan(
                     text:
-                        ' will stop reviewing your profile. You can reapply '
-                        'later if the job is still open.',
+                        ' will stop reviewing your profile. This cannot be '
+                        'undone.',
                   ),
                 ],
               ),

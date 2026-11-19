@@ -159,7 +159,8 @@ class MyApplicationsBloc
       emit(
         state.copyWith(
           withdrawingIds: remaining,
-          withdrawResult: () => WithdrawResult.failed(event.application, failure),
+          withdrawResult: () =>
+              WithdrawResult.failed(event.application, failure),
         ),
       );
       return;

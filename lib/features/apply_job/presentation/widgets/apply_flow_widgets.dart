@@ -1,7 +1,7 @@
-import 'package:curejobs/core/constants/asset_paths.dart';
 import 'package:flutter/material.dart';
 
 import '../../../../app/theme/app_colors.dart';
+import '../../../../shared/widgets/app_back_button.dart';
 
 /// Shared look for the apply flow: purple app bar with a step tracker,
 /// full-width white sections on a light grey page, and a white bottom bar.
@@ -88,30 +88,7 @@ class ApplyStepAppBar extends StatelessWidget implements PreferredSizeWidget {
       automaticallyImplyLeading: showBack,
       titleSpacing: showBack ? 0 : 16,
       actions: actions,
-      leading: showBack
-          ? Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(
-                    color: Colors.white.withValues(alpha: 0.35),
-                  ),
-                ),
-                child: IconButton(
-                  onPressed: () => Navigator.of(context).maybePop(),
-                  icon: Image.asset(
-                    AssetPaths.backArrow,
-                    width: 18,
-                    height: 18,
-                    color: Colors.white,
-                  ),
-                  tooltip: 'Back',
-                ),
-              ),
-            )
-          : null,
+      leading: showBack ? const AppBackButton() : null,
       title: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../app/di/injection_container.dart';
 import '../../../../core/widgets/app_error_view.dart';
 import '../../../../core/widgets/app_snackbar.dart';
+import '../../../../shared/widgets/navy_page_header.dart';
+import '../../../applied_application_indetailed/presentation/pages/application_detail_page.dart';
 import '../bloc/my_applications_bloc.dart';
 import '../models/application_ui_model.dart';
 import '../widgets/application_card.dart';
-import '../widgets/application_filter_chips.dart';
 import '../widgets/withdraw_application_sheet.dart';
 
 /// "My applications" screen, backed by `GET api/v1/applications/me`.
@@ -89,42 +91,66 @@ class _MyApplicationsViewState extends State<_MyApplicationsView> {
         message: state.failure!.message,
       ),
       builder: (context, state) {
-        return Scaffold(
-          appBar: AppBar(
-            titleSpacing: 16,
-            title: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+        final loaded = state.status == MyApplicationsStatus.success;
+        return AnnotatedRegion<SystemUiOverlayStyle>(
+          value: SystemUiOverlayStyle.light,
+          child: Scaffold(
+            body: Column(
               children: [
-                Text(
-                  'My applications',
-                  style: theme.textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
+                NavyPageHeader(
+                  title: 'My applications',
+                  subtitle: loaded ? '${state.totalCount} jobs applied' : null,
+                  bottom: loaded
+                      ? HeaderFilterChips<ApplicationStatus?>(
+                          selected: state.filter,
+                          onSelected: (s) => context
+                              .read<MyApplicationsBloc>()
+                              .add(MyApplicationsFilterChanged(s)),
+                          items: [
+                            HeaderFilterItem(
+                              value: null,
+                              label: 'All',
+                              count: state.totalCount,
+                            ),
+                            for (final s in ApplicationStatus.values)
+                              HeaderFilterItem(
+                                value: s,
+                                label: s.label,
+                                count: state.countOf(s),
+                              ),
+                          ],
+                        )
+                      : null,
                 ),
-                if (state.status == MyApplicationsStatus.success)
-                  Text(
-                    '${state.totalCount} jobs applied',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: scheme.onSurfaceVariant,
+                Expanded(
+                  child: switch (state.status) {
+                    MyApplicationsStatus.initial ||
+                    MyApplicationsStatus.loading => const Center(
+                      child: CircularProgressIndicator(),
                     ),
-                  ),
+                    MyApplicationsStatus.failure => AppErrorView(
+                      failure: state.failure!,
+                      onRetry: () => context.read<MyApplicationsBloc>().add(
+                        const MyApplicationsRequested(),
+                      ),
+                    ),
+                    MyApplicationsStatus.success => _buildList(context, state),
+                  },
+                ),
               ],
             ),
           ),
-          body: switch (state.status) {
-            MyApplicationsStatus.initial || MyApplicationsStatus.loading =>
-              const Center(child: CircularProgressIndicator()),
-            MyApplicationsStatus.failure => AppErrorView(
-              failure: state.failure!,
-              onRetry: () => context.read<MyApplicationsBloc>().add(
-                const MyApplicationsRequested(),
-              ),
-            ),
-            MyApplicationsStatus.success => _buildList(context, state),
-          },
         );
       },
     );
+  }
+
+  /// Refreshes the list if the application was withdrawn on that page.
+  Future<void> _openDetail(BuildContext context, String id) async {
+    final bloc = context.read<MyApplicationsBloc>();
+    final withdrawn = await Navigator.of(context)
+        .push(ApplicationDetailPage.route(id));
+    if (withdrawn ?? false) bloc.add(const MyApplicationsRefreshed());
   }
 
   Future<void> _confirmWithdraw(
@@ -149,17 +175,7 @@ class _MyApplicationsViewState extends State<_MyApplicationsView> {
         controller: _scroll,
         physics: const AlwaysScrollableScrollPhysics(),
         slivers: [
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.only(top: 8, bottom: 12),
-              child: ApplicationFilterChips(
-                total: state.totalCount,
-                counts: state.counts,
-                selected: state.filter,
-                onSelected: (s) => bloc.add(MyApplicationsFilterChanged(s)),
-              ),
-            ),
-          ),
+          const SliverToBoxAdapter(child: SizedBox(height: 12)),
           if (state.isFiltering)
             const SliverFillRemaining(
               hasScrollBody: false,
@@ -177,12 +193,9 @@ class _MyApplicationsViewState extends State<_MyApplicationsView> {
               separatorBuilder: (_, _) => const SizedBox(height: 10),
               itemBuilder: (context, i) => ApplicationCard(
                 item: items[i],
-                // TODO: open job details with items[i].jobSlug.
-                onTap: () {},
+                onTap: () => _openDetail(context, items[i].id),
                 isWithdrawing: state.withdrawingIds.contains(items[i].id),
                 onWithdraw: () => _confirmWithdraw(context, items[i]),
-                // TODO: hook up reapply once the endpoint exists.
-                onReapply: () {},
               ),
             ),
           SliverToBoxAdapter(

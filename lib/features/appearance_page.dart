@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../core/widgets/app_snackbar.dart';
+import '../shared/widgets/app_back_button.dart';
 
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -22,7 +23,10 @@ class AppearancePage extends StatelessWidget {
     final colors = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
     return Scaffold(
-      appBar: AppBar(title: const Text('Appearance')),
+      appBar: AppBar(
+        leading: AppBackButton.leadingOf(context),
+        title: const Text('Appearance'),
+      ),
       body: BlocBuilder<ThemeCubit, ThemeMode>(
         builder: (context, currentMode) {
           return ListView(
