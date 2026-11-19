@@ -46,6 +46,12 @@ class _FakeRemote implements ImageUploadRemoteDataSource {
       finalizedAt: DateTime(2026),
     );
   }
+
+  @override
+  Future<String> getFileAccessUrl({required String fileId}) async {
+    calls.add('access:$fileId');
+    return 'https://s3.example/get/$fileId';
+  }
 }
 
 class _FakeS3 implements S3UploadDataSource {

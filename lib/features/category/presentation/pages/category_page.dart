@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/widgets/app_error_view.dart';
+import '../../../../shared/widgets/app_back_button.dart';
 import '../bloc/categories_bloc.dart';
 
 class CategoryPage extends StatelessWidget {
@@ -19,6 +20,7 @@ class CategoryPage extends StatelessWidget {
     return Scaffold(
       backgroundColor: scheme.surface,
       appBar: AppBar(
+        leading: AppBackButton.leadingOf(context),
         titleSpacing: 0,
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

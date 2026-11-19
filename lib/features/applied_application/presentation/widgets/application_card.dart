@@ -17,7 +17,6 @@ class ApplicationCard extends StatelessWidget {
     required this.item,
     this.onTap,
     this.onWithdraw,
-    this.onReapply,
     this.isWithdrawing = false,
   });
 
@@ -27,7 +26,6 @@ class ApplicationCard extends StatelessWidget {
   final bool isWithdrawing;
   final VoidCallback? onTap;
   final VoidCallback? onWithdraw;
-  final VoidCallback? onReapply;
 
   @override
   Widget build(BuildContext context) {
@@ -155,22 +153,7 @@ class ApplicationCard extends StatelessWidget {
 
     switch (status) {
       case ApplicationStatus.withdrawn:
-        if (!item.isJobOpen) return null;
-        return Row(
-          children: [
-            _Highlight(
-              icon: Icons.check_circle_outline_rounded,
-              label: 'Still hiring',
-              colors: ApplicationStatus.selected.colors(context),
-            ),
-            const Spacer(),
-            OutlinedButton(
-              onPressed: onReapply,
-              style: _buttonStyle(context, scheme.primary, scheme.primary),
-              child: const Text('Reapply'),
-            ),
-          ],
-        );
+        return null;
 
       case ApplicationStatus.selected:
         return Row(

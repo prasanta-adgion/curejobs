@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../../shared/widgets/app_back_button.dart';
+
 import '../../../../app/theme/app_colors.dart';
 import '../../domain/entities/job_feed.dart';
 import '../widgets/job_feed_list.dart';
@@ -26,6 +28,7 @@ class AllJobsPage extends StatelessWidget {
             ? AppColors.darkBackground
             : AppColors.lightBackground,
         appBar: AppBar(
+          leading: AppBackButton.leadingOf(context),
           titleSpacing: 16,
           backgroundColor: scheme.surface,
           surfaceTintColor: Colors.transparent,

@@ -27,12 +27,12 @@ class _DashboardPageState extends State<DashboardPage> {
   final _cache = <DashboardTab, Widget>{};
 
   Widget _buildTab(DashboardTab tab) => switch (tab) {
-        DashboardTab.home => const DashboardHomePage(),
-        DashboardTab.profile => ProfilePage(onLoggedOut: _showLogin),
-        DashboardTab.applied => MyApplicationsPage(),
-        DashboardTab.jobs => const AllJobsPage(),
-        _ => _ComingSoonTab(tab: tab),
-      };
+    DashboardTab.home => const DashboardHomePage(),
+    DashboardTab.profile => ProfilePage(onLoggedOut: _showLogin),
+    DashboardTab.applied => MyApplicationsPage(),
+    DashboardTab.jobs => const AllJobsPage(),
+    _ => _ComingSoonTab(tab: tab),
+  };
 
   /// Replaces everything with the login screen; signing in again opens a
   /// fresh dashboard.
@@ -100,11 +100,7 @@ class _ComingSoonTab extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Image.asset(
-              tab.iconAsset(selected: true),
-              width: 40,
-              height: 40,
-            ),
+            Image.asset(tab.iconAsset(selected: true), width: 40, height: 40),
             const SizedBox(height: 12),
             Text(tab.label, style: theme.textTheme.titleMedium),
             const SizedBox(height: 4),

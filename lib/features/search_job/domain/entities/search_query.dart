@@ -91,6 +91,30 @@ class SearchQuery extends Equatable {
     state: () => state,
   );
 
+  /// Replaces the filter-sheet fields together (null clears them).
+  SearchQuery withFilters({
+    String? employmentType,
+    int? experienceMin,
+    int? experienceMax,
+    String? postedFrom,
+  }) => SearchQuery(
+    keyword: keyword,
+    location: location,
+    categoryId: categoryId,
+    specializationId: specializationId,
+    employmentType: employmentType,
+    area: area,
+    city: city,
+    state: state,
+    experienceMin: experienceMin,
+    experienceMax: experienceMax,
+    salaryMin: salaryMin,
+    salaryMax: salaryMax,
+    organizationId: organizationId,
+    postedFrom: postedFrom,
+    sort: sort,
+  );
+
   SearchQuery _copy({
     String? keyword,
     String? location,

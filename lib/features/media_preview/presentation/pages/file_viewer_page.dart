@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+
+import '../../../../shared/widgets/app_back_button.dart';
+
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:pdfrx/pdfrx.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -81,6 +84,7 @@ class _FileViewerViewState extends State<_FileViewerView> {
         return Scaffold(
           backgroundColor: scheme.surfaceContainerLow,
           appBar: AppBar(
+            leading: AppBackButton.leadingOf(context),
             title: Text(widget.title),
             actions: [
               IconButton(

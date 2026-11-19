@@ -17,10 +17,9 @@ extension ApplicationStatusColors on ApplicationStatus {
     final theme = Theme.of(context);
     final dark = theme.brightness == Brightness.dark;
 
-    StatusColors tinted(Color light, Color darkFg, Color lightBg) =>
-        dark
-            ? StatusColors(fg: darkFg, bg: darkFg.withValues(alpha: 0.16))
-            : StatusColors(fg: light, bg: lightBg);
+    StatusColors tinted(Color light, Color darkFg, Color lightBg) => dark
+        ? StatusColors(fg: darkFg, bg: darkFg.withValues(alpha: 0.16))
+        : StatusColors(fg: light, bg: lightBg);
 
     return switch (this) {
       ApplicationStatus.applied => tinted(

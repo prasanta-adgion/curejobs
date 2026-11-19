@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../app/di/injection_container.dart';
+import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_radius.dart';
+import '../../../../shared/widgets/navy_page_header.dart';
 import '../../../all_jobs/presentation/widgets/job_card.dart';
 import '../../../job_details/presentation/pages/job_details_page.dart';
 import '../../domain/entities/search_query.dart';
@@ -79,67 +82,83 @@ class _JobSearchResultsPageState extends State<JobSearchResultsPage> {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
 
-    return Scaffold(
-      backgroundColor: scheme.surfaceContainerLowest,
-      appBar: AppBar(
-        titleSpacing: 0,
-        title: ValueListenableBuilder(
-          valueListenable: _query,
-          builder: (context, query, _) =>
-              _QueryBar(summary: query.summary, onTap: _editSearch),
-        ),
-        actions: [
-          IconButton(
-            tooltip: 'Edit search',
-            onPressed: _editSearch,
-            icon: const Icon(Icons.edit_outlined),
-          ),
-        ],
-      ),
-      body: BlocBuilder<JobSearchResultsBloc, JobSearchResultsState>(
-        bloc: _bloc,
-        builder: (context, state) {
-          if (state.status == JobSearchResultsStatus.initial ||
-              state.isLoading) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          if (state.status == JobSearchResultsStatus.failure) {
-            return _Message(
-              icon: Icons.wifi_off_rounded,
-              title: "Couldn't load jobs",
-              body: state.errorMessage ?? 'Check your connection.',
-              primaryLabel: 'Retry',
-              onPrimary: _runSearch,
-            );
-          }
-          if (state.jobs.isEmpty) return _empty(state.query);
-
-          return NotificationListener<ScrollNotification>(
-            onNotification: _onScroll,
-            child: RefreshIndicator(
-              onRefresh: _refresh,
-              child: ListView.separated(
-                physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.only(bottom: 24),
-                itemCount: state.jobs.length + 2,
-                separatorBuilder: (_, i) => SizedBox(height: i == 0 ? 0 : 10),
-                itemBuilder: (context, i) {
-                  if (i == 0) return _ResultCount(total: state.total);
-                  if (i == state.jobs.length + 1) {
-                    return _Footer(state: state, bloc: _bloc);
-                  }
-                  final job = state.jobs[i - 1];
-                  return JobCard(
-                    job: job,
-                    onTap: () =>
-                        Navigator.of(context).push(JobDetailsPage.route(job)),
-                  );
-                },
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle.light,
+      child: Scaffold(
+        backgroundColor: scheme.surfaceContainerLowest,
+        body: Column(
+          children: [
+            NavyPageHeader(
+              title: 'Search results',
+              trailing: IconButton(
+                tooltip: 'Edit search',
+                onPressed: _editSearch,
+                style: IconButton.styleFrom(
+                  foregroundColor: AppColors.white,
+                  backgroundColor: AppColors.white.withValues(alpha: 0.10),
+                  minimumSize: const Size.square(42),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+                icon: const Icon(Icons.edit_outlined, size: 20),
+              ),
+              bottom: ValueListenableBuilder(
+                valueListenable: _query,
+                builder: (context, query, _) =>
+                    _QueryBar(summary: query.summary, onTap: _editSearch),
               ),
             ),
-          );
-        },
+            Expanded(child: _results()),
+          ],
+        ),
       ),
+    );
+  }
+
+  Widget _results() {
+    return BlocBuilder<JobSearchResultsBloc, JobSearchResultsState>(
+      bloc: _bloc,
+      builder: (context, state) {
+        if (state.status == JobSearchResultsStatus.initial || state.isLoading) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (state.status == JobSearchResultsStatus.failure) {
+          return _Message(
+            icon: Icons.wifi_off_rounded,
+            title: "Couldn't load jobs",
+            body: state.errorMessage ?? 'Check your connection.',
+            primaryLabel: 'Retry',
+            onPrimary: _runSearch,
+          );
+        }
+        if (state.jobs.isEmpty) return _empty(state.query);
+
+        return NotificationListener<ScrollNotification>(
+          onNotification: _onScroll,
+          child: RefreshIndicator(
+            onRefresh: _refresh,
+            child: ListView.separated(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.only(bottom: 24),
+              itemCount: state.jobs.length + 2,
+              separatorBuilder: (_, i) => SizedBox(height: i == 0 ? 0 : 10),
+              itemBuilder: (context, i) {
+                if (i == 0) return _ResultCount(total: state.total);
+                if (i == state.jobs.length + 1) {
+                  return _Footer(state: state, bloc: _bloc);
+                }
+                final job = state.jobs[i - 1];
+                return JobCard(
+                  job: job,
+                  onTap: () =>
+                      Navigator.of(context).push(JobDetailsPage.route(job)),
+                );
+              },
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -232,28 +251,31 @@ class _QueryBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    // White field on the navy header, like the dashboard search bar.
     return Material(
-      color: theme.colorScheme.surfaceContainerHighest,
+      color: AppColors.white,
       borderRadius: BorderRadius.circular(AppRadius.medium),
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(AppRadius.medium),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
           child: Row(
             children: [
-              Icon(
+              const Icon(
                 Icons.search_rounded,
-                size: 18,
-                color: theme.colorScheme.primary,
+                size: 20,
+                color: AppColors.primary,
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 12),
               Expanded(
                 child: Text(
                   summary,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.bodyMedium,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: AppColors.lightTextPrimary,
+                  ),
                 ),
               ),
             ],

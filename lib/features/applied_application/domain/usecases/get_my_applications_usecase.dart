@@ -13,9 +13,5 @@ class GetMyApplicationsUseCase {
     int page = 1,
     int limit = 10,
     ApplicationStatus? status,
-  }) => _repository.getMyApplications(
-    page: page,
-    limit: limit,
-    status: status,
-  );
+  }) => _repository.getMyApplications(page: page, limit: limit, status: status);
 }

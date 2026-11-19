@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+
+import '../../../../shared/widgets/app_back_button.dart';
+
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -101,7 +104,7 @@ class _Header extends StatelessWidget {
         bottom: false,
         child: Row(
           children: [
-            const BackButton(color: AppColors.white),
+            const AppBackButton(padding: EdgeInsets.fromLTRB(4, 8, 8, 8)),
             Text(
               'Billing history',
               style: Theme.of(context).textTheme.titleMedium?.copyWith(

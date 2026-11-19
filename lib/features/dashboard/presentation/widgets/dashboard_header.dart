@@ -12,12 +12,13 @@ import '../../../profile/presentation/bloc/candidate_profile_bloc.dart';
 class DashboardHeader extends StatelessWidget {
   const DashboardHeader({
     super.key,
-    this.hasUnreadNotifications = false,
+    this.unreadNotificationCount = 0,
     this.onNotificationsTap,
     this.onAvatarTap,
   });
 
-  final bool hasUnreadNotifications;
+  /// Shown on the bell; hidden when 0.
+  final int unreadNotificationCount;
   final VoidCallback? onNotificationsTap;
   final VoidCallback? onAvatarTap;
 
@@ -70,11 +71,21 @@ class DashboardHeader extends StatelessWidget {
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10),
                 ),
+                //order: Border.all(color: color.withValues(alpha: 0.35)),
+
+                side: BorderSide(
+                  color: AppColors.white.withValues(alpha: 0.35),
+                ),
               ),
               icon: Badge(
-                isLabelVisible: hasUnreadNotifications,
-                smallSize: 8,
+                isLabelVisible: unreadNotificationCount > 0,
+                label: Text(
+                  unreadNotificationCount > 99
+                      ? '99+'
+                      : '$unreadNotificationCount',
+                ),
                 backgroundColor: AppColors.errorDark,
+                textColor: AppColors.white,
                 child: const Icon(Icons.notifications_none_rounded, size: 22),
               ),
             ),

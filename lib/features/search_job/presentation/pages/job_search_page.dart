@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../app/di/injection_container.dart';
+import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_radius.dart';
+import '../../../../shared/widgets/navy_page_header.dart';
 import '../../../create_account/domain/entities/location_suggestion.dart';
 import '../../../create_account/domain/enums/location_type.dart';
 import '../../domain/entities/job_suggestion.dart';
@@ -13,12 +16,13 @@ import '../cubit/search_history_cubit.dart';
 import '../widgets/location_permission_sheet.dart';
 import '../widgets/job_suggestion_list.dart';
 import '../widgets/location_suggestion_list.dart';
+import '../models/search_filters.dart';
 import '../widgets/search_fields_card.dart';
+import '../widgets/search_filter_sheet.dart';
 import 'job_search_results_page.dart';
 
-/// Search screen. The keyword field is on top; the location field appears
-/// once the user moves to it. Under the focused field one list shows what
-/// helps most:
+/// Search screen: navy header with a filter button, the keyword and
+/// location fields, and under them one list for the focused field:
 ///
 /// 1. Keyword empty: recent searches and popular searches.
 /// 2. Keyword typed: matching recent searches, then API suggestions.
@@ -76,6 +80,11 @@ class _JobSearchPageState extends State<JobSearchPage> {
   /// screen was opened with). Not UI state, so no notifier.
   late SearchQuery _filters = widget.initialQuery;
 
+  /// Filter-sheet choices; a notifier so only the header badge rebuilds.
+  late final _sheetFilters = ValueNotifier(
+    SearchFilters.fromQuery(widget.initialQuery),
+  );
+
   @override
   void initState() {
     super.initState();
@@ -99,6 +108,7 @@ class _JobSearchPageState extends State<JobSearchPage> {
     _locationFocus.dispose();
     _activeField.dispose();
     _locating.dispose();
+    _sheetFilters.dispose();
     _keywordSuggestions.close();
     _locationSuggestions.close();
     super.dispose();
@@ -165,11 +175,7 @@ class _JobSearchPageState extends State<JobSearchPage> {
   }
 
   /// Switches to the location step: closes the keyword list, shows the
-  /// location field and focuses it.
-  ///
-  /// The location field is only built while it is the active field, so the
-  /// switch must happen first; focus is requested after the next frame,
-  /// once the field (and its focus node) is in the tree.
+  /// location list and focuses the location field after the next frame.
   void _goToLocation() {
     if (_activeField.value != SearchField.location) {
       _activeField.value = SearchField.location;
@@ -236,9 +242,11 @@ class _JobSearchPageState extends State<JobSearchPage> {
     return q;
   }
 
+  /// Runs [query] as given (a recent search keeps its own filters), or the
+  /// fields plus the filter sheet's choices.
   void _search([SearchQuery? query]) {
-    final q = query ?? _currentQuery();
-    if (q.isEmpty) {
+    final q = query ?? _sheetFilters.value.applyTo(_currentQuery());
+    if (q.isEmpty && _sheetFilters.value.isEmpty) {
       _keywordFocus.requestFocus();
       return;
     }
@@ -247,81 +255,98 @@ class _JobSearchPageState extends State<JobSearchPage> {
     Navigator.of(context).pushReplacement(JobSearchResultsPage.route(q));
   }
 
+  Future<void> _openFilters() async {
+    FocusScope.of(context).unfocus();
+    final picked = await SearchFilterSheet.show(
+      context,
+      initial: _sheetFilters.value,
+    );
+    if (picked != null && mounted) _sheetFilters.value = picked;
+  }
+
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
 
-    return Scaffold(
-      backgroundColor: scheme.surfaceContainerLowest,
-      appBar: AppBar(title: const Text('Search jobs')),
-      body: ValueListenableBuilder(
-        valueListenable: _activeField,
-        builder: (context, active, _) => Column(
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle.light,
+      child: Scaffold(
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        body: Column(
           children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-              child: Column(
-                children: [
-                  SearchInputField(
-                    controller: _keywordController,
-                    focusNode: _keywordFocus,
-                    active: active == SearchField.keyword,
-                    icon: Icons.search_rounded,
-                    hint: 'Job title, skill or hospital',
-                    action: TextInputAction.next,
-                    onSubmitted: _goToLocation,
-                  ),
-                  // The location field joins once the user moves to it, so
-                  // the keyword step stays simple.
-                  AnimatedSize(
-                    duration: const Duration(milliseconds: 200),
-                    curve: Curves.easeOut,
-                    child: active == SearchField.location
-                        ? Padding(
-                            padding: const EdgeInsets.only(top: 10),
-                            child: SearchInputField(
-                              controller: _locationController,
-                              focusNode: _locationFocus,
-                              active: true,
-                              icon: Icons.location_on_outlined,
-                              hint: 'City, state or area',
-                              action: TextInputAction.search,
-                              onSubmitted: _search,
-                            ),
-                          )
-                        : const SizedBox(width: double.infinity),
-                  ),
-                ],
+            NavyPageHeader(
+              title: 'Search jobs',
+              trailing: ValueListenableBuilder(
+                valueListenable: _sheetFilters,
+                builder: (context, filters, _) =>
+                    _FilterButton(count: filters.count, onTap: _openFilters),
               ),
             ),
-            _ProgressLine(
-              keyword: _keywordSuggestions,
-              location: _locationSuggestions,
-              locating: _locating,
-            ),
             Expanded(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(0, 8, 0, 16),
-                child: _ListPanel(
-                  child: active == SearchField.keyword
-                      ? JobSuggestionList(
-                          text: _keywordController,
-                          bloc: _keywordSuggestions,
-                          onKeywordPicked: _pickKeyword,
-                          onSuggestionPicked: _pickJobSuggestion,
-                          onRecentSearch: _search,
-                        )
-                      : LocationSuggestionList(
-                          text: _locationController,
-                          bloc: _locationSuggestions,
-                          locating: _locating,
-                          onLocationPicked: _pickLocation,
-                          onSuggestionPicked: _pickLocationSuggestion,
-                          onUseCurrentLocation: _useCurrentLocation,
-                        ),
+              child: ValueListenableBuilder(
+                valueListenable: _activeField,
+                builder: (context, active, _) => Column(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                      child: Column(
+                        children: [
+                          SearchInputField(
+                            controller: _keywordController,
+                            focusNode: _keywordFocus,
+                            active: active == SearchField.keyword,
+                            icon: Icons.search_rounded,
+                            hint: 'Job title, skill or hospital',
+                            action: TextInputAction.next,
+                            onSubmitted: _goToLocation,
+                          ),
+                          const SizedBox(height: 10),
+                          SearchInputField(
+                            controller: _locationController,
+                            focusNode: _locationFocus,
+                            active: active == SearchField.location,
+                            icon: Icons.location_on_outlined,
+                            hint: 'City, state or area',
+                            action: TextInputAction.search,
+                            onSubmitted: _search,
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    _ProgressLine(
+                      keyword: _keywordSuggestions,
+                      location: _locationSuggestions,
+                      locating: _locating,
+                    ),
+                    // Grey band between the fields and the list, matching
+                    // the dashboard sections.
+                    Container(height: 8, color: scheme.surfaceContainerHighest),
+                    // Suggestions and recent searches for the focused field,
+                    // in the page under the fields.
+                    Expanded(
+                      child: active == SearchField.keyword
+                          ? JobSuggestionList(
+                              text: _keywordController,
+                              bloc: _keywordSuggestions,
+                              onKeywordPicked: _pickKeyword,
+                              onSuggestionPicked: _pickJobSuggestion,
+                              onRecentSearch: _search,
+                            )
+                          : LocationSuggestionList(
+                              text: _locationController,
+                              bloc: _locationSuggestions,
+                              locating: _locating,
+                              onLocationPicked: _pickLocation,
+                              onSuggestionPicked: _pickLocationSuggestion,
+                              onUseCurrentLocation: _useCurrentLocation,
+                            ),
+                    ),
+                  ],
                 ),
               ),
             ),
+            _SearchButtonBar(onPressed: _search),
           ],
         ),
       ),
@@ -329,23 +354,71 @@ class _JobSearchPageState extends State<JobSearchPage> {
   }
 }
 
-/// White rounded panel that holds the list under the fields.
-class _ListPanel extends StatelessWidget {
-  const _ListPanel({required this.child});
+/// Filter icon for the navy header, with a count of active filter groups.
+class _FilterButton extends StatelessWidget {
+  const _FilterButton({required this.count, required this.onTap});
 
-  final Widget child;
+  final int count;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return IconButton(
+      onPressed: onTap,
+      tooltip: count == 0 ? 'Filters' : 'Filters, $count on',
+      style: IconButton.styleFrom(
+        foregroundColor: AppColors.white,
+        backgroundColor: count == 0
+            ? AppColors.white.withValues(alpha: 0.10)
+            : AppColors.primary,
+        minimumSize: const Size.square(42),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      ),
+      icon: Badge(
+        isLabelVisible: count > 0,
+        label: Text('$count'),
+        backgroundColor: AppColors.white,
+        textColor: AppColors.primary,
+        child: const Icon(Icons.tune_rounded, size: 22),
+      ),
+    );
+  }
+}
+
+/// "Search jobs" button pinned under the list.
+class _SearchButtonBar extends StatelessWidget {
+  const _SearchButtonBar({required this.onPressed});
+
+  final VoidCallback onPressed;
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    return Container(
-      clipBehavior: Clip.antiAlias,
+    return DecoratedBox(
       decoration: BoxDecoration(
         color: scheme.surface,
-        borderRadius: BorderRadius.circular(AppRadius.small),
-        border: Border.all(color: scheme.outlineVariant),
+        border: Border(top: BorderSide(color: scheme.outlineVariant)),
       ),
-      child: child,
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+          child: SizedBox(
+            height: 48,
+            width: double.infinity,
+            child: FilledButton.icon(
+              onPressed: onPressed,
+              style: FilledButton.styleFrom(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(AppRadius.medium),
+                ),
+              ),
+              icon: const Icon(Icons.search_rounded, size: 20),
+              label: const Text('Search jobs'),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

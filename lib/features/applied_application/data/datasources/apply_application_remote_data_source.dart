@@ -29,18 +29,16 @@ class ApplyApplicationRemoteDataSourceImpl
     String? status,
   }) {
     return _client.get<ApplicationsPageModel>(
-      ApiEndpoints.applyApplications,
-      queryParameters: {
-        'page': page,
-        'limit': limit,
-        'status': ?status,
-      },
+      ApiEndpoints.allAppliedApplications,
+      queryParameters: {'page': page, 'limit': limit, 'status': ?status},
       decoder: ApplicationsPageModel.fromJson,
     );
   }
 
   @override
-  Future<void> withdrawApplication(String id) {
-    return _client.patch<void>(ApiEndpoints.withdrawApplication(id: id));
+  Future<void> withdrawApplication(String appliedJobId) {
+    return _client.post<void>(
+      ApiEndpoints.withdrawApplication(appliedJobId: appliedJobId),
+    );
   }
 }
