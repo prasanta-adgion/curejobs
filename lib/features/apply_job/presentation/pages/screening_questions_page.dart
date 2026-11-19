@@ -1,4 +1,5 @@
 import 'package:curejobs/core/constants/asset_paths.dart';
+import 'package:curejobs/shared/widgets/separation_widget.dart';
 import 'package:flutter/material.dart';
 
 import '../../../all_jobs/domain/entities/job.dart';
@@ -125,7 +126,9 @@ class _ScreeningQuestionsPageState extends State<ScreeningQuestionsPage> {
               child: _Intro(answered: answered, total: total),
             ),
             for (var i = 0; i < total; i++) ...[
-              const ApplySectionGap(),
+              // const ApplySectionGap(),
+              const SectionBand(),
+
               _QuestionSection(
                 key: _keys[questions[i].id],
                 index: i,

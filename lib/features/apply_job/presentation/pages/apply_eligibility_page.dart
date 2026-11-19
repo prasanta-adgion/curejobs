@@ -1,4 +1,5 @@
 import 'package:curejobs/core/constants/asset_paths.dart';
+import 'package:curejobs/shared/widgets/separation_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -117,7 +118,9 @@ class _EligibilityView extends StatelessWidget {
                   note: '${e.passed.length} of $total',
                 ),
               if (canApply) ...[
-                const ApplySectionGap(),
+                // const ApplySectionGap(),
+                const SectionBand(),
+
                 ApplySection(
                   padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
                   child: Column(
@@ -195,7 +198,9 @@ class _EligibilityView extends StatelessWidget {
     final tone = StatusTone.of(context, status);
     return Column(
       children: [
-        const ApplySectionGap(),
+        // const ApplySectionGap(),
+        const SectionBand(),
+
         ApplySection(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
           child: Column(

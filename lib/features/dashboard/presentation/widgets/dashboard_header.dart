@@ -71,6 +71,11 @@ class DashboardHeader extends StatelessWidget {
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10),
                 ),
+                //order: Border.all(color: color.withValues(alpha: 0.35)),
+
+                side: BorderSide(
+                  color: AppColors.white.withValues(alpha: 0.35),
+                ),
               ),
               icon: Badge(
                 isLabelVisible: unreadNotificationCount > 0,

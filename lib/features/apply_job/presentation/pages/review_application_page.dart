@@ -1,4 +1,5 @@
 import 'package:curejobs/core/constants/asset_paths.dart';
+import 'package:curejobs/shared/widgets/separation_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -181,10 +182,14 @@ class _ReviewViewState extends State<_ReviewView> {
                 ),
               ),
             if (p.eligibility.warnings.isNotEmpty) ...[
-              const ApplySectionGap(),
+              // const ApplySectionGap(),
+              const SectionBand(),
+
               _WarningNote(eligibility: p.eligibility),
             ],
-            const ApplySectionGap(),
+            // const ApplySectionGap(),
+            const SectionBand(),
+
             const _AfterSend(),
           ],
         ),
@@ -353,7 +358,9 @@ class _ReviewCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        const ApplySectionGap(),
+        // const ApplySectionGap(),
+        const SectionBand(),
+
         ApplySection(
           padding: const EdgeInsets.fromLTRB(16, 8, 8, 14),
           child: Column(
@@ -396,7 +403,9 @@ class _ReadySection extends StatelessWidget {
     final tone = StatusTone.of(context, CheckStatus.pass);
     return Column(
       children: [
-        const ApplySectionGap(),
+        // const ApplySectionGap(),
+        const SectionBand(),
+
         ApplySection(
           padding: const EdgeInsets.fromLTRB(16, 6, 8, 14),
           child: Column(

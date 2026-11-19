@@ -1,5 +1,6 @@
 import 'package:curejobs/core/constants/asset_paths.dart';
 import 'package:curejobs/core/utils/date_time_utils.dart';
+import 'package:curejobs/shared/widgets/separation_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -175,7 +176,9 @@ class _ChooseCvViewState extends State<_ChooseCvView> {
             return ListView(
               children: [
                 _Intro(withAnswers: p.answers.isNotEmpty),
-                const ApplySectionGap(),
+                // const ApplySectionGap(),
+                const SectionBand(),
+
                 ApplySection(child: _EmptyCvs(onUpload: _uploadCv)),
               ],
             );
@@ -192,7 +195,9 @@ class _ChooseCvViewState extends State<_ChooseCvView> {
                       padding: const EdgeInsets.only(bottom: 16),
                       children: [
                         _Intro(withAnswers: p.answers.isNotEmpty),
-                        const ApplySectionGap(),
+                        // const ApplySectionGap(),
+                        const SectionBand(),
+
                         ApplySection(
                           padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
                           child: Column(
@@ -232,7 +237,9 @@ class _ChooseCvViewState extends State<_ChooseCvView> {
                             ],
                           ),
                         ),
-                        const ApplySectionGap(),
+                        // const ApplySectionGap(),
+                        const SectionBand(),
+
                         ApplySection(child: _UploadBox(onTap: _uploadCv)),
                       ],
                     ),

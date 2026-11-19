@@ -1,3 +1,4 @@
+import 'package:curejobs/shared/widgets/separation_widget.dart';
 import 'package:flutter/material.dart';
 
 import '../../../../app/di/injection_container.dart';
@@ -108,7 +109,8 @@ class _JobDetailsPageState extends State<JobDetailsPage> {
           SliverList.list(
             children: [
               for (final section in sections) ...[
-                const ApplySectionGap(),
+                // const ApplySectionGap(),
+                const SectionBand(),
                 section,
               ],
               // Room so the bottom bar never covers the last section.
