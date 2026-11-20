@@ -112,7 +112,8 @@ class ProfilePage extends StatelessWidget {
         child: DefaultTabController(
           length: _tabs.length,
           child: Scaffold(
-            backgroundColor: scheme.surface,
+            // backgroundColor: Colors.red,
+            // backgroundColor: scheme.surface,
             body: NestedScrollView(
               headerSliverBuilder: (context, _) => [
                 SliverToBoxAdapter(
@@ -126,6 +127,7 @@ class ProfilePage extends StatelessWidget {
                   delegate: _TabBarDelegate(
                     color: scheme.surface,
                     divider: scheme.outlineVariant,
+                    // divider: scheme.outline,
                     tabBar: TabBar(
                       isScrollable: true,
                       tabAlignment: TabAlignment.start,

@@ -245,13 +245,6 @@ class ApplySection extends StatelessWidget {
   }
 }
 
-class ApplySectionGap extends StatelessWidget {
-  const ApplySectionGap({super.key});
-
-  @override
-  Widget build(BuildContext context) => const SizedBox(height: 8);
-}
-
 /// Icon + title row at the top of a section, with an optional action.
 class ApplySectionHeader extends StatelessWidget {
   const ApplySectionHeader({

@@ -8,6 +8,7 @@ import '../../../../core/widgets/app_snackbar.dart';
 import '../../../all_jobs/domain/entities/job.dart';
 import '../../../all_jobs/presentation/formatters/job_formatter.dart';
 import '../../../media_preview/presentation/pages/file_viewer_page.dart';
+import '../../../profile/edit_profile/presentation/pages/edit_profile_page.dart';
 import '../../../profile/presentation/bloc/candidate_profile_bloc.dart';
 import '../../../profile/sections/resume/domain/entities/resume.dart';
 import '../../domain/entities/application_eligibility.dart';
@@ -91,11 +92,18 @@ class _ReviewViewState extends State<_ReviewView> {
     Navigator.of(context).popUntil((_) => count++ >= 2);
   }
 
-  void _editProfile() => ScaffoldMessenger.of(context)
-    ..hideCurrentSnackBar()
-    ..showSnackBar(
-      const SnackBar(content: Text('Edit your profile from the Profile tab')),
+  /// Opens the profile form; reloads the details here if it was saved.
+  Future<void> _editProfile() async {
+    final profileBloc = context.read<CandidateProfileBloc>();
+    final candidate = profileBloc.state.candidate;
+    if (candidate == null) return;
+    final saved = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(builder: (_) => EditProfilePage(candidate: candidate)),
     );
+    if ((saved ?? false) && mounted) {
+      profileBloc.add(const CandidateProfileRequested());
+    }
+  }
 
   void _submit() => context.read<SubmitApplicationBloc>().add(
     SubmitApplicationRequested(

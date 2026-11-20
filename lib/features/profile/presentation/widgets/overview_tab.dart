@@ -7,12 +7,11 @@ import '../../sections/skill/presentation/bloc/skills_bloc.dart';
 import '../../sections/skill/presentation/page/skills_section.dart';
 import '../../sections/skill/presentation/widgets/edit_skills_sheet.dart';
 import 'logout_section.dart';
-import 'my_applications_section.dart';
-import 'my_plan_section.dart';
 import 'next_step_banner.dart';
+import 'quick_access_section.dart';
 
-/// First tab: activity numbers, next step, skills and languages. Each
-/// section handles its own actions.
+/// First tab: next step, quick access (verification, visibility, job alerts,
+/// billing), skills and languages. Each section handles its own actions.
 class OverviewTab extends StatelessWidget {
   const OverviewTab({super.key});
 
@@ -48,17 +47,24 @@ class OverviewTab extends StatelessWidget {
         buildWhen: (prev, curr) =>
             prev.status != curr.status ||
             prev.items.isEmpty != curr.items.isEmpty,
-        builder: (context, skills) => ListView(
-          padding: const EdgeInsets.only(bottom: 24),
-          children: [
-            const MyApplicationsSection(),
-            const MyPlanSection(),
-            NextStepBanner(steps: _nextSteps(context, skills)),
-            const SkillsSection(),
-            const LanguagesSection(),
-            const LogoutSection(),
-          ],
-        ),
+        builder: (context, skills) {
+          final steps = _nextSteps(context, skills);
+          return ListView(
+            padding: const EdgeInsets.only(bottom: 24),
+            children: [
+              if (steps.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(top: 16),
+                  child: NextStepBanner(steps: steps),
+                ),
+              // No band right under the tabs when there's no next step.
+              QuickAccessSection(showDivider: steps.isNotEmpty),
+              const SkillsSection(),
+              const LanguagesSection(),
+              const LogoutSection(),
+            ],
+          );
+        },
       ),
     );
   }

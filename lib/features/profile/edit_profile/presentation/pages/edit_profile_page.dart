@@ -331,20 +331,27 @@ class _EditProfilePageState extends State<EditProfilePage> {
         child: Scaffold(
           backgroundColor: scheme.surface,
           appBar: AppBar(
+            backgroundColor: AppColors.logoNavy,
             leading: IconButton(
               tooltip: 'Close',
-              icon: const Icon(AppIcons.close),
+              icon: const Icon(AppIcons.close, color: AppColors.white),
               onPressed: () => Navigator.of(context).maybePop(),
             ),
             titleSpacing: 0,
             title: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Edit profile'),
+                Text(
+                  'Edit profile',
+                  style: theme.textTheme.titleLarge?.copyWith(
+                    color: AppColors.white,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
                 Text(
                   'This is what employers see first',
                   style: theme.textTheme.bodySmall?.copyWith(
-                    color: scheme.onSurfaceVariant,
+                    color: AppColors.darkTextSecondary,
                   ),
                 ),
               ],
