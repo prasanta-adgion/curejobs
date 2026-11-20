@@ -1,3 +1,4 @@
+import 'package:curejobs/shared/widgets/separation_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -167,7 +168,7 @@ class _Body extends StatelessWidget {
         ApplicationDetailHeader(detail: detail),
         if (detail.job.isClosed)
           JobClosedStrip(stillActive: detail.status.isActive),
-        for (final s in sections) ...[const ApplySectionGap(), s],
+        for (final s in sections) ...[const SectionBand(), s],
       ],
     );
   }

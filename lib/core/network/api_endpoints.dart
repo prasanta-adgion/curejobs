@@ -91,4 +91,7 @@ class ApiEndpoints {
 
   static const String markAllNotificationsRead =
       'api/v1/notifications/read-all';
+
+  static const String jobAlertPreferences =
+      'api/v1/candidates/me/job-alert-preferences';
 }

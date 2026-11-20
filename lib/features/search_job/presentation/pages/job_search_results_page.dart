@@ -80,16 +80,15 @@ class _JobSearchResultsPageState extends State<JobSearchResultsPage> {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.light,
       child: Scaffold(
-        backgroundColor: scheme.surfaceContainerLowest,
         body: Column(
           children: [
             NavyPageHeader(
               title: 'Search results',
+
+              subtitle: 'Find your next opportunity',
               trailing: IconButton(
                 tooltip: 'Edit search',
                 onPressed: _editSearch,
@@ -233,7 +232,7 @@ class _Footer extends StatelessWidget {
           child: Text(
             "You've seen all results",
             style: Theme.of(context).textTheme.bodySmall
-                ?.copyWith(color: scheme.outline),
+                ?.copyWith(color: scheme.onSurfaceVariant),
           ),
         ),
       );

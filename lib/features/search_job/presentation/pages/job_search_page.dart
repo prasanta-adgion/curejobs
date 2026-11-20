@@ -271,11 +271,12 @@ class _JobSearchPageState extends State<JobSearchPage> {
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.light,
       child: Scaffold(
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        backgroundColor: scheme.surface,
         body: Column(
           children: [
             NavyPageHeader(
               title: 'Search jobs',
+              subtitle: 'Find your next opportunity',
               trailing: ValueListenableBuilder(
                 valueListenable: _sheetFilters,
                 builder: (context, filters, _) =>

@@ -1,5 +1,6 @@
 import 'package:get_it/get_it.dart';
 
+import '../../features/job_alerts/di/job_alerts_dependencies.dart';
 import '../../features/job_details/di/job_details_dependencies.dart';
 import '../../features/apply_job/di/apply_job_dependencies.dart';
 import '../../features/applied_application/di/apply_application_dependencies.dart';
@@ -39,6 +40,7 @@ void registerFeatureDependencies(GetIt sl) {
   registerAllJobsDependencies(sl);
   registerCategoryDependencies(sl);
   registerSpecializationDependencies(sl);
+  registerJobAlertsDependencies(sl);
   registerMediaPreviewDependencies(sl);
   registerCreateAccountDependencies(sl);
   registerApplyApplicationDependencies(sl);
