@@ -15,11 +15,13 @@ class GetJobsUseCase {
     required JobFeed feed,
     int page = 1,
     int limit = defaultPageSize,
+    String? organizationId,
   }) {
     return _repository.getJobs(
       feed: feed,
       page: page < 1 ? 1 : page,
       limit: limit,
+      organizationId: organizationId,
     );
   }
 }

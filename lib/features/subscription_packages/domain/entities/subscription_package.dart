@@ -43,6 +43,10 @@ class SubscriptionPackage extends Equatable {
     required this.priceMinor,
     required this.currency,
     required this.durationDays,
+    this.type = '',
+    this.status = '',
+    this.adminGrantEnabled = false,
+    this.packageRequestEnabled = false,
     this.maxResumes,
     this.monthlyApplications,
     this.features = const {},
@@ -59,6 +63,14 @@ class SubscriptionPackage extends Equatable {
   final int priceMinor;
   final String currency;
   final int durationDays;
+
+  /// `CANDIDATE` or `EMPLOYER`.
+  final String type;
+
+  /// e.g. `ACTIVE`.
+  final String status;
+  final bool adminGrantEnabled;
+  final bool packageRequestEnabled;
   final int? maxResumes;
   final int? monthlyApplications;
 
@@ -89,6 +101,9 @@ abstract final class PackageFeature {
   static const jobAlerts = 'jobAlerts';
   static const verifiedBadge = 'verifiedBadge';
   static const verificationRequired = 'verificationRequired';
+  static const resumeBuilder = 'resumeBuilder';
+  static const profileVisibility = 'profileVisibility';
+  static const resumeVisibility = 'resumeVisibility';
 
   /// Features shown in the comparison, in display order.
   static const displayed = <String, String>{
@@ -96,5 +111,7 @@ abstract final class PackageFeature {
     jobApplications: 'Apply to jobs',
     jobAlerts: 'Job alerts',
     verifiedBadge: 'Verified badge',
+    profileVisibility: 'Profile visibility',
+    resumeVisibility: 'Resume visibility',
   };
 }

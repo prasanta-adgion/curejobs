@@ -8,6 +8,10 @@ import '../../../all_jobs/domain/entities/job.dart';
 import '../../../apply_job/presentation/pages/apply_eligibility_page.dart';
 import '../../../apply_job/presentation/widgets/apply_flow_widgets.dart';
 import '../../../all_jobs/presentation/formatters/job_formatter.dart';
+import '../../../organization_details/presentation/pages/organization_details_page.dart';
+import '../../../applied_application_indetailed/presentation/pages/application_detail_page.dart';
+import '../../domain/entities/job_application_status.dart';
+import '../../domain/usecases/get_application_statuses_usecase.dart';
 import '../../domain/usecases/track_apply_start_usecase.dart';
 import '../../domain/usecases/track_job_view_usecase.dart';
 import '../widgets/job_details_sections.dart';
@@ -34,11 +38,38 @@ class _JobDetailsPageState extends State<JobDetailsPage> {
   final _headerKey = GlobalKey();
   final _showBottomBar = ValueNotifier(false);
 
+  /// The candidate's application for this job; null when not applied.
+  JobApplicationStatus? _application;
+  bool _checkingStatus = true;
+
   @override
   void initState() {
     super.initState();
     _scroll.addListener(_onScroll);
     sl<TrackJobViewUseCase>()(widget.job.id);
+    _loadApplicationStatus();
+  }
+
+  /// Checks whether the candidate already applied, so Apply can show the
+  /// status instead. On failure Apply stays available (the apply flow does
+  /// its own eligibility check).
+  Future<void> _loadApplicationStatus() async {
+    final result = await sl<GetApplicationStatusesUseCase>().forJob(
+      widget.job.id,
+    );
+    if (!mounted) return;
+    setState(() {
+      _checkingStatus = false;
+      if (result.isOk) _application = result.valueOrNull;
+    });
+  }
+
+  Future<void> _viewApplication() async {
+    final id = _application?.applicationId;
+    if (id == null) return;
+    await Navigator.of(context).push(ApplicationDetailPage.route(id));
+    // It may have been withdrawn there.
+    if (mounted) _loadApplicationStatus();
   }
 
   @override
@@ -56,14 +87,16 @@ class _JobDetailsPageState extends State<JobDetailsPage> {
     _showBottomBar.value = _scroll.offset > height - 24;
   }
 
-  void _apply() {
+  Future<void> _apply() async {
     // Fire and forget, like the view event.
     sl<TrackApplyStartUseCase>()(widget.job.id);
     if (widget.onApply != null) {
       widget.onApply!();
       return;
     }
-    Navigator.of(context).push(ApplyEligibilityPage.route(widget.job));
+    await Navigator.of(context).push(ApplyEligibilityPage.route(widget.job));
+    // Back from the apply flow: show "Applied" if it went through.
+    if (mounted) _loadApplicationStatus();
   }
 
   @override
@@ -102,6 +135,12 @@ class _JobDetailsPageState extends State<JobDetailsPage> {
               job: job,
               now: now,
               onApply: _apply,
+              application: _application,
+              checkingStatus: _checkingStatus,
+              onViewApplication: _viewApplication,
+              onEmployerTap: () =>
+                  Navigator.of(context)
+                      .push(OrganizationDetailsPage.route(job.organization)),
             ),
           ),
           if (deadline != null)
@@ -126,7 +165,14 @@ class _JobDetailsPageState extends State<JobDetailsPage> {
           curve: Curves.easeOut,
           child: visible ? child : const SizedBox(width: double.infinity),
         ),
-        child: _ApplyBar(job: job, deadline: deadline, onApply: _apply),
+        child: _ApplyBar(
+          job: job,
+          deadline: deadline,
+          onApply: _apply,
+          application: _application,
+          checkingStatus: _checkingStatus,
+          onViewApplication: _viewApplication,
+        ),
       ),
     );
   }
@@ -137,11 +183,17 @@ class _ApplyBar extends StatelessWidget {
     required this.job,
     required this.deadline,
     required this.onApply,
+    this.application,
+    this.checkingStatus = false,
+    this.onViewApplication,
   });
 
   final Job job;
   final DeadlineInfo? deadline;
   final VoidCallback onApply;
+  final JobApplicationStatus? application;
+  final bool checkingStatus;
+  final VoidCallback? onViewApplication;
 
   @override
   Widget build(BuildContext context) {
@@ -205,19 +257,15 @@ class _ApplyBar extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 12),
-              FilledButton(
-                onPressed: closed ? null : onApply,
-                style: FilledButton.styleFrom(
-                  minimumSize: const Size(0, 46),
-                  padding: const EdgeInsets.symmetric(horizontal: 26),
-                  textStyle: theme.textTheme.labelLarge?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(AppRadius.medium),
-                  ),
-                ),
-                child: Text(closed ? 'Closed' : 'Apply now'),
+              JobApplyButton(
+                closed: closed,
+                application: application,
+                checkingStatus: checkingStatus,
+                onApply: onApply,
+                onViewApplication: onViewApplication,
+                height: 46,
+                horizontalPadding: 26,
+                radius: AppRadius.medium,
               ),
             ],
           ),

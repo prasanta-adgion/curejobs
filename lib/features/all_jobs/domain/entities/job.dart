@@ -156,12 +156,16 @@ class JobOrganization extends Equatable {
   final String name;
   final String? logoFileId;
 
+  /// URL name, e.g. `belarani-healthcare`, when the API sends it.
+  final String? slug;
+
   const JobOrganization({
     required this.id,
     required this.name,
     this.logoFileId,
+    this.slug,
   });
 
   @override
-  List<Object?> get props => [id, name, logoFileId];
+  List<Object?> get props => [id, name, logoFileId, slug];
 }

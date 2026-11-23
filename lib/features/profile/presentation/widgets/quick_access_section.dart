@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../app/di/injection_container.dart';
 import '../../../job_alerts/presentation/pages/job_alerts_page.dart';
+import '../../../profile_visibility/presentation/pages/profile_visibility_page.dart';
 import '../../../subscription_packages/presentation/bloc/current_plan_bloc.dart';
 import '../../../subscription_packages/presentation/pages/subscription_packages_page.dart';
 import '../../../subscription_packages/presentation/widgets/package_widgets.dart';
@@ -81,7 +82,8 @@ class _Grid extends StatelessWidget {
                   title: 'Profile visibility',
                   subtitle: 'Who can find you',
                   tone: tones.accent,
-                  onTap: () => _comingSoon(context, 'Profile visibility'),
+                  onTap: () =>
+                      Navigator.of(context).push(ProfileVisibilityPage.route()),
                 ),
               ),
             ],

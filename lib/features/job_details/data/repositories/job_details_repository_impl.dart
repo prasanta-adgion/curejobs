@@ -1,4 +1,5 @@
 import '../../../../core/result/result.dart';
+import '../../domain/entities/job_application_status.dart';
 import '../../domain/repositories/job_details_repository.dart';
 import '../datasources/job_details_remote_data_source.dart';
 
@@ -27,4 +28,9 @@ class JobDetailsRepositoryImpl implements JobDetailsRepository {
           _remote.trackApplyStart(jobId: jobId, listingContext: listingContext),
     );
   }
+
+  @override
+  Future<Result<Map<String, JobApplicationStatus>>> getApplicationStatuses(
+    List<String> jobIds,
+  ) => Result.guard(() => _remote.getApplicationStatuses(jobIds));
 }

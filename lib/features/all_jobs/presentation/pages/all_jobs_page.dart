@@ -28,26 +28,32 @@ class AllJobsPage extends StatelessWidget {
             ? AppColors.darkBackground
             : AppColors.lightBackground,
         appBar: AppBar(
-          leading: AppBackButton.leadingOf(context),
+          leading: AppBackButton.leadingOf(context, color: AppColors.white),
           titleSpacing: 16,
-          backgroundColor: scheme.surface,
+          backgroundColor: AppColors.logoNavy,
           surfaceTintColor: Colors.transparent,
-          title: Text(
-            'Jobs',
-            style: theme.textTheme.titleLarge?.copyWith(
-              fontWeight: FontWeight.w600,
-            ),
+          title: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Jobs', style: TextStyle(color: AppColors.white)),
+              Text(
+                'Browse all openings and picks for you',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: AppColors.darkTextSecondary,
+                ),
+              ),
+            ],
           ),
           bottom: TabBar(
-            labelColor: scheme.primary,
-            unselectedLabelColor: scheme.onSurfaceVariant,
-            indicatorColor: scheme.primary,
+            labelColor: AppColors.white,
+            unselectedLabelColor: AppColors.darkTextSecondary,
+            indicatorColor: AppColors.white,
             indicatorSize: TabBarIndicatorSize.label,
             labelStyle: theme.textTheme.titleSmall?.copyWith(
               fontWeight: FontWeight.w600,
             ),
             unselectedLabelStyle: theme.textTheme.titleSmall,
-            dividerColor: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+            dividerColor: scheme.outlineVariant,
             tabs: const [
               Tab(text: 'All jobs'),
               Tab(text: 'Recommended'),

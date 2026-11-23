@@ -13,15 +13,16 @@ abstract final class CurrentSubscriptionModel {
       JsonParser.map(data['package']),
     );
 
-    // Prefer the top-level effective values, then the snapshot, then the
-    // package's own defaults.
+    // The subscription snapshot is the source of truth: when the admin adds or
+    // changes features/limits they land in the snapshot. Fall back to the
+    // top-level values, then the package's own defaults.
     final limits = _firstNonEmpty([
-      JsonParser.map(data['limits']),
       JsonParser.map(sub['limitsSnapshotJson']),
+      JsonParser.map(data['limits']),
     ]);
     final features = _firstNonEmpty([
-      JsonParser.map(data['features']),
       JsonParser.map(sub['featuresSnapshotJson']),
+      JsonParser.map(data['features']),
     ]);
 
     return CurrentSubscription(
@@ -29,8 +30,13 @@ abstract final class CurrentSubscriptionModel {
       package: package,
       status: JsonParser.string(sub['status']),
       source: JsonParser.string(sub['source']),
+      packageId: JsonParser.nullableString(sub['packageId']),
+      providerSubscriptionId: JsonParser.nullableString(
+        sub['providerSubscriptionId'],
+      ),
       startsAt: JsonParser.dateTime(sub['startsAt']),
       expiresAt: JsonParser.dateTime(sub['expiresAt']),
+      activatedAt: JsonParser.dateTime(sub['activatedAt']),
       autoRenew: JsonParser.boolean(sub['autoRenew']),
       cancelAtPeriodEnd: JsonParser.boolean(sub['cancelAtPeriodEnd']),
       maxResumes:

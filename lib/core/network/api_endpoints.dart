@@ -47,6 +47,9 @@ class ApiEndpoints {
   static String appliedApplicationById({required String appliedJobId}) =>
       'api/v1/applications/me/$appliedJobId';
 
+  static const String applicationAppliedStatus =
+      "api/v1/applications/me/statuses"; //check application applied status
+
   static String withdrawApplication({required String appliedJobId}) =>
       'api/v1/applications/me/$appliedJobId/withdraw';
 
@@ -94,4 +97,20 @@ class ApiEndpoints {
 
   static const String jobAlertPreferences =
       'api/v1/candidates/me/job-alert-preferences';
+
+  static String organizationById({required String slug}) =>
+      'api/v1/public/organizations/$slug';
+
+  //profile visibility
+  static const String matchPrivacy = 'api/v1/candidates/me/match-privacy';
+  static const String profileActivity = 'api/v1/candidates/me/profile-activity';
+
+  //candidate verification
+  static const String verificationEligibility =
+      'api/v1/verifications/eligibility';
+
+  static const String candidateVerification = 'api/v1/verifications/me';
+
+  static String rejectionReason({required String id}) =>
+      'api/v1/verifications/$id';
 }
