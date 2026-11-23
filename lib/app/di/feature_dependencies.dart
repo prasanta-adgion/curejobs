@@ -1,3 +1,4 @@
+
 import 'package:get_it/get_it.dart';
 
 import '../../features/job_alerts/di/job_alerts_dependencies.dart';
@@ -27,6 +28,7 @@ import '../../features/subscription_plan_buy_history/di/billing_history_dependen
 import '../../features/notification/di/notification_dependencies.dart';
 import '../../features/organization_details/di/organization_details_dependencies.dart';
 import '../../features/profile_visibility/di/profile_visibility_dependencies.dart';
+import '../../features/verification/di/verification_dependencies.dart';
 
 void registerFeatureDependencies(GetIt sl) {
   registerLoginDependencies(sl);
@@ -55,4 +57,5 @@ void registerFeatureDependencies(GetIt sl) {
   registerNotificationDependencies(sl);
   registerOrganizationDetailsDependencies(sl);
   registerProfileVisibilityDependencies(sl);
+  registerVerificationDependencies(sl);
 }

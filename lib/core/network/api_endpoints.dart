@@ -106,6 +106,12 @@ class ApiEndpoints {
   static const String profileActivity = 'api/v1/candidates/me/profile-activity';
 
   //candidate verification
+
+  static const String documentTypes = 'api/v1/verifications/document-types';
+
+  //   static String documentTypeById({required String id}) =>
+  //       'api/v1/verifications/$id/documents';
+
   static const String verificationEligibility =
       'api/v1/verifications/eligibility';
 
