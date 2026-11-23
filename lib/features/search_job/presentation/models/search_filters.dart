@@ -60,10 +60,7 @@ class SearchFilters extends Equatable {
     return query.withFilters(
       employmentType: jobTypes.isEmpty
           ? null
-          : JobType.values
-                .where(jobTypes.contains)
-                .map(_codeOf)
-                .join(','),
+          : JobType.values.where(jobTypes.contains).map(_codeOf).join(','),
       experienceMin: range?.$1,
       experienceMax: range?.$2,
       postedFrom: since?.toIso8601String(),
@@ -79,18 +76,15 @@ class SearchFilters extends Equatable {
     JobType.freelance => 'FREELANCE',
   };
 
-  static final _jobTypeByCode = {
-    for (final t in JobType.values) _codeOf(t): t,
-  };
+  static final _jobTypeByCode = {for (final t in JobType.values) _codeOf(t): t};
 
   /// Years of experience as (min, max); null max means no upper limit.
-  static (int, int?) _experienceRange(ExperienceLevel level) =>
-      switch (level) {
-        ExperienceLevel.fresher => (0, 1),
-        ExperienceLevel.oneToThree => (1, 3),
-        ExperienceLevel.threeToFive => (3, 5),
-        ExperienceLevel.fivePlus => (5, null),
-      };
+  static (int, int?) _experienceRange(ExperienceLevel level) => switch (level) {
+    ExperienceLevel.fresher => (0, 1),
+    ExperienceLevel.oneToThree => (1, 3),
+    ExperienceLevel.threeToFive => (3, 5),
+    ExperienceLevel.fivePlus => (5, null),
+  };
 
   static int _daysOf(DatePosted value) => switch (value) {
     DatePosted.last24Hours => 1,

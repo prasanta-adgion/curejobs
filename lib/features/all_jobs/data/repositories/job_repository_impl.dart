@@ -14,9 +14,15 @@ class JobRepositoryImpl implements JobRepository {
     required JobFeed feed,
     required int page,
     required int limit,
+    String? organizationId,
   }) {
     return Result.guard(
-      () => _remote.getJobs(feed: feed, page: page, limit: limit),
+      () => _remote.getJobs(
+        feed: feed,
+        page: page,
+        limit: limit,
+        organizationId: organizationId,
+      ),
     );
   }
 }

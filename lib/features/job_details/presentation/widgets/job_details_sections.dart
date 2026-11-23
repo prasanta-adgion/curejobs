@@ -1,4 +1,5 @@
 import 'package:curejobs/core/utils/date_time_utils.dart';
+import 'package:curejobs/core/utils/extensions/theme_extensions.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_widget_from_html_core/flutter_widget_from_html_core.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -8,6 +9,7 @@ import '../../../../app/theme/app_radius.dart';
 import '../../../all_jobs/domain/entities/job.dart';
 import '../../../all_jobs/presentation/formatters/job_formatter.dart';
 import '../../../apply_job/presentation/widgets/apply_flow_widgets.dart';
+import '../../domain/entities/job_application_status.dart';
 
 part 'job_details_more_sections.dart';
 
@@ -109,16 +111,30 @@ class JobDetailsHeader extends StatelessWidget {
     required this.job,
     required this.now,
     required this.onApply,
+    this.onEmployerTap,
+    this.application,
+    this.checkingStatus = false,
+    this.onViewApplication,
   });
 
   final Job job;
   final DateTime now;
   final VoidCallback onApply;
 
+  /// The candidate's existing application, if any.
+  final JobApplicationStatus? application;
+
+  /// True while the applied status is being fetched.
+  final bool checkingStatus;
+  final VoidCallback? onViewApplication;
+
+  /// Called when the employer name is tapped; null leaves it non-interactive.
+  final VoidCallback? onEmployerTap;
+
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
+    // final theme = Theme.of(context);
+    // final scheme = theme.colorScheme;
     final brand = _brand(context);
     final salary = JobFormatter.salary(job);
     final location = fullLocation(job);
@@ -186,16 +202,24 @@ class JobDetailsHeader extends StatelessWidget {
                   children: [
                     Text(
                       job.title,
-                      style: theme.textTheme.titleLarge?.copyWith(
+                      style: context.textStyles.titleLarge?.copyWith(
                         fontWeight: FontWeight.w600,
                         height: 1.25,
                       ),
                     ),
                     const SizedBox(height: 4),
-                    Text(
-                      job.organization.name,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        fontWeight: FontWeight.w500,
+                    InkWell(
+                      onTap: onEmployerTap,
+                      borderRadius: BorderRadius.circular(AppRadius.small),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 2),
+                        child: Text(
+                          job.organization.name,
+                          style: context.textStyles.bodyMedium?.copyWith(
+                            fontWeight: FontWeight.w500,
+                            color: onEmployerTap == null ? null : brand,
+                          ),
+                        ),
                       ),
                     ),
                   ],
@@ -210,7 +234,7 @@ class JobDetailsHeader extends StatelessWidget {
                 Icon(
                   Icons.location_on_outlined,
                   size: 16,
-                  color: scheme.onSurfaceVariant,
+                  color: context.colors.onSurfaceVariant,
                 ),
                 const SizedBox(width: 4),
                 Expanded(
@@ -218,8 +242,8 @@ class JobDetailsHeader extends StatelessWidget {
                     location,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: scheme.onSurfaceVariant,
+                    style: context.textStyles.bodyMedium?.copyWith(
+                      color: context.colors.onSurfaceVariant,
                     ),
                   ),
                 ),
@@ -263,7 +287,7 @@ class JobDetailsHeader extends StatelessWidget {
                           SalaryPeriod.yearly => 'Yearly salary',
                           null => 'Salary',
                         },
-                        style: theme.textTheme.labelSmall?.copyWith(
+                        style: context.textStyles.labelSmall?.copyWith(
                           color: brand,
                         ),
                       ),
@@ -274,27 +298,23 @@ class JobDetailsHeader extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                         style:
                             (salary == null
-                                    ? theme.textTheme.titleSmall
-                                    : theme.textTheme.titleMedium)
+                                    ? context.textStyles.titleSmall
+                                    : context.textStyles.titleMedium)
                                 ?.copyWith(fontWeight: FontWeight.w700),
                       ),
                     ],
                   ),
                 ),
                 const SizedBox(width: 10),
-                FilledButton(
-                  onPressed: closed ? null : onApply,
-                  style: FilledButton.styleFrom(
-                    minimumSize: const Size(0, 42),
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    textStyle: theme.textTheme.labelLarge?.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(AppRadius.small + 2),
-                    ),
-                  ),
-                  child: Text(closed ? 'Closed' : 'Apply now'),
+                JobApplyButton(
+                  closed: closed,
+                  application: application,
+                  checkingStatus: checkingStatus,
+                  onApply: onApply,
+                  onViewApplication: onViewApplication,
+                  height: 42,
+                  horizontalPadding: 20,
+                  radius: AppRadius.small + 2,
                 ),
               ],
             ),
@@ -709,6 +729,77 @@ class _Badge extends StatelessWidget {
         style: Theme.of(context).textTheme.labelSmall
             ?.copyWith(color: color, fontWeight: FontWeight.w600),
       ),
+    );
+  }
+}
+
+/// Apply button shared by the header and the bottom bar.
+///
+/// - while the applied status loads: disabled with a small spinner, so the
+///   candidate can't start a second application;
+/// - already applied: shows the status (e.g. "Under review") and opens the
+///   application;
+/// - otherwise: "Apply now", or "Closed" when applications are closed.
+class JobApplyButton extends StatelessWidget {
+  const JobApplyButton({
+    super.key,
+    required this.closed,
+    required this.onApply,
+    this.application,
+    this.checkingStatus = false,
+    this.onViewApplication,
+    this.height = 42,
+    this.horizontalPadding = 20,
+    this.radius = AppRadius.medium,
+  });
+
+  final bool closed;
+  final VoidCallback onApply;
+  final JobApplicationStatus? application;
+  final bool checkingStatus;
+  final VoidCallback? onViewApplication;
+  final double height;
+  final double horizontalPadding;
+  final double radius;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final style = FilledButton.styleFrom(
+      minimumSize: Size(0, height),
+      padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+      textStyle: theme.textTheme.labelLarge?.copyWith(
+        fontWeight: FontWeight.w600,
+      ),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(radius),
+      ),
+    );
+
+    if (checkingStatus) {
+      return FilledButton(
+        onPressed: null,
+        style: style,
+        child: const SizedBox.square(
+          dimension: 18,
+          child: CircularProgressIndicator(strokeWidth: 2),
+        ),
+      );
+    }
+
+    if (application case final a?) {
+      return FilledButton.tonalIcon(
+        onPressed: onViewApplication,
+        style: style,
+        icon: const Icon(Icons.check_circle_outline_rounded, size: 18),
+        label: Text(a.status.label),
+      );
+    }
+
+    return FilledButton(
+      onPressed: closed ? null : onApply,
+      style: style,
+      child: Text(closed ? 'Closed' : 'Apply now'),
     );
   }
 }

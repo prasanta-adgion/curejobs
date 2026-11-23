@@ -13,7 +13,11 @@ class JobsBloc extends Bloc<JobsEvent, JobsState> {
   final GetJobsUseCase _getJobs;
   final JobFeed feed;
 
-  JobsBloc(this._getJobs, {required this.feed}) : super(const JobsState()) {
+  /// When set, only this employer's jobs are loaded.
+  final String? organizationId;
+
+  JobsBloc(this._getJobs, {required this.feed, this.organizationId})
+    : super(const JobsState()) {
     // Extra requests are ignored while one of the same kind is in flight.
     on<JobsRequested>(_onRequested);
     on<JobsNextPageRequested>(_onNextPage);
@@ -26,7 +30,11 @@ class JobsBloc extends Bloc<JobsEvent, JobsState> {
     if (state.status == JobsStatus.loading) return;
     emit(state.copyWith(status: JobsStatus.loading, clearError: true));
 
-    final result = await _getJobs(feed: feed, page: 1);
+    final result = await _getJobs(
+      feed: feed,
+      page: 1,
+      organizationId: organizationId,
+    );
 
     result.fold(
       (page) => emit(
@@ -58,7 +66,11 @@ class JobsBloc extends Bloc<JobsEvent, JobsState> {
     }
     emit(state.copyWith(isLoadingMore: true, clearError: true));
 
-    final result = await _getJobs(feed: feed, page: state.page + 1);
+    final result = await _getJobs(
+      feed: feed,
+      page: state.page + 1,
+      organizationId: organizationId,
+    );
 
     result.fold(
       (page) => emit(

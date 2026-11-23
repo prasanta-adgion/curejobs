@@ -72,6 +72,7 @@ class JobModel extends Job {
         id: JsonParser.string(organization['id'] ?? json['organizationId']),
         name: JsonParser.string(organization['name']).trim(),
         logoFileId: JsonParser.nullableString(organization['logoFileId']),
+        slug: JsonParser.nullableString(organization['slug']),
       ),
       categoryName: _name(json['category']),
       specializationName: _name(json['specialization']),

@@ -8,5 +8,6 @@ abstract interface class JobRepository {
     required JobFeed feed,
     required int page,
     required int limit,
+    String? organizationId,
   });
 }

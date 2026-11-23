@@ -131,9 +131,8 @@ class _SearchFilterSheetState extends State<SearchFilterSheet> {
                   child: OutlinedButton(
                     onPressed: _filters.isEmpty
                         ? null
-                        : () => setState(
-                            () => _filters = const SearchFilters(),
-                          ),
+                        : () =>
+                              setState(() => _filters = const SearchFilters()),
                     style: OutlinedButton.styleFrom(
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(AppRadius.medium),

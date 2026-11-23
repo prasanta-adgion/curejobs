@@ -5,12 +5,16 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/widgets/app_error_view.dart';
 import '../../../../shared/widgets/app_back_button.dart';
 import '../../../category/presentation/widgets/category_tile.dart'
-    show categoryIcon;
+    show categoryIcon, SelectionMark;
 import '../../domain/entities/specialization.dart';
 import '../bloc/specializations_bloc.dart';
 
 /// Lists the chosen category's specializations. Tapping a row selects it;
 /// "Continue with …" closes with it. Expects a [SpecializationsBloc] above.
+///
+/// [SpecializationPage.multi]: several choices from an already loaded list
+/// (may span categories), pops the chosen ids as `List<String>`. Needs no
+/// bloc.
 class SpecializationPage extends StatelessWidget {
   const SpecializationPage({
     super.key,
@@ -18,7 +22,33 @@ class SpecializationPage extends StatelessWidget {
     this.categoryName,
     this.categorySlug,
     this.selectedId,
-  });
+  }) : multiSelect = false,
+       specializations = null,
+       groupLabels = const {},
+       selectedIds = const [];
+
+  const SpecializationPage.multi({
+    super.key,
+    required List<Specialization> this.specializations,
+    this.groupLabels = const {},
+    this.selectedIds = const [],
+  }) : multiSelect = true,
+       categoryId = '',
+       categoryName = null,
+       categorySlug = null,
+       selectedId = null;
+
+  final bool multiSelect;
+
+  /// Preloaded specializations (multi mode). When null, reads
+  /// [SpecializationsBloc].
+  final List<Specialization>? specializations;
+
+  /// Specialization id → label shown on its row, e.g. its category name.
+  final Map<String, String> groupLabels;
+
+  /// The specializations to mark as currently chosen (multi mode).
+  final List<String> selectedIds;
 
   /// The category to reload when the user retries.
   final String categoryId;
@@ -36,6 +66,7 @@ class SpecializationPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
+    final preloaded = specializations;
 
     return Scaffold(
       backgroundColor: scheme.surface,
@@ -45,9 +76,15 @@ class SpecializationPage extends StatelessWidget {
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Choose your specialization'),
             Text(
-              'Your main area of focus within the category.',
+              multiSelect
+                  ? 'Choose specializations'
+                  : 'Choose your specialization',
+            ),
+            Text(
+              multiSelect
+                  ? 'Pick one or more. Leave empty for all of them.'
+                  : 'Your main area of focus within the category.',
               style: theme.textTheme.bodySmall?.copyWith(
                 color: scheme.onSurfaceVariant,
               ),
@@ -59,38 +96,58 @@ class SpecializationPage extends StatelessWidget {
           child: Divider(height: 1, color: scheme.outlineVariant),
         ),
       ),
-      body: BlocBuilder<SpecializationsBloc, SpecializationsState>(
-        builder: (context, state) {
-          final failure = state.failure;
-          if (state.specializations.isNotEmpty) {
-            return _SpecializationPicker(
-              specializations: state.specializations,
-              selectedId: selectedId,
-              categoryName: categoryName,
-              categorySlug: categorySlug,
-            );
-          }
-          if (state.isLoading) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          if (failure != null) {
-            return AppErrorView(
-              failure: failure,
-              onRetry: () => context.read<SpecializationsBloc>().add(
-                SpecializationsRequested(categoryId),
-              ),
-            );
-          }
-          return _EmptyMessage(
-            icon: Icons.inbox_outlined,
-            title: 'No specializations yet',
-            message: categoryName == null
-                ? 'Try a different category.'
-                : 'There are none in $categoryName yet. Try a different '
-                      'category.',
+      body: preloaded != null
+          ? (preloaded.isEmpty
+                ? const _EmptyMessage(
+                    icon: Icons.inbox_outlined,
+                    title: 'No specializations yet',
+                    message: 'Try different categories.',
+                  )
+                : _SpecializationPicker(
+                    specializations: preloaded,
+                    multiSelect: true,
+                    selectedIds: selectedIds,
+                    groupLabels: groupLabels,
+                  ))
+          : _blocBody(),
+    );
+  }
+
+  Widget _blocBody() {
+    return BlocBuilder<SpecializationsBloc, SpecializationsState>(
+      builder: (context, state) {
+        final failure = state.failure;
+        if (state.specializations.isNotEmpty) {
+          return _SpecializationPicker(
+            specializations: state.specializations,
+            selectedId: selectedId,
+            categoryName: categoryName,
+            categorySlug: categorySlug,
+            multiSelect: multiSelect,
+            selectedIds: selectedIds,
+            groupLabels: groupLabels,
           );
-        },
-      ),
+        }
+        if (state.isLoading) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (failure != null) {
+          return AppErrorView(
+            failure: failure,
+            onRetry: () => context.read<SpecializationsBloc>().add(
+              SpecializationsRequested(categoryId),
+            ),
+          );
+        }
+        return _EmptyMessage(
+          icon: Icons.inbox_outlined,
+          title: 'No specializations yet',
+          message: categoryName == null
+              ? 'Try a different category.'
+              : 'There are none in $categoryName yet. Try a different '
+                    'category.',
+        );
+      },
     );
   }
 }
@@ -101,25 +158,57 @@ class _SpecializationPicker extends StatefulWidget {
     this.selectedId,
     this.categoryName,
     this.categorySlug,
+    this.multiSelect = false,
+    this.selectedIds = const [],
+    this.groupLabels = const {},
   });
 
   final List<Specialization> specializations;
   final String? selectedId;
   final String? categoryName;
   final String? categorySlug;
+  final bool multiSelect;
+  final List<String> selectedIds;
+  final Map<String, String> groupLabels;
 
   @override
   State<_SpecializationPicker> createState() => _SpecializationPickerState();
 }
 
 class _SpecializationPickerState extends State<_SpecializationPicker> {
-  late final _selectedId = ValueNotifier<String?>(widget.selectedId);
+  late final _selected = ValueNotifier<Set<String>>(
+    widget.multiSelect
+        ? {...widget.selectedIds}
+        : {if (widget.selectedId != null) widget.selectedId!},
+  );
   final _query = ValueNotifier<String>('');
   final _search = TextEditingController();
 
+  void _tap(String id) {
+    if (!widget.multiSelect) {
+      _selected.value = {id};
+      return;
+    }
+    final next = {..._selected.value};
+    if (!next.remove(id)) next.add(id);
+    _selected.value = next;
+  }
+
+  void _confirm(Set<String> selected) {
+    if (widget.multiSelect) {
+      Navigator.of(context).pop(<String>[
+        for (final s in widget.specializations)
+          if (selected.contains(s.id)) s.id,
+      ]);
+      return;
+    }
+    final item = _byId(selected.firstOrNull);
+    if (item != null) Navigator.of(context).pop(item);
+  }
+
   @override
   void dispose() {
-    _selectedId.dispose();
+    _selected.dispose();
     _query.dispose();
     _search.dispose();
     super.dispose();
@@ -190,7 +279,7 @@ class _SpecializationPickerState extends State<_SpecializationPicker> {
         ),
         Expanded(
           child: ListenableBuilder(
-            listenable: Listenable.merge([_query, _selectedId]),
+            listenable: Listenable.merge([_query, _selected]),
             builder: (context, _) {
               final items = _filter(_query.value);
               if (items.isEmpty) {
@@ -210,8 +299,10 @@ class _SpecializationPickerState extends State<_SpecializationPicker> {
                   final item = items[index];
                   return _SpecializationTile(
                     specialization: item,
-                    selected: item.id == _selectedId.value,
-                    onTap: () => _selectedId.value = item.id,
+                    selected: _selected.value.contains(item.id),
+                    multiSelect: widget.multiSelect,
+                    groupLabel: widget.groupLabels[item.id],
+                    onTap: () => _tap(item.id),
                   );
                 },
               );
@@ -227,25 +318,29 @@ class _SpecializationPickerState extends State<_SpecializationPicker> {
             top: false,
             child: Padding(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-              child: ValueListenableBuilder<String?>(
-                valueListenable: _selectedId,
-                builder: (context, id, _) {
-                  final selected = _byId(id);
+              child: ValueListenableBuilder<Set<String>>(
+                valueListenable: _selected,
+                builder: (context, ids, _) {
+                  final single = _byId(ids.firstOrNull);
+                  final enabled = widget.multiSelect || single != null;
+                  final label = widget.multiSelect
+                      ? (ids.isEmpty
+                            ? 'Done · none selected'
+                            : 'Done · ${ids.length} selected')
+                      : (single == null
+                            ? 'Select a specialization'
+                            : 'Continue with ${single.name}');
                   return SizedBox(
                     height: 52,
                     child: FilledButton(
-                      onPressed: selected == null
-                          ? null
-                          : () => Navigator.of(context).pop(selected),
+                      onPressed: enabled ? () => _confirm(ids) : null,
                       child: Text(
-                        selected == null
-                            ? 'Select a specialization'
-                            : 'Continue with ${selected.name}',
+                        label,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: theme.textTheme.labelLarge?.copyWith(
                           fontWeight: FontWeight.w600,
-                          color: selected == null ? null : scheme.onPrimary,
+                          color: enabled ? scheme.onPrimary : null,
                         ),
                       ),
                     ),
@@ -328,11 +423,17 @@ class _SpecializationTile extends StatelessWidget {
     required this.specialization,
     required this.selected,
     required this.onTap,
+    this.multiSelect = false,
+    this.groupLabel,
   });
 
   final Specialization specialization;
   final bool selected;
   final VoidCallback onTap;
+  final bool multiSelect;
+
+  /// Small caption under the name, e.g. the category it belongs to.
+  final String? groupLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -372,6 +473,15 @@ class _SpecializationTile extends StatelessWidget {
                           color: selected ? scheme.primary : scheme.onSurface,
                         ),
                       ),
+                      if (groupLabel != null) ...[
+                        const SizedBox(height: 2),
+                        Text(
+                          groupLabel!,
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: scheme.primary,
+                          ),
+                        ),
+                      ],
                       if (description != null && description.isNotEmpty) ...[
                         const SizedBox(height: 2),
                         Text(
@@ -387,26 +497,7 @@ class _SpecializationTile extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 12),
-                AnimatedContainer(
-                  duration: const Duration(milliseconds: 180),
-                  width: 22,
-                  height: 22,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: selected ? scheme.primary : Colors.transparent,
-                    border: Border.all(
-                      color: selected ? scheme.primary : scheme.outline,
-                      width: 1.5,
-                    ),
-                  ),
-                  child: selected
-                      ? Icon(
-                          Icons.check_rounded,
-                          size: 15,
-                          color: scheme.onPrimary,
-                        )
-                      : null,
-                ),
+                SelectionMark(selected: selected, square: multiSelect),
               ],
             ),
           ),

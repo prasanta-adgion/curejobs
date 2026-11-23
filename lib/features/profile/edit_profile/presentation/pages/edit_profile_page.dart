@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:curejobs/core/constants/app_icons.dart';
+import 'package:curejobs/core/utils/extensions/theme_extensions.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:image_picker/image_picker.dart' show ImageSource;
@@ -329,7 +330,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
           child: child!,
         ),
         child: Scaffold(
-          backgroundColor: scheme.surface,
+          backgroundColor: context.colors.surface,
           appBar: AppBar(
             backgroundColor: AppColors.logoNavy,
             leading: IconButton(

@@ -1,5 +1,7 @@
 import '../../../../core/network/api_client.dart';
 import '../../../../core/network/api_endpoints.dart';
+import '../../domain/entities/job_application_status.dart';
+import '../models/job_application_status_model.dart';
 
 abstract interface class JobDetailsRemoteDataSource {
   /// Records that the candidate opened a job.
@@ -13,6 +15,11 @@ abstract interface class JobDetailsRemoteDataSource {
     required String jobId,
     required String listingContext,
   });
+
+  /// Application status per job id; jobs not applied to are absent.
+  Future<Map<String, JobApplicationStatus>> getApplicationStatuses(
+    List<String> jobIds,
+  );
 }
 
 class JobDetailsRemoteDataSourceImpl implements JobDetailsRemoteDataSource {
@@ -39,6 +46,17 @@ class JobDetailsRemoteDataSourceImpl implements JobDetailsRemoteDataSource {
     return _client.post<void>(
       ApiEndpoints.applyStartAnalytics(jobId: jobId),
       body: {'listingContext': listingContext},
+    );
+  }
+
+  @override
+  Future<Map<String, JobApplicationStatus>> getApplicationStatuses(
+    List<String> jobIds,
+  ) {
+    return _client.get<Map<String, JobApplicationStatus>>(
+      ApiEndpoints.applicationAppliedStatus,
+      queryParameters: {'jobIds': jobIds},
+      decoder: JobApplicationStatusModel.mapFromJson,
     );
   }
 }

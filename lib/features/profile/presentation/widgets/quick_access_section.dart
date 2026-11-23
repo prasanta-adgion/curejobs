@@ -3,9 +3,11 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../app/di/injection_container.dart';
 import '../../../job_alerts/presentation/pages/job_alerts_page.dart';
+import '../../../profile_visibility/presentation/pages/profile_visibility_page.dart';
 import '../../../subscription_packages/presentation/bloc/current_plan_bloc.dart';
 import '../../../subscription_packages/presentation/pages/subscription_packages_page.dart';
 import '../../../subscription_packages/presentation/widgets/package_widgets.dart';
+import '../../../verification/presentation/pages/verification_page.dart';
 import '../../domain/entities/candidate.dart';
 import '../../shared/widgets/profile_section.dart';
 import '../bloc/candidate_profile_bloc.dart';
@@ -33,11 +35,6 @@ class QuickAccessSection extends StatelessWidget {
 
 class _Grid extends StatelessWidget {
   const _Grid();
-
-  void _comingSoon(BuildContext context, String name) =>
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(SnackBar(content: Text('$name is coming soon')));
 
   Future<void> _openPlans(BuildContext context) async {
     final plan = context.read<CurrentPlanBloc>();
@@ -70,7 +67,11 @@ class _Grid extends StatelessWidget {
                         subtitle: 'Your documents',
                         tone: tones.success,
                         status: _verificationStatus(verification, tones),
-                        onTap: () => _comingSoon(context, 'Verification'),
+                        onTap: () => Navigator.of(context).push(
+                          MaterialPageRoute<void>(
+                            builder: (_) => const VerificationPage(),
+                          ),
+                        ),
                       ),
                     ),
               ),
@@ -81,7 +82,8 @@ class _Grid extends StatelessWidget {
                   title: 'Profile visibility',
                   subtitle: 'Who can find you',
                   tone: tones.accent,
-                  onTap: () => _comingSoon(context, 'Profile visibility'),
+                  onTap: () =>
+                      Navigator.of(context).push(ProfileVisibilityPage.route()),
                 ),
               ),
             ],

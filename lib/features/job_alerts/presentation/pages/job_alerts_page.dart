@@ -1,16 +1,22 @@
 import 'package:curejobs/app/theme/app_colors.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../app/di/injection_container.dart';
 import '../../../../core/widgets/app_error_view.dart';
 import '../../../../core/widgets/app_snackbar.dart';
 import '../../../../shared/widgets/app_back_button.dart';
+import '../../../category/presentation/pages/category_page.dart';
 import '../../../profile/shared/widgets/profile_section.dart';
+import '../../../specialization/domain/entities/specialization.dart';
+import '../../../specialization/presentation/pages/specialization_page.dart';
 import '../../domain/entities/job_alert_preferences.dart';
 import '../bloc/job_alerts_bloc.dart';
-import '../widgets/job_alert_sheets.dart';
+import '../widgets/location/location_section.dart';
+import '../widgets/role/role_section.dart';
+import 'location_search_page.dart';
+import '../widgets/range_filter/experience_range_card.dart';
+import '../widgets/range_filter/salary_range_card.dart';
 
 /// Job alerts: what jobs to be told about (role, place, type, experience,
 /// salary) and how (in-app, email). Edits stay local until Save.
@@ -148,60 +154,19 @@ class _FormState extends State<_Form> {
   late final JobAlertsBloc _bloc = context.read<JobAlertsBloc>();
   late final JobAlertPreferences _start = _bloc.state.draft!;
 
-  late final _expMin = TextEditingController(
-    text: _start.experienceMinMonths?.toString() ?? '',
-  );
-  late final _expMax = TextEditingController(
-    text: _start.experienceMaxMonths?.toString() ?? '',
-  );
-  late final _salaryMin = TextEditingController(
-    text: _rupees(_start.salaryMinMinor),
-  );
-  late final _salaryMax = TextEditingController(
-    text: _rupees(_start.salaryMaxMinor),
-  );
-
-  static String _rupees(int? minor) =>
-      minor == null ? '' : (minor ~/ 100).toString();
-
-  static int? _int(String text) => int.tryParse(text.trim());
-
-  @override
-  void dispose() {
-    _expMin.dispose();
-    _expMax.dispose();
-    _salaryMin.dispose();
-    _salaryMax.dispose();
-    super.dispose();
-  }
-
   JobAlertPreferences get _draft => _bloc.state.draft!;
 
   void _update(JobAlertPreferences draft) => _bloc.add(JobAlertsChanged(draft));
 
-  void _numbersChanged() {
-    final salaryMin = _int(_salaryMin.text);
-    final salaryMax = _int(_salaryMax.text);
-    _update(
-      _draft.copyWith(
-        experienceMinMonths: _int(_expMin.text),
-        experienceMaxMonths: _int(_expMax.text),
-        salaryMinMinor: salaryMin == null ? null : salaryMin * 100,
-        salaryMaxMinor: salaryMax == null ? null : salaryMax * 100,
-      ),
-    );
-  }
-
   Future<void> _pickCategories() async {
     final state = _bloc.state;
-    final ids = await showMultiSelectSheet(
-      context,
-      title: 'Choose categories',
-      searchHint: 'Search categories, e.g. Nursing',
-      options: [
-        for (final c in state.categories) SheetOption(id: c.id, label: c.name),
-      ],
-      selected: _draft.categoryIds,
+    final ids = await Navigator.of(context).push<List<String>>(
+      MaterialPageRoute(
+        builder: (_) => CategoryPage.multi(
+          categories: state.categories,
+          selectedIds: _draft.categoryIds,
+        ),
+      ),
     );
     if (ids != null) _bloc.add(JobAlertsCategoriesChanged(ids));
   }
@@ -209,27 +174,37 @@ class _FormState extends State<_Form> {
   Future<void> _pickSpecializations() async {
     final state = _bloc.state;
     final names = {for (final c in state.categories) c.id: c.name};
-    final seen = <String>{};
-    final ids = await showMultiSelectSheet(
-      context,
-      title: 'Choose specializations',
-      searchHint: 'Search specializations, e.g. ICU',
-      options: [
-        for (final categoryId in _draft.categoryIds)
-          for (final s
-              in state.specializationsByCategory[categoryId] ?? const [])
-            if (seen.add(s.id))
-              SheetOption(id: s.id, label: s.name, subtitle: names[categoryId]),
-      ],
-      selected: _draft.specializationIds,
+    final items = <Specialization>[];
+    final labels = <String, String>{};
+    for (final categoryId in _draft.categoryIds) {
+      for (final s in state.specializationsByCategory[categoryId] ?? const []) {
+        if (labels.containsKey(s.id)) continue;
+        items.add(s);
+        labels[s.id] = names[categoryId] ?? '';
+      }
+    }
+    final ids = await Navigator.of(context).push<List<String>>(
+      MaterialPageRoute(
+        builder: (_) => SpecializationPage.multi(
+          specializations: items,
+          groupLabels: _draft.categoryIds.length > 1 ? labels : const {},
+          selectedIds: _draft.specializationIds,
+        ),
+      ),
     );
     if (ids != null) _update(_draft.copyWith(specializationIds: ids));
   }
 
-  Future<void> _addLocation({required bool wholeState}) async {
-    final location = await showLocationSheet(context, wholeState: wholeState);
+  Future<void> _searchLocation() async {
+    final location = await Navigator.of(context)
+        .push(LocationSearchPage.route(added: _draft.locations));
     if (location == null || !mounted) return;
+    _addLocation(location);
+  }
+
+  void _addLocation(AlertLocation location) {
     final current = _draft.locations;
+    if (current.length >= JobAlertPreferences.maxLocations) return;
     if (current.any((l) => l.sameAs(location))) {
       AppSnackbar.info(title: '${location.label} is already added');
       return;
@@ -253,9 +228,10 @@ class _FormState extends State<_Form> {
             keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
             padding: const EdgeInsets.only(bottom: 24),
             // Each section on white; the grey page shows as the bands.
+            // Material (not ColoredBox) so ListTile ink shows on it.
             children: [
               for (final section in _sections(state, draft))
-                ColoredBox(
+                Material(
                   color: Theme.of(context).colorScheme.surface,
                   child: section,
                 ),
@@ -273,7 +249,7 @@ class _FormState extends State<_Form> {
     ),
     ProfileSection(
       title: 'Role',
-      child: _RoleSection(
+      child: RoleSection(
         state: state,
         onPickCategories: _pickCategories,
         onRemoveCategory: (id) => _bloc.add(
@@ -295,10 +271,10 @@ class _FormState extends State<_Form> {
     ),
     ProfileSection(
       title: 'Location',
-      child: _LocationSection(
+      child: LocationSection(
         locations: draft.locations,
-        onAddCity: () => _addLocation(wholeState: false),
-        onAddState: () => _addLocation(wholeState: true),
+        onSearch: _searchLocation,
+        onAdd: _addLocation,
         onRemove: (location) => _update(
           draft.copyWith(
             locations: [
@@ -318,13 +294,32 @@ class _FormState extends State<_Form> {
     ),
     ProfileSection(
       title: 'Experience and salary',
-      child: _LimitsSection(
-        draft: draft,
-        expMin: _expMin,
-        expMax: _expMax,
-        salaryMin: _salaryMin,
-        salaryMax: _salaryMax,
-        onChanged: _numbersChanged,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const _Question(
+            'Experience and pay',
+            'Optional. Leave as is for no limit.',
+          ),
+          ExperienceRangeCard(
+            initialMinMonths: _start.experienceMinMonths,
+            initialMaxMonths: _start.experienceMaxMonths,
+            onChanged: (min, max) => _update(
+              _draft.copyWith(
+                experienceMinMonths: min,
+                experienceMaxMonths: max,
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          SalaryRangeCard(
+            initialMinMinor: _start.salaryMinMinor,
+            initialMaxMinor: _start.salaryMaxMinor,
+            onChanged: (min, max) => _update(
+              _draft.copyWith(salaryMinMinor: min, salaryMaxMinor: max),
+            ),
+          ),
+        ],
       ),
     ),
     ProfileSection(
@@ -439,344 +434,6 @@ class _Question extends StatelessWidget {
   }
 }
 
-class _Label extends StatelessWidget {
-  const _Label(this.text, {this.optional = false});
-
-  final String text;
-  final bool optional;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Padding(
-      padding: const EdgeInsets.only(top: 16, bottom: 8),
-      child: Text.rich(
-        TextSpan(
-          text: text,
-          children: [
-            if (optional)
-              TextSpan(
-                text: '  (optional)',
-                style: TextStyle(
-                  color: theme.colorScheme.onSurfaceVariant,
-                  fontWeight: FontWeight.w400,
-                ),
-              ),
-          ],
-        ),
-        style: theme.textTheme.labelLarge?.copyWith(
-          fontWeight: FontWeight.w600,
-        ),
-      ),
-    );
-  }
-}
-
-/// A chosen item: purple chip with an ✕ to remove it.
-class _SelectedChip extends StatelessWidget {
-  const _SelectedChip({required this.label, required this.onRemove, this.icon});
-
-  final String label;
-  final IconData? icon;
-  final VoidCallback onRemove;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return InputChip(
-      label: Text(label),
-      avatar: icon == null
-          ? null
-          : Icon(icon, size: 16, color: scheme.onPrimaryContainer),
-      onDeleted: onRemove,
-      deleteButtonTooltipMessage: 'Remove $label',
-      backgroundColor: scheme.primaryContainer,
-      side: BorderSide.none,
-      labelStyle: TextStyle(color: scheme.onPrimaryContainer),
-      deleteIconColor: scheme.onPrimaryContainer,
-      shape: const StadiumBorder(),
-      visualDensity: VisualDensity.compact,
-    );
-  }
-}
-
-/// "+ Add" chip with a dashed border that opens a picker.
-class _AddChip extends StatelessWidget {
-  const _AddChip({required this.label, this.onTap});
-
-  final String label;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return _DashedButton(
-      label: label,
-      icon: Icons.add,
-      onTap: onTap,
-      radius: 999,
-      height: 34,
-      padding: const EdgeInsets.symmetric(horizontal: 12),
-    );
-  }
-}
-
-/// Text and icon inside a dashed outline. Greyed out when [onTap] is null.
-class _DashedButton extends StatelessWidget {
-  const _DashedButton({
-    required this.label,
-    required this.icon,
-    required this.onTap,
-    required this.radius,
-    required this.height,
-    required this.padding,
-  });
-
-  final String label;
-  final IconData icon;
-  final VoidCallback? onTap;
-  final double radius;
-  final double height;
-  final EdgeInsets padding;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-    final color = onTap != null ? scheme.primary : scheme.outline;
-    final shape = BorderRadius.circular(radius);
-
-    return Material(
-      color: scheme.surfaceContainerLowest,
-      borderRadius: shape,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: shape,
-        child: CustomPaint(
-          painter: _DashedBorderPainter(color: color, radius: radius),
-          child: Container(
-            height: height,
-            padding: padding,
-            alignment: Alignment.center,
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(icon, size: 16, color: color),
-                const SizedBox(width: 6),
-                Flexible(
-                  child: Text(
-                    label,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.labelLarge?.copyWith(
-                      color: color,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _DashedBorderPainter extends CustomPainter {
-  const _DashedBorderPainter({required this.color, required this.radius});
-
-  final Color color;
-  final double radius;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = color
-      ..strokeWidth = 1.2
-      ..style = PaintingStyle.stroke;
-    final r = radius.clamp(0, size.height / 2).toDouble();
-    final path = Path()
-      ..addRRect(
-        RRect.fromRectAndRadius(
-          (Offset.zero & size).deflate(0.6),
-          Radius.circular(r),
-        ),
-      );
-    for (final metric in path.computeMetrics()) {
-      var distance = 0.0;
-      while (distance < metric.length) {
-        canvas.drawPath(metric.extractPath(distance, distance + 5), paint);
-        distance += 9;
-      }
-    }
-  }
-
-  @override
-  bool shouldRepaint(_DashedBorderPainter old) =>
-      old.color != color || old.radius != radius;
-}
-
-class _RoleSection extends StatelessWidget {
-  const _RoleSection({
-    required this.state,
-    required this.onPickCategories,
-    required this.onRemoveCategory,
-    required this.onPickSpecializations,
-    required this.onRemoveSpecialization,
-  });
-
-  final JobAlertsState state;
-  final VoidCallback onPickCategories;
-  final ValueChanged<String> onRemoveCategory;
-  final VoidCallback onPickSpecializations;
-  final ValueChanged<String> onRemoveSpecialization;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final categories = state.selectedCategories;
-    final specializations = state.selectedSpecializations;
-    final hasCategories = categories.isNotEmpty;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const _Question(
-          'What kind of jobs?',
-          'Leave empty to hear about every category.',
-        ),
-        const _Label('Categories'),
-        Wrap(
-          spacing: 6,
-          runSpacing: 6,
-          children: [
-            for (final c in categories)
-              _SelectedChip(
-                label: c.name,
-                onRemove: () => onRemoveCategory(c.id),
-              ),
-            _AddChip(
-              label: hasCategories ? 'Add more' : 'Add category',
-              onTap: onPickCategories,
-            ),
-          ],
-        ),
-        const _Label('Specializations', optional: true),
-        if (!hasCategories)
-          Text(
-            'Pick a category first to narrow it down.',
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
-          )
-        else if (state.loadingSpecializations && specializations.isEmpty)
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 8),
-            child: LinearProgressIndicator(),
-          )
-        else
-          Wrap(
-            spacing: 6,
-            runSpacing: 6,
-            children: [
-              for (final s in specializations)
-                _SelectedChip(
-                  label: s.name,
-                  onRemove: () => onRemoveSpecialization(s.id),
-                ),
-              _AddChip(
-                label: specializations.isEmpty
-                    ? 'Add specialization'
-                    : 'Add more',
-                onTap: state.availableSpecializations.isEmpty
-                    ? null
-                    : onPickSpecializations,
-              ),
-            ],
-          ),
-      ],
-    );
-  }
-}
-
-class _LocationSection extends StatelessWidget {
-  const _LocationSection({
-    required this.locations,
-    required this.onAddCity,
-    required this.onAddState,
-    required this.onRemove,
-  });
-
-  final List<AlertLocation> locations;
-  final VoidCallback onAddCity;
-  final VoidCallback onAddState;
-  final ValueChanged<AlertLocation> onRemove;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-    final full = locations.length >= JobAlertPreferences.maxLocations;
-
-    Widget addButton(String label, IconData icon, VoidCallback onTap) =>
-        Expanded(
-          child: _DashedButton(
-            label: label,
-            icon: icon,
-            onTap: full ? null : onTap,
-            radius: 10,
-            height: 44,
-            padding: const EdgeInsets.symmetric(horizontal: 8),
-          ),
-        );
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const _Question(
-          'Where do you want to work?',
-          'Leave empty to hear about jobs anywhere.',
-        ),
-        if (locations.isNotEmpty) ...[
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 6,
-            runSpacing: 6,
-            children: [
-              for (final l in locations)
-                _SelectedChip(
-                  label: l.label,
-                  icon: l.isWholeState
-                      ? Icons.map_outlined
-                      : Icons.location_on_outlined,
-                  onRemove: () => onRemove(l),
-                ),
-            ],
-          ),
-        ],
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            addButton('Add city', Icons.location_on_outlined, onAddCity),
-            const SizedBox(width: 8),
-            addButton('Add whole state', Icons.map_outlined, onAddState),
-          ],
-        ),
-        const SizedBox(height: 8),
-        Text(
-          full
-              ? 'You\'ve reached ${JobAlertPreferences.maxLocations} places. '
-                    'Remove one to add another.'
-              : '${locations.length} of ${JobAlertPreferences.maxLocations} places',
-          style: theme.textTheme.bodySmall?.copyWith(
-            color: scheme.onSurfaceVariant,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
 class _JobTypeSection extends StatelessWidget {
   const _JobTypeSection({required this.selected, required this.onChanged});
 
@@ -818,139 +475,6 @@ class _JobTypeSection extends StatelessWidget {
               ),
           ],
         ),
-      ],
-    );
-  }
-}
-
-class _LimitsSection extends StatelessWidget {
-  const _LimitsSection({
-    required this.draft,
-    required this.expMin,
-    required this.expMax,
-    required this.salaryMin,
-    required this.salaryMax,
-    required this.onChanged,
-  });
-
-  final JobAlertPreferences draft;
-  final TextEditingController expMin;
-  final TextEditingController expMax;
-  final TextEditingController salaryMin;
-  final TextEditingController salaryMax;
-  final VoidCallback onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    final expError = _rangeError(
-      draft.experienceMinMonths,
-      draft.experienceMaxMonths,
-    );
-    final salaryError = _rangeError(draft.salaryMinMinor, draft.salaryMaxMinor);
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const _Question(
-          'Experience and pay',
-          'Optional. Leave blank for no limit.',
-        ),
-        const _Label('Experience (in months)'),
-        _Range(
-          min: expMin,
-          max: expMax,
-          suffix: 'months',
-          minHint: '0',
-          error: expError,
-          onChanged: onChanged,
-        ),
-        const _Label('Monthly salary'),
-        _Range(
-          min: salaryMin,
-          max: salaryMax,
-          prefix: '₹ ',
-          minHint: 'Any',
-          error: salaryError,
-          onChanged: onChanged,
-        ),
-      ],
-    );
-  }
-
-  static String? _rangeError(int? min, int? max) =>
-      min != null && max != null && min > max
-      ? 'The first number should be smaller than the second.'
-      : null;
-}
-
-/// "From – to" pair of number fields.
-class _Range extends StatelessWidget {
-  const _Range({
-    required this.min,
-    required this.max,
-    required this.onChanged,
-    required this.minHint,
-    this.prefix,
-    this.suffix,
-    this.error,
-  });
-
-  final TextEditingController min;
-  final TextEditingController max;
-  final VoidCallback onChanged;
-  final String minHint;
-  final String? prefix;
-  final String? suffix;
-  final String? error;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-
-    Widget field(TextEditingController c, String hint) => Expanded(
-      child: TextField(
-        controller: c,
-        onChanged: (_) => onChanged(),
-        keyboardType: TextInputType.number,
-        inputFormatters: [
-          FilteringTextInputFormatter.digitsOnly,
-          LengthLimitingTextInputFormatter(9),
-        ],
-        textInputAction: TextInputAction.next,
-        decoration: InputDecoration(
-          hintText: hint,
-          prefixText: prefix,
-          suffixText: suffix,
-        ),
-      ),
-    );
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            field(min, minHint),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 10),
-              child: Text(
-                'to',
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: scheme.onSurfaceVariant,
-                ),
-              ),
-            ),
-            field(max, 'No limit'),
-          ],
-        ),
-        if (error != null) ...[
-          const SizedBox(height: 6),
-          Text(
-            error!,
-            style: theme.textTheme.bodySmall?.copyWith(color: scheme.error),
-          ),
-        ],
       ],
     );
   }

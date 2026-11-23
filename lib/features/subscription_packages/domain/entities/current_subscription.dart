@@ -8,8 +8,11 @@ class CurrentSubscription extends Equatable {
     required this.package,
     required this.status,
     required this.source,
+    this.packageId,
+    this.providerSubscriptionId,
     this.startsAt,
     this.expiresAt,
+    this.activatedAt,
     this.autoRenew = false,
     this.cancelAtPeriodEnd = false,
     this.maxResumes,
@@ -23,10 +26,15 @@ class CurrentSubscription extends Equatable {
   /// e.g. `ACTIVE`.
   final String status;
 
-  /// e.g. `SYSTEM_FALLBACK`, `ADMIN_GRANT`, `CHECKOUT`.
+  /// e.g. `SYSTEM_FALLBACK`, `ADMIN_GRANT`, `PAID_PURCHASE`.
   final String source;
+  final String? packageId;
+
+  /// Payment provider's id, e.g. `sub_...`; null for free plans.
+  final String? providerSubscriptionId;
   final DateTime? startsAt;
   final DateTime? expiresAt;
+  final DateTime? activatedAt;
   final bool autoRenew;
   final bool cancelAtPeriodEnd;
 
@@ -34,7 +42,7 @@ class CurrentSubscription extends Equatable {
   final int? maxResumes;
   final int? monthlyApplications;
 
-  /// Effective feature flags (top-level `features` in the response).
+  /// Effective feature flags (`subscription.featuresSnapshotJson`).
   final Map<String, bool> features;
 
   bool get isActive => status == 'ACTIVE';

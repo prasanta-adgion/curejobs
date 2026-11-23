@@ -5,26 +5,41 @@ import '../../domain/entities/category.dart';
 
 /// Searchable list of categories with a confirm button.
 ///
-/// Tapping a row only selects it; "Continue with …" pops the chosen
-/// [Category], so a mis-tap never changes the answer.
+/// Single mode: tapping a row only selects it; "Continue with …" pops the
+/// chosen [Category], so a mis-tap never changes the answer.
+///
+/// Multi mode ([multiSelect]): rows toggle; "Done" pops the chosen ids as a
+/// `List<String>` in list order (may be empty, to clear the choice).
 class CategoryList extends StatefulWidget {
-  const CategoryList({super.key, required this.categories, this.selectedId});
+  const CategoryList({
+    super.key,
+    required this.categories,
+    this.selectedId,
+    this.multiSelect = false,
+    this.selectedIds = const [],
+  });
 
   final List<Category> categories;
   final String? selectedId;
+  final bool multiSelect;
+  final List<String> selectedIds;
 
   @override
   State<CategoryList> createState() => _CategoryListState();
 }
 
 class _CategoryListState extends State<CategoryList> {
-  late final _selectedId = ValueNotifier<String?>(widget.selectedId);
+  late final _selected = ValueNotifier<Set<String>>(
+    widget.multiSelect
+        ? {...widget.selectedIds}
+        : {if (widget.selectedId != null) widget.selectedId!},
+  );
   final _query = ValueNotifier<String>('');
   final _search = TextEditingController();
 
   @override
   void dispose() {
-    _selectedId.dispose();
+    _selected.dispose();
     _query.dispose();
     _search.dispose();
     super.dispose();
@@ -46,6 +61,28 @@ class _CategoryListState extends State<CategoryList> {
       if (category.id == id) return category;
     }
     return null;
+  }
+
+  void _tap(String id) {
+    if (!widget.multiSelect) {
+      _selected.value = {id};
+      return;
+    }
+    final next = {..._selected.value};
+    if (!next.remove(id)) next.add(id);
+    _selected.value = next;
+  }
+
+  void _confirm(Set<String> selected) {
+    if (widget.multiSelect) {
+      Navigator.of(context).pop(<String>[
+        for (final c in widget.categories)
+          if (selected.contains(c.id)) c.id,
+      ]);
+      return;
+    }
+    final category = _byId(selected.firstOrNull);
+    if (category != null) Navigator.of(context).pop(category);
   }
 
   @override
@@ -83,7 +120,7 @@ class _CategoryListState extends State<CategoryList> {
         ),
         Expanded(
           child: ListenableBuilder(
-            listenable: Listenable.merge([_query, _selectedId]),
+            listenable: Listenable.merge([_query, _selected]),
             builder: (context, _) {
               final items = _filter(_query.value);
               if (items.isEmpty) {
@@ -99,8 +136,9 @@ class _CategoryListState extends State<CategoryList> {
                   final category = items[index];
                   return CategoryTile(
                     category: category,
-                    selected: category.id == _selectedId.value,
-                    onTap: () => _selectedId.value = category.id,
+                    selected: _selected.value.contains(category.id),
+                    multiSelect: widget.multiSelect,
+                    onTap: () => _tap(category.id),
                   );
                 },
               );
@@ -116,25 +154,29 @@ class _CategoryListState extends State<CategoryList> {
             top: false,
             child: Padding(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-              child: ValueListenableBuilder<String?>(
-                valueListenable: _selectedId,
-                builder: (context, id, _) {
-                  final selected = _byId(id);
+              child: ValueListenableBuilder<Set<String>>(
+                valueListenable: _selected,
+                builder: (context, ids, _) {
+                  final single = _byId(ids.firstOrNull);
+                  final enabled = widget.multiSelect || single != null;
+                  final label = widget.multiSelect
+                      ? (ids.isEmpty
+                            ? 'Done · none selected'
+                            : 'Done · ${ids.length} selected')
+                      : (single == null
+                            ? 'Select a category'
+                            : 'Continue with ${single.name}');
                   return SizedBox(
                     height: 52,
                     child: FilledButton(
-                      onPressed: selected == null
-                          ? null
-                          : () => Navigator.of(context).pop(selected),
+                      onPressed: enabled ? () => _confirm(ids) : null,
                       child: Text(
-                        selected == null
-                            ? 'Select a category'
-                            : 'Continue with ${selected.name}',
+                        label,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: theme.textTheme.labelLarge?.copyWith(
                           fontWeight: FontWeight.w600,
-                          color: selected == null ? null : scheme.onPrimary,
+                          color: enabled ? scheme.onPrimary : null,
                         ),
                       ),
                     ),
@@ -149,18 +191,21 @@ class _CategoryListState extends State<CategoryList> {
   }
 }
 
-/// One category card: icon, name, short description and a radio mark.
+/// One category card: icon, name, short description and a radio mark
+/// (a checkbox mark when [multiSelect]).
 class CategoryTile extends StatelessWidget {
   const CategoryTile({
     super.key,
     required this.category,
     required this.selected,
     required this.onTap,
+    this.multiSelect = false,
   });
 
   final Category category;
   final bool selected;
   final VoidCallback onTap;
+  final bool multiSelect;
 
   @override
   Widget build(BuildContext context) {
@@ -232,7 +277,7 @@ class CategoryTile extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 12),
-                _RadioMark(selected: selected),
+                SelectionMark(selected: selected, square: multiSelect),
               ],
             ),
           ),
@@ -242,10 +287,12 @@ class CategoryTile extends StatelessWidget {
   }
 }
 
-class _RadioMark extends StatelessWidget {
-  const _RadioMark({required this.selected});
+/// Round radio mark, or a rounded-square checkbox mark when [square].
+class SelectionMark extends StatelessWidget {
+  const SelectionMark({super.key, required this.selected, this.square = false});
 
   final bool selected;
+  final bool square;
 
   @override
   Widget build(BuildContext context) {
@@ -256,7 +303,8 @@ class _RadioMark extends StatelessWidget {
       width: 22,
       height: 22,
       decoration: BoxDecoration(
-        shape: BoxShape.circle,
+        shape: square ? BoxShape.rectangle : BoxShape.circle,
+        borderRadius: square ? BorderRadius.circular(6) : null,
         color: selected ? scheme.primary : Colors.transparent,
         border: Border.all(
           color: selected ? scheme.primary : scheme.outline,

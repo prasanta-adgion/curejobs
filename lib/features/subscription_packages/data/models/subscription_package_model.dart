@@ -24,6 +24,10 @@ abstract final class SubscriptionPackageModel {
       priceMinor: JsonParser.integer(json['priceMinor']),
       currency: JsonParser.string(json['currency'], fallback: 'INR'),
       durationDays: JsonParser.integer(json['durationDays']),
+      type: JsonParser.string(json['type']),
+      status: JsonParser.string(json['status']),
+      adminGrantEnabled: JsonParser.boolean(json['adminGrantEnabled']),
+      packageRequestEnabled: JsonParser.boolean(json['packageRequestEnabled']),
       maxResumes: JsonParser.nullableInteger(limits['maxResumes']),
       monthlyApplications: JsonParser.nullableInteger(
         limits['monthlyApplications'],

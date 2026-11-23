@@ -22,7 +22,12 @@ void registerAllJobsDependencies(GetIt sl) {
   );
 
   // New bloc per list; pass the feed: sl<JobsBloc>(param1: JobFeed.all).
-  sl.registerFactoryParam<JobsBloc, JobFeed, void>(
-    (feed, _) => JobsBloc(sl<GetJobsUseCase>(), feed: feed),
+  // For one employer's jobs, also pass param2: organizationId.
+  sl.registerFactoryParam<JobsBloc, JobFeed, String?>(
+    (feed, organizationId) => JobsBloc(
+      sl<GetJobsUseCase>(),
+      feed: feed,
+      organizationId: organizationId,
+    ),
   );
 }
