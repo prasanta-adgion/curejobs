@@ -71,9 +71,8 @@ class PlanPurchaseBloc extends Bloc<PlanPurchaseEvent, PlanPurchaseState> {
       emit(_fail('This plan is free and needs no payment.'));
       return;
     }
-    final option = package.billingOptions
-        .where((o) => o.purchaseAvailable)
-        .firstOrNull;
+    // Same option whose amount the plans screen shows.
+    final option = package.billingOption;
     if (option == null || !package.purchaseAvailable) {
       emit(_fail('${package.name} is not available for purchase right now.'));
       return;
@@ -126,10 +125,31 @@ class PlanPurchaseBloc extends Bloc<PlanPurchaseEvent, PlanPurchaseState> {
     }
     attempt.subscriptionId = checkout.subscriptionId;
 
+    // Checkout must show the selected plan's amount. Use the server's amount
+    // when it sends one, otherwise the selected billing option's.
+    final amountMinor = checkout.amountMinor > 0
+        ? checkout.amountMinor
+        : option.amountMinor;
+    final currency = checkout.currency.isNotEmpty
+        ? checkout.currency
+        : option.currency;
+
     emit(
       state.copyWith(
         status: PlanPurchaseStatus.checkoutReady,
-        checkout: checkout,
+        checkout: RazorpayCheckout(
+          purchaseId: checkout.purchaseId.isNotEmpty
+              ? checkout.purchaseId
+              : attempt.purchaseId!,
+          keyId: checkout.keyId,
+          subscriptionId: checkout.subscriptionId,
+          name: checkout.name.isNotEmpty ? checkout.name : package.name,
+          description: checkout.description.isNotEmpty
+              ? checkout.description
+              : package.description,
+          amountMinor: amountMinor,
+          currency: currency,
+        ),
       ),
     );
   }
@@ -159,7 +179,7 @@ class PlanPurchaseBloc extends Bloc<PlanPurchaseEvent, PlanPurchaseState> {
         : attempt?.subscriptionId;
     final paymentId = event.paymentId;
     final signature = event.signature;
-
+    print('payment success'); // need to check here
     if (purchaseId != null &&
         subscriptionId != null &&
         paymentId != null &&

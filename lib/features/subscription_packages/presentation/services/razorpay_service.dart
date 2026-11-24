@@ -19,12 +19,14 @@ class RazorpayService {
 
   final Razorpay _razorpay = Razorpay();
 
-  /// Opens checkout for a subscription. The amount comes from the
-  /// subscription on Razorpay's side, so it isn't passed here.
+  /// Opens checkout for a subscription with the selected plan's amount
+  /// (in paise) so checkout shows what the user picked.
   void open(RazorpayCheckout checkout, {String? themeColorHex}) {
     _razorpay.open({
       'key': checkout.keyId,
-      'subscription_id': checkout.subscriptionId,
+      // 'subscription_id': checkout.subscriptionId,
+      if (checkout.amountMinor > 0) 'amount': checkout.amountMinor,
+      'currency': checkout.currency.isEmpty ? 'INR' : checkout.currency,
       'name': checkout.name,
       'description': checkout.description,
       'notes': {'purchaseId': checkout.purchaseId},

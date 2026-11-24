@@ -28,7 +28,7 @@ class SubscriptionPackagesBloc
     result.fold(
       (packages) {
         final sorted = [...packages]
-          ..sort((a, b) => a.priceMinor.compareTo(b.priceMinor));
+          ..sort((a, b) => a.amountMinor.compareTo(b.amountMinor));
         final loaded = SubscriptionPackagesState(
           status: PackagesLoadStatus.success,
           packages: sorted,

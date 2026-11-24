@@ -81,10 +81,29 @@ class SubscriptionPackage extends Equatable {
   final bool purchaseAvailable;
   final List<BillingOption> billingOptions;
 
-  bool get isFree => priceMinor == 0;
+  /// The billing option a purchase uses: the first one open for purchase.
+  /// Null for free plans or when none can be bought right now.
+  BillingOption? get billingOption =>
+      billingOptions.where((o) => o.purchaseAvailable).firstOrNull;
+
+  /// What the user actually pays, in paise: the billing option's amount,
+  /// falling back to the package's own price when there's no option.
+  /// Show and charge this, never [priceMinor] directly.
+  int get amountMinor => billingOption?.amountMinor ?? priceMinor;
+
+  /// Currency of [amountMinor].
+  String get amountCurrency => billingOption?.currency ?? currency;
+
+  /// Days the paid period lasts, from the billing option when there is one.
+  int get billingDurationDays {
+    final days = billingOption?.durationDays ?? 0;
+    return days > 0 ? days : durationDays;
+  }
+
+  bool get isFree => amountMinor == 0;
 
   /// Price in rupees (the API sends paise).
-  double get price => priceMinor / 100;
+  double get price => amountMinor / 100;
 
   bool has(String feature) => features[feature] ?? false;
 

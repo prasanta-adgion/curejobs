@@ -505,7 +505,10 @@ class _BottomBar extends StatelessWidget {
     final c = PlanColors.of(context);
     final p = package;
     final name = PackageFormat.shortName(p.name);
-    final price = PackageFormat.price(p.priceMinor, currency: p.currency);
+    final price = PackageFormat.price(
+      p.amountMinor,
+      currency: p.amountCurrency,
+    );
     final muted = theme.textTheme.labelSmall?.copyWith(color: c.muted);
     final shape = RoundedRectangleBorder(
       borderRadius: BorderRadius.circular(12),
@@ -569,7 +572,7 @@ class _BottomBar extends StatelessWidget {
                   Text('Secure payment', style: muted),
                   Text('  ·  ', style: muted),
                   Text(
-                    'Valid for ${PackageFormat.duration(p.durationDays)}',
+                    'Valid for ${PackageFormat.duration(p.billingDurationDays)}',
                     style: muted,
                   ),
                 ],

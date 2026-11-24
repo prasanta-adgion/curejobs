@@ -65,6 +65,7 @@ class SubscriptionPackagesRemoteDataSourceImpl
     required String billingOptionId,
     required String idempotencyKey,
   }) {
+    print("purchases api call");
     return _client.post<Purchase>(
       ApiEndpoints.purchases,
       body: {'billingOptionId': billingOptionId},
@@ -75,6 +76,8 @@ class SubscriptionPackagesRemoteDataSourceImpl
 
   @override
   Future<RazorpayCheckout> createRazorpaySubscription(String purchaseId) {
+    print("create razorpay subscription");
+
     return _client.post<RazorpayCheckout>(
       ApiEndpoints.razorpaySubscription(purchaseId: purchaseId),
       decoder: RazorpayCheckoutModel.fromJson,
@@ -88,6 +91,12 @@ class SubscriptionPackagesRemoteDataSourceImpl
     required String subscriptionId,
     required String signature,
   }) {
+    print("-------------------------------------------------");
+    print("purchaseId: $purchaseId");
+    print("paymentId: $paymentId");
+    print("subscriptionId: $subscriptionId");
+    print("signature: $signature");
+    print("-------------------------------------------------");
     return _client.post<PaymentVerification>(
       ApiEndpoints.verifyRazorpayPayment,
       body: {
@@ -102,6 +111,7 @@ class SubscriptionPackagesRemoteDataSourceImpl
 
   @override
   Future<void> selectPlan(String packageId) {
+    print("select plan api call");
     return _client.post<void>(
       ApiEndpoints.selectPlan,
       body: {'packageId': packageId},

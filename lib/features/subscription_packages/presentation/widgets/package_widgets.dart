@@ -610,8 +610,8 @@ class PackageOptionCard extends StatelessWidget {
                         p.isFree
                             ? 'Free'
                             : PackageFormat.price(
-                                p.priceMinor,
-                                currency: p.currency,
+                                p.amountMinor,
+                                currency: p.amountCurrency,
                               ),
                         style: theme.textTheme.titleMedium?.copyWith(
                           color: c.text,
@@ -619,7 +619,7 @@ class PackageOptionCard extends StatelessWidget {
                         ),
                       ),
                       Text(
-                        PackageFormat.duration(p.durationDays),
+                        PackageFormat.duration(p.billingDurationDays),
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: c.muted,
                         ),
@@ -679,9 +679,9 @@ class SelectedPlanBanner extends StatelessWidget {
     final meta = isCurrent
         ? 'Your current plan'
         : p.isFree
-        ? PackageFormat.duration(p.durationDays)
-        : '${PackageFormat.price(p.priceMinor, currency: p.currency)} · '
-              '${PackageFormat.duration(p.durationDays)}';
+        ? PackageFormat.duration(p.billingDurationDays)
+        : '${PackageFormat.price(p.amountMinor, currency: p.amountCurrency)} · '
+              '${PackageFormat.duration(p.billingDurationDays)}';
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
