@@ -8,6 +8,7 @@ import '../../../../core/services/picked_file.dart';
 import '../../domain/entities/verification_eligibility.dart';
 import '../../domain/usecases/get_document_types_usecase.dart';
 import '../../domain/usecases/get_verification_eligibility_usecase.dart';
+import '../../domain/usecases/submit_verification_documents_usecase.dart';
 import '../../../../core/widgets/app_error_view.dart';
 import '../../../subscription_packages/domain/entities/current_subscription.dart';
 import '../../../subscription_packages/domain/entities/subscription_package.dart';
@@ -37,10 +38,30 @@ class _VerificationPageState extends State<VerificationPage> {
   late final CurrentPlanBloc _planBloc = sl<CurrentPlanBloc>()
     ..add(const CurrentPlanRequested());
 
+  /// Whether the document types have been loaded. The documents step shows
+  /// the "Start verification" card until they have.
+  final ValueNotifier<_TypesLoad> _typesLoad = ValueNotifier(
+    const _TypesLoad.idle(),
+  );
+
   @override
   void dispose() {
     _planBloc.close();
+    _typesLoad.dispose();
     super.dispose();
+  }
+
+  /// "Start verification": loads the document types, then the upload form
+  /// replaces the start card. Ignored while a load is already running.
+  Future<void> _startVerification() async {
+    if (_typesLoad.value.isLoading) return;
+    _typesLoad.value = const _TypesLoad.loading();
+    final result = await sl<GetDocumentTypesUseCase>()();
+    if (!mounted) return;
+    result.fold((types) {
+      documentTypes = types;
+      _typesLoad.value = const _TypesLoad.loaded();
+    }, (f) => _typesLoad.value = _TypesLoad.failed(f.message));
   }
 
   /// An active plan that includes the verified badge.
@@ -57,17 +78,21 @@ class _VerificationPageState extends State<VerificationPage> {
       _loadingEligibility = true;
       _eligibilityFailure = null;
     });
-    final (result, types) = await (
-      sl<GetVerificationEligibilityUseCase>()(),
-      sl<GetDocumentTypesUseCase>()(),
-    ).wait;
+    // Document types load later, when the user taps "Start verification".
+    final result = await sl<GetVerificationEligibilityUseCase>()();
     if (!mounted) return;
     setState(() {
       _loadingEligibility = false;
-      types.fold((t) => documentTypes = t, (f) => _eligibilityFailure = f);
-      if (_eligibilityFailure != null) return;
       result.fold((e) => _eligibility = e, (f) => _eligibilityFailure = f);
     });
+    // The review step lists sent documents by type name, so load the types
+    // quietly there; no start card is involved.
+    final e = _eligibility;
+    if (e != null &&
+        _stepFor(e) == VerificationStep.review &&
+        !_typesLoad.value.isLoaded) {
+      _startVerification();
+    }
   }
 
   /// Purchase needed → plan; badge live → badge; documents sent or approved
@@ -122,9 +147,43 @@ class _VerificationPageState extends State<VerificationPage> {
     DocumentSource source,
   ) async => null;
 
-  // TODO: upload each file and send it with its `type.id`, then move to the
-  // review step.
-  void onSubmit(List<AddedDocument> documents) {}
+  bool _submitting = false;
+
+  /// Files are already uploaded when added; this attaches each one to the
+  /// current verification request, then reloads eligibility to move on to
+  /// the review step.
+  Future<void> onSubmit(List<AddedDocument> documents) async {
+    final verificationId = _eligibility?.currentRequest?.id;
+    final messenger = ScaffoldMessenger.of(context);
+    if (verificationId == null) {
+      messenger.showSnackBar(
+        const SnackBar(content: Text('No verification request found.')),
+      );
+      return;
+    }
+    setState(() => _submitting = true);
+    // One call per document; stop at the first failure.
+    final submit = sl<SubmitVerificationDocumentsUseCase>();
+    for (final d in List.of(documents)) {
+      final result = await submit(
+        verificationId: verificationId,
+        documentTypeId: d.type.id,
+        fileId: d.fileId,
+      );
+      if (!mounted) return;
+      final failure = result.failureOrNull;
+      if (failure != null) {
+        setState(() => _submitting = false);
+        messenger.showSnackBar(SnackBar(content: Text(failure.message)));
+        return;
+      }
+      // Sent: drop it so a retry doesn't attach it twice.
+      submittedFiles = {...submittedFiles, d.type.id: d.file};
+      _added.remove(d);
+    }
+    setState(() => _submitting = false);
+    _loadEligibility();
+  }
 
   // TODO: open the profile page.
   void onViewProfile() {}
@@ -192,7 +251,13 @@ class _VerificationPageState extends State<VerificationPage> {
         }
         final sent = e.currentRequest?.submittedAt;
         submittedAt = sent == null ? null : PackageFormat.date(sent.toLocal());
-        return _content(_stepFor(e));
+        final step = _stepFor(e);
+        if (step != VerificationStep.documents) return _content(step);
+        // Rebuild the documents step as the start card's load state changes.
+        return ValueListenableBuilder<_TypesLoad>(
+          valueListenable: _typesLoad,
+          builder: (context, _, _) => _content(step),
+        );
       },
     );
   }
@@ -246,15 +311,34 @@ class _VerificationPageState extends State<VerificationPage> {
         _planSections(),
         VerificationBottomBar(label: 'Upgrade plan', onPressed: onUpgrade),
       ),
+      VerificationStep.documents when !_typesLoad.value.isLoaded => (
+        'Upload documents for review',
+        _startSections(),
+        VerificationBottomBar(
+          label: _typesLoad.value.isLoading
+              ? 'Getting things ready…'
+              : 'Start verification',
+          loading: _typesLoad.value.isLoading,
+          trailingIcon: Icons.arrow_forward_rounded,
+          onPressed: _typesLoad.value.isLoading ? null : _startVerification,
+          helper: _typesLoad.value.isLoading
+              ? 'Loading document types'
+              : 'You can stop and come back anytime',
+        ),
+      ),
       VerificationStep.documents => (
         'Upload documents for review',
         _documentSections(),
         VerificationBottomBar(
-          label: _added.isEmpty
+          label: _submitting
+              ? 'Submitting…'
+              : _added.isEmpty
               ? 'Submit for review'
               : 'Submit ${_added.length} '
                     '${_added.length == 1 ? 'document' : 'documents'}',
-          onPressed: _canSubmit ? () => onSubmit(List.of(_added)) : null,
+          onPressed: _canSubmit && !_submitting
+              ? () => onSubmit(List.of(_added))
+              : null,
           helper: _canSubmit
               ? 'Review usually takes up to 2 working days'
               : _missingRequired.isNotEmpty
@@ -365,27 +449,48 @@ class _VerificationPageState extends State<VerificationPage> {
 
   // ── Step 2: documents ─────────────────────────────────────────────────────
 
+  /// Green "plan active" note at the top of the documents step.
+  Widget _planActiveNote() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
+      child: VerificationNote(
+        icon: Icons.check_circle_outline_rounded,
+        text: planActiveUntil == null
+            ? '${planName} plan active'
+            : '${planName} plan active · until '
+                  '${planActiveUntil}',
+        color: isDark ? AppColors.successDark : const Color(0xFF166534),
+        background: isDark
+            ? AppColors.success.withValues(alpha: 0.12)
+            : AppColors.successLight,
+      ),
+    );
+  }
+
+  /// Before "Start verification": plan note, start card, privacy.
+  List<Widget> _startSections() {
+    final load = _typesLoad.value;
+    return [
+      _planActiveNote(),
+      ProfileSection(
+        title: 'Before you start',
+        child: VerificationStartCard(
+          error: load.error,
+          onRetry: _startVerification,
+        ),
+      ),
+      _privacySection(),
+    ];
+  }
+
   List<Widget> _documentSections() {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
-    final isDark = theme.brightness == Brightness.dark;
     final types = documentTypes;
 
     return [
-      Padding(
-        padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
-        child: VerificationNote(
-          icon: Icons.check_circle_outline_rounded,
-          text: planActiveUntil == null
-              ? '${planName} plan active'
-              : '${planName} plan active · until '
-                    '${planActiveUntil}',
-          color: isDark ? AppColors.successDark : const Color(0xFF166534),
-          background: isDark
-              ? AppColors.success.withValues(alpha: 0.12)
-              : AppColors.successLight,
-        ),
-      ),
+      _planActiveNote(),
       if (types.isNotEmpty)
         ProfileSection(
           title: 'What to upload',
@@ -415,29 +520,35 @@ class _VerificationPageState extends State<VerificationPage> {
                 onAdd: (d) => setState(() => _added.add(d)),
               ),
       ),
-      ProfileSection(
-        title: 'Privacy',
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Icon(
-              Icons.lock_outline_rounded,
-              size: 16,
-              color: scheme.onSurfaceVariant,
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                'Only our verification team sees your documents.',
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: scheme.onSurfaceVariant,
-                ),
+      _privacySection(),
+    ];
+  }
+
+  Widget _privacySection() {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    return ProfileSection(
+      title: 'Privacy',
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            Icons.lock_outline_rounded,
+            size: 16,
+            color: scheme.onSurfaceVariant,
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              'Only our verification team sees your documents.',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: scheme.onSurfaceVariant,
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
-    ];
+    );
   }
 
   // ── Step 3: review ────────────────────────────────────────────────────────
@@ -645,4 +756,20 @@ class _VerificationPageState extends State<VerificationPage> {
     if (parts.length == 1) return parts.first[0].toUpperCase();
     return (parts.first[0] + parts.last[0]).toUpperCase();
   }
+}
+
+/// Load state of the document types behind the "Start verification" card.
+class _TypesLoad {
+  const _TypesLoad.idle() : isLoading = false, isLoaded = false, error = null;
+  const _TypesLoad.loading() : isLoading = true, isLoaded = false, error = null;
+  const _TypesLoad.loaded() : isLoading = false, isLoaded = true, error = null;
+  const _TypesLoad.failed(String this.error)
+    : isLoading = false,
+      isLoaded = false;
+
+  final bool isLoading;
+  final bool isLoaded;
+
+  /// Set when the last load failed; shown on the start card.
+  final String? error;
 }

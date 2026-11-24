@@ -11,6 +11,13 @@ abstract interface class VerificationRemoteDataSource {
 
   /// Document types the user can upload. Throws a `Failure` on error.
   Future<List<VerificationDocumentType>> getDocumentTypes();
+
+  /// Attaches an uploaded file to verification request [verificationId].
+  Future<void> addDocument({
+    required String verificationId,
+    required String documentTypeId,
+    required String fileId,
+  });
 }
 
 class VerificationRemoteDataSourceImpl implements VerificationRemoteDataSource {
@@ -31,6 +38,18 @@ class VerificationRemoteDataSourceImpl implements VerificationRemoteDataSource {
     return _client.get<List<VerificationDocumentType>>(
       ApiEndpoints.documentTypes,
       decoder: VerificationDocumentTypeModel.listFromJson,
+    );
+  }
+
+  @override
+  Future<void> addDocument({
+    required String verificationId,
+    required String documentTypeId,
+    required String fileId,
+  }) async {
+    await _client.post<dynamic>(
+      ApiEndpoints.documentTypeById(id: verificationId),
+      body: {'documentTypeId': documentTypeId, 'fileId': fileId},
     );
   }
 }

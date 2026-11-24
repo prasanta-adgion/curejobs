@@ -1,3 +1,5 @@
+import 'package:curejobs/features/media_preview/domain/enums/media_upload_purpose.dart';
+import 'package:curejobs/features/media_preview/presentation/pick_and_upload_document.dart';
 import 'package:flutter/material.dart';
 
 import '../../../../app/theme/app_colors.dart';
@@ -8,10 +10,17 @@ import '../../domain/entities/verification_document_type.dart';
 /// A chosen file and the document type it was added as. [type.id] is what
 /// gets sent on submit.
 class AddedDocument {
-  const AddedDocument({required this.type, required this.file});
+  const AddedDocument({
+    required this.type,
+    required this.file,
+    required this.fileId,
+  });
 
   final VerificationDocumentType type;
   final PickedFile file;
+
+  /// Id of the already-uploaded file, sent as `fileId` on submit.
+  final String fileId;
 }
 
 /// Icon for a document type; unknown codes get a generic file icon.
@@ -192,9 +201,22 @@ class AddDocumentForm extends StatefulWidget {
   State<AddDocumentForm> createState() => _AddDocumentFormState();
 }
 
+/// The form's current choice. Type, file and fileId change together, so they
+/// live in one value to keep every update atomic.
+class _DocumentDraft {
+  const _DocumentDraft({this.type, this.file, this.fileId});
+
+  final VerificationDocumentType? type;
+  final PickedFile? file;
+
+  /// Id of the uploaded [file], sent as `fileId` on submit.
+  final String? fileId;
+}
+
 class _AddDocumentFormState extends State<AddDocumentForm> {
-  VerificationDocumentType? _type;
-  PickedFile? _file;
+  final ValueNotifier<_DocumentDraft> _draft = ValueNotifier(
+    const _DocumentDraft(),
+  );
 
   /// Required types first, otherwise in API order.
   List<VerificationDocumentType> get _sortedTypes => [
@@ -202,31 +224,55 @@ class _AddDocumentFormState extends State<AddDocumentForm> {
     ...widget.types.where((t) => !t.isRequired),
   ];
 
-  Future<void> _chooseFile() async {
-    final type = _type;
-    if (type == null) return;
-    final file = await widget.onPickFile(type);
-    if (file == null || !mounted) return;
-    setState(() => _file = file);
+  @override
+  void dispose() {
+    _draft.dispose();
+    super.dispose();
   }
 
+  /// Picks a file and uploads it straight away; keeps the returned `fileId`
+  /// for the submit call.
+  Future<void> _chooseFile() async {
+    final type = _draft.value.type;
+    if (type == null) return;
+    final uploaded = await pickAndUploadDocument(
+      context,
+      purpose: MediaUploadPurpose.verificationDocument,
+    );
+    // Ignore the result if the screen closed or the type changed meanwhile.
+    if (uploaded == null || !mounted || _draft.value.type != type) return;
+    _draft.value = _DocumentDraft(
+      type: type,
+      file: uploaded.file,
+      fileId: uploaded.fileId,
+    );
+  }
+
+  void _clearFile() => _draft.value = _DocumentDraft(type: _draft.value.type);
+
   void _add() {
-    final type = _type;
-    final file = _file;
-    if (type == null || file == null) return;
-    widget.onAdd(AddedDocument(type: type, file: file));
-    setState(() {
-      _type = null;
-      _file = null;
-    });
+    final d = _draft.value;
+    final type = d.type;
+    final file = d.file;
+    final fileId = d.fileId;
+    if (type == null || file == null || fileId == null) return;
+    widget.onAdd(AddedDocument(type: type, file: file, fileId: fileId));
+    _draft.value = const _DocumentDraft();
   }
 
   @override
   Widget build(BuildContext context) {
+    return ValueListenableBuilder<_DocumentDraft>(
+      valueListenable: _draft,
+      builder: (context, draft, _) => _buildForm(context, draft),
+    );
+  }
+
+  Widget _buildForm(BuildContext context, _DocumentDraft draft) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
-    final type = _type;
-    final file = _file;
+    final type = draft.type;
+    final file = draft.file;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -277,20 +323,14 @@ class _AddDocumentFormState extends State<AddDocumentForm> {
                 child: Text(t.name, overflow: TextOverflow.ellipsis),
               ),
           ],
-          onChanged: (t) => setState(() {
-            _type = t;
-            _file = null;
-          }),
+          // A new type starts over without a file.
+          onChanged: (t) => _draft.value = _DocumentDraft(type: t),
         ),
         const SizedBox(height: 12),
         if (file == null)
           _ChooseFileBox(enabled: type != null, onTap: _chooseFile)
         else
-          _ChosenFile(
-            file: file,
-            onReplace: _chooseFile,
-            onClear: () => setState(() => _file = null),
-          ),
+          _ChosenFile(file: file, onReplace: _chooseFile, onClear: _clearFile),
         const SizedBox(height: 12),
         SizedBox(
           height: 48,
