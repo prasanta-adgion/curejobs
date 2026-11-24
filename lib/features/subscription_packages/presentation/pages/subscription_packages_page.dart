@@ -8,7 +8,9 @@ import '../../../../core/widgets/app_snackbar.dart';
 import '../../../subscription_plan_buy_history/presentation/pages/billing_history_page.dart';
 import '../../domain/entities/subscription_package.dart';
 import '../bloc/current_plan_bloc.dart';
+import '../bloc/plan_purchase_bloc.dart';
 import '../bloc/subscription_packages_bloc.dart';
+import '../services/razorpay_service.dart';
 import '../widgets/package_widgets.dart';
 
 /// Lets the candidate see their current plan, compare plans and pick one.
@@ -47,8 +49,167 @@ class SubscriptionPackagesPage extends StatelessWidget {
           create: (_) =>
               sl<CurrentPlanBloc>()..add(const CurrentPlanRequested()),
         ),
+        BlocProvider(create: (_) => sl<PlanPurchaseBloc>()),
       ],
-      child: _PackagesView(type: type, onContinue: onContinue),
+      child: _PurchaseCoordinator(
+        type: type,
+        child: _PackagesView(type: type, onContinue: onContinue),
+      ),
+    );
+  }
+}
+
+/// Owns the Razorpay SDK for this screen: opens checkout when the purchase
+/// bloc is ready, forwards the SDK callbacks to the bloc, shows outcomes,
+/// refreshes plans after success and blocks back while a payment runs.
+class _PurchaseCoordinator extends StatefulWidget {
+  const _PurchaseCoordinator({required this.type, required this.child});
+
+  final PackageType type;
+  final Widget child;
+
+  @override
+  State<_PurchaseCoordinator> createState() => _PurchaseCoordinatorState();
+}
+
+class _PurchaseCoordinatorState extends State<_PurchaseCoordinator> {
+  late final PlanPurchaseBloc _bloc = context.read<PlanPurchaseBloc>();
+  late final RazorpayService _razorpay = RazorpayService(
+    onSuccess: (r) => _add(
+      PlanPaymentSucceeded(
+        paymentId: r.paymentId,
+        subscriptionId: r.data?['razorpay_subscription_id'] as String?,
+        signature: r.signature ?? r.data?['razorpay_signature'] as String?,
+      ),
+    ),
+    onError: (r) => _add(PlanPaymentFailed(code: r.code, message: r.message)),
+    onExternalWallet: (r) => _add(PlanPaymentExternalWallet(r.walletName)),
+  );
+
+  /// SDK callbacks can arrive after the screen is gone (e.g. UPI app switch).
+  void _add(PlanPurchaseEvent event) {
+    if (!_bloc.isClosed) _bloc.add(event);
+  }
+
+  @override
+  void dispose() {
+    _razorpay.dispose();
+    super.dispose();
+  }
+
+  void _onState(BuildContext context, PlanPurchaseState state) {
+    switch (state.status) {
+      case PlanPurchaseStatus.checkoutReady:
+        final checkout = state.checkout;
+        if (checkout == null) return;
+        try {
+          _razorpay.open(checkout);
+          _bloc.add(const PlanCheckoutOpened());
+        } catch (_) {
+          _bloc.add(
+            const PlanPaymentFailed(message: "Couldn't open the payment page."),
+          );
+        }
+      case PlanPurchaseStatus.success:
+        AppSnackbar.success(
+          title: 'Payment successful',
+          message: state.message,
+        );
+        _refreshPlans(context);
+        _bloc.add(const PlanPurchaseReset());
+      case PlanPurchaseStatus.pendingActivation:
+        AppSnackbar.info(
+          title: 'Activation in progress',
+          message: state.message,
+        );
+        _refreshPlans(context);
+      case PlanPurchaseStatus.cancelled:
+        AppSnackbar.info(title: 'Payment cancelled', message: state.message);
+        _bloc.add(const PlanPurchaseReset());
+      case PlanPurchaseStatus.failure:
+        AppSnackbar.error(
+          title: 'Payment failed',
+          message: state.message ?? 'Please try again.',
+        );
+      case PlanPurchaseStatus.idle ||
+          PlanPurchaseStatus.creating ||
+          PlanPurchaseStatus.inCheckout ||
+          PlanPurchaseStatus.verifying:
+        break;
+    }
+  }
+
+  void _refreshPlans(BuildContext context) {
+    context.read<CurrentPlanBloc>().add(const CurrentPlanRequested());
+    context.read<SubscriptionPackagesBloc>().add(
+      SubscriptionPackagesRequested(widget.type),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocConsumer<PlanPurchaseBloc, PlanPurchaseState>(
+      listenWhen: (a, b) => a.status != b.status,
+      listener: _onState,
+      buildWhen: (a, b) =>
+          a.isBusy != b.isBusy ||
+          (a.status == PlanPurchaseStatus.verifying) !=
+              (b.status == PlanPurchaseStatus.verifying),
+      builder: (context, state) => PopScope(
+        canPop: !state.isBusy,
+        onPopInvokedWithResult: (didPop, _) {
+          if (!didPop) {
+            AppSnackbar.info(
+              title: 'Payment in progress',
+              message: 'Please wait until the payment finishes.',
+            );
+          }
+        },
+        child: Stack(
+          children: [
+            widget.child,
+            if (state.status == PlanPurchaseStatus.verifying)
+              const _VerifyingOverlay(),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _VerifyingOverlay extends StatelessWidget {
+  const _VerifyingOverlay();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Positioned.fill(
+      child: ColoredBox(
+        color: Colors.black54,
+        child: Center(
+          child: Card(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const CircularProgressIndicator(),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Confirming your payment…',
+                    style: theme.textTheme.titleSmall,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    "Please don't close the app.",
+                    style: theme.textTheme.bodySmall,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
@@ -64,12 +225,22 @@ class _PackagesView extends StatelessWidget {
       onContinue!(context, p);
       return;
     }
-    AppSnackbar.info(
-      title: p.isFree ? 'You can keep using ${p.name}' : 'Checkout coming soon',
-      message: p.isFree
-          ? null
-          : 'Payments for ${p.name} will be available shortly.',
-    );
+    if (p.isFree) {
+      AppSnackbar.info(title: 'You can keep using ${p.name}');
+      return;
+    }
+    // Never start a payment for the plan the user already has.
+    final currentId = context
+        .read<CurrentPlanBloc>()
+        .state
+        .subscription
+        ?.package
+        .id;
+    if (p.id == currentId) {
+      AppSnackbar.info(title: "You're already on ${p.name}");
+      return;
+    }
+    context.read<PlanPurchaseBloc>().add(PlanPurchaseStarted(p));
   }
 
   Future<void> _refresh(BuildContext context) {
@@ -122,9 +293,13 @@ class _PackagesView extends StatelessWidget {
               builder: (context, state) {
                 final p = state.selected;
                 if (p == null) return const SizedBox.shrink();
+                final busy = context.select(
+                  (PlanPurchaseBloc b) => b.state.isBusy,
+                );
                 return _BottomBar(
                   package: p,
                   isCurrent: p.id == currentId,
+                  busy: busy,
                   onPressed: () => _continue(context, p),
                 );
               },
@@ -314,11 +489,15 @@ class _BottomBar extends StatelessWidget {
     required this.package,
     required this.isCurrent,
     required this.onPressed,
+    this.busy = false,
   });
 
   final SubscriptionPackage package;
   final bool isCurrent;
   final VoidCallback onPressed;
+
+  /// A payment is running: the button is disabled and shows a spinner.
+  final bool busy;
 
   @override
   Widget build(BuildContext context) {
@@ -333,7 +512,8 @@ class _BottomBar extends StatelessWidget {
     );
 
     final Widget button;
-    if (p.isFree || (isCurrent && p.isFree)) {
+    // Free plans, and any plan the user already has, can't be bought here.
+    if (p.isFree || isCurrent) {
       button = OutlinedButton(
         onPressed: isCurrent ? null : onPressed,
         style: OutlinedButton.styleFrom(
@@ -347,7 +527,7 @@ class _BottomBar extends StatelessWidget {
       );
     } else {
       button = FilledButton(
-        onPressed: p.purchaseAvailable ? onPressed : null,
+        onPressed: p.purchaseAvailable && !busy ? onPressed : null,
         style: FilledButton.styleFrom(
           minimumSize: const Size(double.infinity, 52),
           backgroundColor: c.accentFill,
@@ -355,9 +535,15 @@ class _BottomBar extends StatelessWidget {
           shape: shape,
           textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
         ),
-        child: Text(
-          isCurrent ? 'Renew $name · $price' : 'Upgrade to $name · $price',
-        ),
+        child: busy
+            ? const SizedBox.square(
+                dimension: 22,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2.4,
+                  color: AppColors.white,
+                ),
+              )
+            : Text('Upgrade to $name · $price'),
       );
     }
 

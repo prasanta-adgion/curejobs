@@ -8,6 +8,7 @@ import '../../../../core/services/picked_file.dart';
 import '../../domain/entities/verification_eligibility.dart';
 import '../../domain/usecases/get_document_types_usecase.dart';
 import '../../domain/usecases/get_verification_eligibility_usecase.dart';
+import '../../domain/usecases/submit_verification_documents_usecase.dart';
 import '../../../../core/widgets/app_error_view.dart';
 import '../../../subscription_packages/domain/entities/current_subscription.dart';
 import '../../../subscription_packages/domain/entities/subscription_package.dart';
@@ -122,9 +123,43 @@ class _VerificationPageState extends State<VerificationPage> {
     DocumentSource source,
   ) async => null;
 
-  // TODO: upload each file and send it with its `type.id`, then move to the
-  // review step.
-  void onSubmit(List<AddedDocument> documents) {}
+  bool _submitting = false;
+
+  /// Files are already uploaded when added; this attaches each one to the
+  /// current verification request, then reloads eligibility to move on to
+  /// the review step.
+  Future<void> onSubmit(List<AddedDocument> documents) async {
+    final verificationId = _eligibility?.currentRequest?.id;
+    final messenger = ScaffoldMessenger.of(context);
+    if (verificationId == null) {
+      messenger.showSnackBar(
+        const SnackBar(content: Text('No verification request found.')),
+      );
+      return;
+    }
+    setState(() => _submitting = true);
+    // One call per document; stop at the first failure.
+    final submit = sl<SubmitVerificationDocumentsUseCase>();
+    for (final d in List.of(documents)) {
+      final result = await submit(
+        verificationId: verificationId,
+        documentTypeId: d.type.id,
+        fileId: d.fileId,
+      );
+      if (!mounted) return;
+      final failure = result.failureOrNull;
+      if (failure != null) {
+        setState(() => _submitting = false);
+        messenger.showSnackBar(SnackBar(content: Text(failure.message)));
+        return;
+      }
+      // Sent: drop it so a retry doesn't attach it twice.
+      submittedFiles = {...submittedFiles, d.type.id: d.file};
+      _added.remove(d);
+    }
+    setState(() => _submitting = false);
+    _loadEligibility();
+  }
 
   // TODO: open the profile page.
   void onViewProfile() {}
@@ -250,11 +285,15 @@ class _VerificationPageState extends State<VerificationPage> {
         'Upload documents for review',
         _documentSections(),
         VerificationBottomBar(
-          label: _added.isEmpty
+          label: _submitting
+              ? 'Submitting…'
+              : _added.isEmpty
               ? 'Submit for review'
               : 'Submit ${_added.length} '
                     '${_added.length == 1 ? 'document' : 'documents'}',
-          onPressed: _canSubmit ? () => onSubmit(List.of(_added)) : null,
+          onPressed: _canSubmit && !_submitting
+              ? () => onSubmit(List.of(_added))
+              : null,
           helper: _canSubmit
               ? 'Review usually takes up to 2 working days'
               : _missingRequired.isNotEmpty

@@ -18,4 +18,19 @@ class VerificationRepositoryImpl implements VerificationRepository {
   Future<Result<List<VerificationDocumentType>>> getDocumentTypes() {
     return Result.guard(_remote.getDocumentTypes);
   }
+
+  @override
+  Future<Result<void>> submitDocument({
+    required String verificationId,
+    required String documentTypeId,
+    required String fileId,
+  }) {
+    return Result.guard(
+      () => _remote.addDocument(
+        verificationId: verificationId,
+        documentTypeId: documentTypeId,
+        fileId: fileId,
+      ),
+    );
+  }
 }

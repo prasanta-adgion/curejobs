@@ -84,6 +84,16 @@ class ApiEndpoints {
   static const String subscribeToPlan = 'api/v1/payments/me';
   static const String planHistory = 'api/v1/subscriptions/me/history';
 
+  //roazerpay plan subscription buy
+  static const String purchases = 'api/v1/purchases';
+  static String razorpaySubscription({required String purchaseId}) =>
+      'api/v1/purchases/$purchaseId/payments/razorpay/subscription';
+
+  static const String verifyRazorpayPayment = 'api/v1/payments/razorpay/verify';
+
+  static const String selectPlan = "api/v1/subscriptions/select";
+
+  //dashboard, notifications, read unread notifications, count of unread notifications
   static const String unreadNotificationCount =
       'api/v1/notifications/unread-count';
 
@@ -109,8 +119,8 @@ class ApiEndpoints {
 
   static const String documentTypes = 'api/v1/verifications/document-types';
 
-  //   static String documentTypeById({required String id}) =>
-  //       'api/v1/verifications/$id/documents';
+  static String documentTypeById({required String id}) =>
+      'api/v1/verifications/$id/documents';
 
   static const String verificationEligibility =
       'api/v1/verifications/eligibility';

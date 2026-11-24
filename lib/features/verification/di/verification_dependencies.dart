@@ -6,6 +6,7 @@ import '../data/repositories/verification_repository_impl.dart';
 import '../domain/repositories/verification_repository.dart';
 import '../domain/usecases/get_document_types_usecase.dart';
 import '../domain/usecases/get_verification_eligibility_usecase.dart';
+import '../domain/usecases/submit_verification_documents_usecase.dart';
 
 void registerVerificationDependencies(GetIt sl) {
   sl.registerLazySingleton<VerificationRemoteDataSource>(
@@ -16,6 +17,9 @@ void registerVerificationDependencies(GetIt sl) {
   );
   sl.registerLazySingleton<GetVerificationEligibilityUseCase>(
     () => GetVerificationEligibilityUseCase(sl<VerificationRepository>()),
+  );
+  sl.registerLazySingleton<SubmitVerificationDocumentsUseCase>(
+    () => SubmitVerificationDocumentsUseCase(sl<VerificationRepository>()),
   );
   sl.registerLazySingleton<GetDocumentTypesUseCase>(
     () => GetDocumentTypesUseCase(sl<VerificationRepository>()),
