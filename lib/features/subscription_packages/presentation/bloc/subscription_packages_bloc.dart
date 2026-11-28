@@ -1,5 +1,6 @@
 import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
+import 'package:flutter/foundation.dart';
 
 import '../../../../core/error/failure.dart';
 import '../../domain/entities/subscription_package.dart';
@@ -29,16 +30,15 @@ class SubscriptionPackagesBloc
       (packages) {
         final sorted = [...packages]
           ..sort((a, b) => a.amountMinor.compareTo(b.amountMinor));
-        final loaded = SubscriptionPackagesState(
-          status: PackagesLoadStatus.success,
-          packages: sorted,
-        );
-        // Pre-select the recommended paid plan, else the first one.
+        _logPurchaseFlags(sorted);
+        // Pre-select the Free plan; with no free plan, the cheapest one.
+        final defaultPlan =
+            sorted.where((p) => p.isFree).firstOrNull ?? sorted.firstOrNull;
         emit(
-          loaded.copyWith(
-            selectedId:
-                loaded.recommendedId ??
-                (sorted.isEmpty ? null : sorted.first.id),
+          SubscriptionPackagesState(
+            status: PackagesLoadStatus.success,
+            packages: sorted,
+            selectedId: defaultPlan?.id,
           ),
         );
       },
@@ -49,6 +49,23 @@ class SubscriptionPackagesBloc
         ),
       ),
     );
+  }
+
+  /// Debug builds only: prints why each paid plan can or can't be bought,
+  /// so a disabled "Continue" button can be traced to the server's flags.
+  void _logPurchaseFlags(List<SubscriptionPackage> packages) {
+    if (!kDebugMode) return;
+    for (final p in packages.where((p) => !p.isFree)) {
+      final options = p.billingOptions
+          .map((o) => '${o.billingPeriod}:${o.purchaseAvailable}')
+          .join(', ');
+      debugPrint(
+        '[Plans] ${p.name} canPurchase=${p.canPurchase} '
+        'purchaseAvailable=${p.purchaseAvailable} '
+        'paidCheckoutEnabled=${p.paidCheckoutEnabled} '
+        'billingOptions=[$options]',
+      );
+    }
   }
 
   void _onSelected(

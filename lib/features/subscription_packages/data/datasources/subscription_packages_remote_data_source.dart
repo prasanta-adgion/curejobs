@@ -5,7 +5,9 @@ import '../../../../core/network/api_endpoints.dart';
 import '../../domain/entities/current_subscription.dart';
 import '../../domain/entities/purchase.dart';
 import '../../domain/entities/subscription_package.dart';
+import '../../domain/entities/package_request.dart';
 import '../models/current_subscription_model.dart';
+import '../models/package_request_model.dart';
 import '../models/purchase_model.dart';
 import '../models/subscription_package_model.dart';
 
@@ -39,6 +41,12 @@ abstract interface class SubscriptionPackagesRemoteDataSource {
   /// Stops auto-pay for our subscription [subscriptionId]. The plan stays
   /// active until it expires.
   Future<void> cancelAutoRenew(String subscriptionId);
+
+  /// Asks admin to grant [packageId] (for plans that can't be paid online).
+  Future<void> requestPackage({required String packageId, String? message});
+
+  /// The user's package requests, newest first.
+  Future<List<PackageRequest>> getPackageRequests();
 }
 
 class SubscriptionPackagesRemoteDataSourceImpl
@@ -118,6 +126,24 @@ class SubscriptionPackagesRemoteDataSourceImpl
     return _client.post<void>(
       ApiEndpoints.cancelAutoRenew(subscriptionId),
       decoder: (_) {},
+    );
+  }
+
+  @override
+  Future<void> requestPackage({required String packageId, String? message}) {
+    final text = message?.trim() ?? '';
+    return _client.post<void>(
+      ApiEndpoints.packageRequests,
+      body: {'packageId': packageId, if (text.isNotEmpty) 'message': text},
+      decoder: (_) {},
+    );
+  }
+
+  @override
+  Future<List<PackageRequest>> getPackageRequests() {
+    return _client.get<List<PackageRequest>>(
+      ApiEndpoints.packageRequests,
+      decoder: PackageRequestModel.listFromJson,
     );
   }
 }

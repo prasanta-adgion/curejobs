@@ -3,11 +3,15 @@ import 'package:flutter/material.dart';
 import 'package:curejobs/core/utils/extensions/theme_extensions.dart';
 
 import '../../../../app/theme/app_colors.dart';
+import '../../domain/entities/package_request.dart';
 import '../../domain/entities/subscription_package.dart';
 import 'plan_format.dart';
 
 /// Sticky bar under the plans list: the selected plan and its price, the
-/// main button and one honest line about renewal.
+/// main button and one honest line about what happens next.
+///
+/// The button follows [SubscriptionPackage.action]: select a free plan,
+/// pay online, request from admin, or nothing.
 class PlanBottomBar extends StatelessWidget {
   const PlanBottomBar({
     super.key,
@@ -16,7 +20,13 @@ class PlanBottomBar extends StatelessWidget {
     required this.onPressed,
     this.isDowngradeBlocked = false,
     this.busy = false,
+    this.lastRequest,
   });
+
+  /// The user's newest request for this package, if any.
+  final PackageRequest? lastRequest;
+
+  bool get _hasPendingRequest => lastRequest?.isPending ?? false;
 
   final SubscriptionPackage package;
   final bool isCurrent;
@@ -26,7 +36,7 @@ class PlanBottomBar extends StatelessWidget {
   /// allowed, so the button is disabled with a short explanation.
   final bool isDowngradeBlocked;
 
-  /// A payment is running: the button is disabled and shows a spinner.
+  /// A payment or request is running: the button shows a spinner.
   final bool busy;
 
   @override
@@ -70,20 +80,68 @@ class PlanBottomBar extends StatelessWidget {
 
   String get _name => PackageFormat.shortName(package.name);
 
+  /// Nothing to press: current plan, blocked downgrade, or no action.
+  bool get _isPassive =>
+      isCurrent ||
+      isDowngradeBlocked ||
+      _hasPendingRequest ||
+      package.action == PlanAction.requestPending ||
+      package.action == PlanAction.unavailable;
+
   String? get _note {
+    if (isCurrent) return null;
     if (isDowngradeBlocked) {
       return 'You already enjoy everything in $_name. '
           'You can switch once your paid plan ends.';
     }
-    if (package.isFree || isCurrent) return null;
-    return 'Renews every ${PackageFormat.duration(package.billingDurationDays)}'
-        ' · Cancel anytime';
+    final contact = package.contactAvailable
+        ? ' Contact support if you need help.'
+        : '';
+    final request = lastRequest;
+    if (request != null && request.isPending) {
+      final sent = request.createdAt;
+      final on = sent == null ? '' : ' on ${PackageFormat.date(sent)}';
+      return 'You requested $_name$on. Our team is reviewing it.';
+    }
+    if (request != null &&
+        request.isRejected &&
+        package.action == PlanAction.request) {
+      final reason = request.reviewReason;
+      return 'Your last request was declined'
+          '${reason == null ? '' : ': $reason'}. You can request again.';
+    }
+    return switch (package.action) {
+      PlanAction.select => null,
+      PlanAction.buy =>
+        'Renews every ${PackageFormat.duration(package.billingDurationDays)}'
+            ' · Cancel anytime',
+      PlanAction.request =>
+        "Online payment isn't available for $_name. "
+            'Send a request and our team will get back to you.',
+      PlanAction.requestPending =>
+        'Your request for $_name is being reviewed.$contact',
+      PlanAction.unavailable => "$_name isn't available right now.$contact",
+    };
   }
 
+  String get _passiveLabel {
+    if (isCurrent) return "You're on $_name";
+    if (isDowngradeBlocked) return 'Your paid plan is active';
+    if (_hasPendingRequest || package.action == PlanAction.requestPending) {
+      return 'Request pending';
+    }
+    return 'Not available';
+  }
+
+  String get _label => switch (package.action) {
+    PlanAction.request when lastRequest?.isRejected ?? false =>
+      'Request $_name again',
+    PlanAction.request => 'Request $_name',
+    _ => 'Continue with $_name',
+  };
+
   Widget _buildButton(ColorScheme colors) {
-    // No action possible: the user already has this plan, or a paid user
-    // picked a free one. Show a quiet outlined button.
-    if (isCurrent || isDowngradeBlocked) {
+    if (_isPassive) {
       return OutlinedButton(
         onPressed: null,
         style: OutlinedButton.styleFrom(
@@ -91,16 +149,12 @@ class PlanBottomBar extends StatelessWidget {
           disabledForegroundColor: colors.onSurfaceVariant,
           side: BorderSide(color: colors.outlineVariant),
         ),
-        child: Text(
-          isCurrent ? "You're on $_name" : 'Your paid plan is active',
-        ),
+        child: Text(_passiveLabel),
       );
     }
 
-    // Any plan the user can switch to, free or paid, gets the main button.
-    final canPress = (package.isFree || package.purchaseAvailable) && !busy;
     return FilledButton(
-      onPressed: canPress ? onPressed : null,
+      onPressed: busy ? null : onPressed,
       style: FilledButton.styleFrom(
         minimumSize: const Size(double.infinity, 52),
         backgroundColor: AppColors.primary,
@@ -114,7 +168,7 @@ class PlanBottomBar extends StatelessWidget {
                 color: AppColors.white,
               ),
             )
-          : Text('Continue with $_name'),
+          : Text(_label),
     );
   }
 }

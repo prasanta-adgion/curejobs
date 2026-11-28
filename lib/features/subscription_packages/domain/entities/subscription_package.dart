@@ -9,6 +9,25 @@ enum PackageType {
   final String apiValue;
 }
 
+/// What the user can do with a package, decided by the API flags.
+enum PlanAction {
+  /// Free plan: select it directly.
+  select,
+
+  /// Paid plan with online checkout open: pay with Razorpay.
+  buy,
+
+  /// Online payment is off but requests are open: ask admin for it.
+  request,
+
+  /// Requests are enabled but closed for this user right now (e.g. a
+  /// request is already pending).
+  requestPending,
+
+  /// Nothing possible right now.
+  unavailable,
+}
+
 /// One way to pay for a package, e.g. ₹499 for 7 days.
 class BillingOption extends Equatable {
   const BillingOption({
@@ -55,6 +74,10 @@ class SubscriptionPackage extends Equatable {
     this.purchaseAvailable = false,
     this.billingOptions = const [],
     this.selectedBillingOptionId,
+    this.billingPeriod,
+    this.providerPlanConfigured = false,
+    this.requestAvailable = false,
+    this.contactAvailable = false,
   });
 
   final String id;
@@ -71,6 +94,8 @@ class SubscriptionPackage extends Equatable {
   /// e.g. `ACTIVE`.
   final String status;
   final bool adminGrantEnabled;
+
+  /// The package can be requested from admin instead of paid online.
   final bool packageRequestEnabled;
   final int? maxResumes;
   final int? monthlyApplications;
@@ -78,21 +103,39 @@ class SubscriptionPackage extends Equatable {
   /// Feature flags from `featuresJson`, e.g. `jobAlerts: true`.
   final Map<String, bool> features;
   final bool freeSelectionEnabled;
+
+  /// Online payment is switched on for this package.
   final bool paidCheckoutEnabled;
   final bool purchaseAvailable;
   final List<BillingOption> billingOptions;
   final String? selectedBillingOptionId;
 
-  /// The billing option a purchase uses: the first one open for purchase.
-  /// Null for free plans or when none can be bought right now.
-  BillingOption? get billingOption => billingOptions
-      .where(
-        (o) =>
-            o.purchaseAvailable &&
-            (selectedBillingOptionId == null ||
-                o.id == selectedBillingOptionId),
-      )
-      .firstOrNull;
+  /// e.g. `MONTHLY`; null for free plans.
+  final String? billingPeriod;
+
+  /// The payment provider (Razorpay) has a plan set up for this package.
+  final bool providerPlanConfigured;
+
+  /// The user may send a request for this package right now.
+  final bool requestAvailable;
+
+  /// Support can be contacted about this package.
+  final bool contactAvailable;
+
+  /// The billing option shown and charged: the selected one if set, else
+  /// the first open for purchase, else the first one (so request-only
+  /// plans still show their price). Null when there are none.
+  ///
+  /// Whether it can actually be bought is [canPurchase].
+  BillingOption? get billingOption {
+    final selectedId = selectedBillingOptionId;
+    if (selectedId != null) {
+      final selected = billingOptions.where((o) => o.id == selectedId);
+      if (selected.isNotEmpty) return selected.first;
+    }
+    return billingOptions.where((o) => o.purchaseAvailable).firstOrNull ??
+        billingOptions.firstOrNull;
+  }
 
   SubscriptionPackage withBillingOption(String? id) => SubscriptionPackage(
     id: this.id,
@@ -114,6 +157,10 @@ class SubscriptionPackage extends Equatable {
     purchaseAvailable: purchaseAvailable,
     billingOptions: billingOptions,
     selectedBillingOptionId: id,
+    billingPeriod: billingPeriod,
+    providerPlanConfigured: providerPlanConfigured,
+    requestAvailable: requestAvailable,
+    contactAvailable: contactAvailable,
   );
 
   /// What the user actually pays, in paise: the billing option's amount,
@@ -132,6 +179,39 @@ class SubscriptionPackage extends Equatable {
 
   bool get isFree => amountMinor == 0;
 
+  /// A free plan the user may pick directly.
+  bool get canSelectFree => isFree && freeSelectionEnabled && purchaseAvailable;
+
+  /// A paid plan that can be bought online right now: checkout is on, the
+  /// Razorpay plan exists, and the package and its billing option are
+  /// open for purchase. The server re-checks on purchase anyway.
+  bool get canPurchase {
+    final option = billingOption;
+    return !isFree &&
+        paidCheckoutEnabled &&
+        providerPlanConfigured &&
+        purchaseAvailable &&
+        option != null &&
+        option.purchaseAvailable;
+  }
+
+  /// Paid plan that can't be bought online but accepts admin requests.
+  bool get isRequestOnly => !isFree && !canPurchase && packageRequestEnabled;
+
+  /// The user can send a request for this package right now.
+  bool get canRequest => isRequestOnly && requestAvailable;
+
+  /// What the main button does for this package.
+  PlanAction get action {
+    if (isFree) {
+      return canSelectFree ? PlanAction.select : PlanAction.unavailable;
+    }
+    if (canPurchase) return PlanAction.buy;
+    if (canRequest) return PlanAction.request;
+    if (isRequestOnly) return PlanAction.requestPending;
+    return PlanAction.unavailable;
+  }
+
   /// Price in rupees (the API sends paise).
   double get price => amountMinor / 100;
 
@@ -146,6 +226,13 @@ class SubscriptionPackage extends Equatable {
     features,
     billingOptions,
     selectedBillingOptionId,
+    freeSelectionEnabled,
+    paidCheckoutEnabled,
+    purchaseAvailable,
+    providerPlanConfigured,
+    packageRequestEnabled,
+    requestAvailable,
+    contactAvailable,
   ];
 }
 

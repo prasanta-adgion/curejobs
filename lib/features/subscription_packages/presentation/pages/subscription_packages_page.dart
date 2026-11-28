@@ -8,6 +8,7 @@ import '../../../../core/widgets/app_snackbar.dart';
 import '../../domain/entities/subscription_package.dart';
 import '../bloc/cancel_auto_pay_cubit.dart';
 import '../bloc/current_plan_bloc.dart';
+import '../bloc/package_request_cubit.dart';
 import '../bloc/plan_purchase_bloc.dart';
 import '../bloc/subscription_packages_bloc.dart';
 import '../widgets/current_plan_section.dart';
@@ -18,6 +19,7 @@ import '../widgets/plan_faq_section.dart';
 import '../widgets/plan_trust_section.dart';
 import '../widgets/plans_app_bar.dart';
 import '../widgets/purchase_coordinator.dart';
+import '../widgets/request_plan_sheet.dart';
 import '../widgets/review_payment_sheet.dart';
 
 /// Lets the candidate see their current plan, compare plans and pick one.
@@ -58,12 +60,37 @@ class SubscriptionPackagesPage extends StatelessWidget {
         ),
         BlocProvider(create: (_) => sl<PlanPurchaseBloc>()),
         BlocProvider(create: (_) => sl<CancelAutoPayCubit>()),
+        BlocProvider(create: (_) => sl<PackageRequestCubit>()..load()),
       ],
       child: PurchaseCoordinator(
         type: type,
-        child: _PackagesView(type: type, onContinue: onContinue),
+        child: BlocListener<PackageRequestCubit, PackageRequestState>(
+          listenWhen: (a, b) => a.status != b.status,
+          listener: (context, state) => _onRequestState(context, state),
+          child: _PackagesView(type: type, onContinue: onContinue),
+        ),
       ),
     );
+  }
+
+  void _onRequestState(BuildContext context, PackageRequestState state) {
+    switch (state.status) {
+      case PackageRequestStatus.success:
+        AppSnackbar.success(title: 'Request sent', message: state.message);
+        // requestAvailable flips to false on the server; reload the flags.
+        context.read<SubscriptionPackagesBloc>().add(
+          SubscriptionPackagesRequested(type),
+        );
+        context.read<PackageRequestCubit>().reset();
+      case PackageRequestStatus.failure:
+        AppSnackbar.error(
+          title: "Couldn't send request",
+          message: state.message ?? 'Please try again.',
+        );
+        context.read<PackageRequestCubit>().reset();
+      case PackageRequestStatus.idle || PackageRequestStatus.sending:
+        break;
+    }
   }
 }
 
@@ -127,20 +154,45 @@ class _PackagesView extends StatelessWidget {
       return;
     }
 
+    // Ignore taps while a payment or request is already running.
     final purchase = context.read<PlanPurchaseBloc>();
-    if (p.isFree) {
-      purchase.add(FreePlanSelected(p));
+    final request = context.read<PackageRequestCubit>();
+    if (purchase.state.isBusy || request.state.isBusy) return;
+
+    if (request.state.hasPendingFor(p.id)) {
+      AppSnackbar.info(
+        title: 'Request already sent',
+        message: 'Your request for ${p.name} is being reviewed.',
+      );
       return;
     }
 
-    // Paid: show amount and renewal terms first, then open Razorpay.
-    final confirmed = await ReviewPaymentSheet.show(context, p);
-    if (confirmed) purchase.add(PlanPurchaseStarted(p));
+    switch (p.action) {
+      case PlanAction.select:
+        purchase.add(FreePlanSelected(p));
+      case PlanAction.buy:
+        // Show amount and renewal terms first, then open Razorpay.
+        final confirmed = await ReviewPaymentSheet.show(context, p);
+        if (confirmed && context.mounted) purchase.add(PlanPurchaseStarted(p));
+      case PlanAction.request:
+        final message = await RequestPlanSheet.show(context, p);
+        if (message != null && context.mounted) {
+          request.send(p, message: message);
+        }
+      case PlanAction.requestPending:
+        AppSnackbar.info(
+          title: 'Request already sent',
+          message: 'Your request for ${p.name} is being reviewed.',
+        );
+      case PlanAction.unavailable:
+        AppSnackbar.info(title: "${p.name} isn't available right now");
+    }
   }
 
   Future<void> _refresh(BuildContext context) {
     final packages = context.read<SubscriptionPackagesBloc>();
     context.read<CurrentPlanBloc>().add(const CurrentPlanRequested());
+    context.read<PackageRequestCubit>().load();
     packages.add(SubscriptionPackagesRequested(type));
     // Keep the spinner until the plans reload finishes.
     return packages.stream.firstWhere(
@@ -215,13 +267,19 @@ class _BottomBar extends StatelessWidget {
     if (selected == null) return const SizedBox.shrink();
 
     final current = context.select((CurrentPlanBloc b) => b.state.subscription);
-    final busy = context.select((PlanPurchaseBloc b) => b.state.isBusy);
+    final busy =
+        context.select((PlanPurchaseBloc b) => b.state.isBusy) ||
+        context.select((PackageRequestCubit c) => c.state.isBusy);
+    final lastRequest = context.select(
+      (PackageRequestCubit c) => c.state.latestFor(selected.id),
+    );
 
     return PlanBottomBar(
       package: selected,
       isCurrent: selected.id == current?.package.id,
       isDowngradeBlocked: !(current?.canSwitchTo(selected) ?? true),
       busy: busy,
+      lastRequest: lastRequest,
       onPressed: () => onContinue(context, selected),
     );
   }

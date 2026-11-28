@@ -25,18 +25,15 @@ class PlanSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: colors.surface,
-        border: showBand
-            ? Border(
-                top: BorderSide(
-                  color: colors.surfaceContainerHighest,
-                  width: 8,
-                ),
-              )
-            : null,
-      ),
+    // Material (not a coloured DecoratedBox) paints the white background,
+    // so ListTiles and ExpansionTiles inside show their ink and colours.
+    return Material(
+      color: colors.surface,
+      shape: showBand
+          ? Border(
+              top: BorderSide(color: colors.surfaceContainerHighest, width: 8),
+            )
+          : null,
       child: Padding(
         padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
         child: Column(

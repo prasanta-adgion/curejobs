@@ -89,6 +89,8 @@ class ApiEndpoints {
 
   static const String subscribeToPlan = 'api/v1/payments/me';
   static const String planHistory = 'api/v1/subscriptions/me/history';
+  static const String packageRequests =
+      'api/v1/subscriptions/me/package-requests';
 
   //roazerpay plan subscription buy
   static const String purchases = 'api/v1/purchases';

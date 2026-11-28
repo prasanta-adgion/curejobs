@@ -99,7 +99,7 @@ class PlanPurchaseBloc extends Bloc<PlanPurchaseEvent, PlanPurchaseState> {
     if (state.isBusy) return;
     final package = event.package;
     final option = package.billingOption;
-    if (package.isFree || option == null || !package.purchaseAvailable) {
+    if (!package.canPurchase || option == null) {
       emit(_fail(PurchaseMessages.notPurchasable(package.name)));
       return;
     }
