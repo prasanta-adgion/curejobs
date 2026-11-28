@@ -35,6 +35,10 @@ abstract interface class SubscriptionPackagesRemoteDataSource {
 
   /// Makes [packageId] the active plan after it has been paid for.
   Future<void> selectPlan(String packageId);
+
+  /// Stops auto-pay for our subscription [subscriptionId]. The plan stays
+  /// active until it expires.
+  Future<void> cancelAutoRenew(String subscriptionId);
 }
 
 class SubscriptionPackagesRemoteDataSourceImpl
@@ -55,7 +59,7 @@ class SubscriptionPackagesRemoteDataSourceImpl
   @override
   Future<CurrentSubscription> getCurrentPlan() {
     return _client.get<CurrentSubscription>(
-      ApiEndpoints.currentPlan,
+      ApiEndpoints.currentSubscriptionPlan,
       decoder: CurrentSubscriptionModel.fromJson,
     );
   }
@@ -65,7 +69,6 @@ class SubscriptionPackagesRemoteDataSourceImpl
     required String billingOptionId,
     required String idempotencyKey,
   }) {
-    print("purchases api call");
     return _client.post<Purchase>(
       ApiEndpoints.purchases,
       body: {'billingOptionId': billingOptionId},
@@ -76,8 +79,6 @@ class SubscriptionPackagesRemoteDataSourceImpl
 
   @override
   Future<RazorpayCheckout> createRazorpaySubscription(String purchaseId) {
-    print("create razorpay subscription");
-
     return _client.post<RazorpayCheckout>(
       ApiEndpoints.razorpaySubscription(purchaseId: purchaseId),
       decoder: RazorpayCheckoutModel.fromJson,
@@ -91,12 +92,6 @@ class SubscriptionPackagesRemoteDataSourceImpl
     required String subscriptionId,
     required String signature,
   }) {
-    print("-------------------------------------------------");
-    print("purchaseId: $purchaseId");
-    print("paymentId: $paymentId");
-    print("subscriptionId: $subscriptionId");
-    print("signature: $signature");
-    print("-------------------------------------------------");
     return _client.post<PaymentVerification>(
       ApiEndpoints.verifyRazorpayPayment,
       body: {
@@ -111,10 +106,17 @@ class SubscriptionPackagesRemoteDataSourceImpl
 
   @override
   Future<void> selectPlan(String packageId) {
-    print("select plan api call");
     return _client.post<void>(
       ApiEndpoints.selectPlan,
       body: {'packageId': packageId},
+      decoder: (_) {},
+    );
+  }
+
+  @override
+  Future<void> cancelAutoRenew(String subscriptionId) {
+    return _client.post<void>(
+      ApiEndpoints.cancelAutoRenew(subscriptionId),
       decoder: (_) {},
     );
   }

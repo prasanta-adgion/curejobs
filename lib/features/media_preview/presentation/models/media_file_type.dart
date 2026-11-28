@@ -14,9 +14,13 @@ enum MediaFileType {
   final String label;
   final IconData icon;
 
-  factory MediaFileType.of(PickedFile file) {
-    final name = file.name.toLowerCase();
-    final extension = name.contains('.') ? name.split('.').last : '';
+  factory MediaFileType.of(PickedFile file) =>
+      MediaFileType.fromName(file.name);
+
+  /// From a file name or URL path, e.g. `scan.pdf` or `.../photo.JPG`.
+  factory MediaFileType.fromName(String name) {
+    final lower = name.toLowerCase();
+    final extension = lower.contains('.') ? lower.split('.').last : '';
 
     return switch (extension) {
       'png' || 'jpg' || 'jpeg' || 'webp' => MediaFileType.image,

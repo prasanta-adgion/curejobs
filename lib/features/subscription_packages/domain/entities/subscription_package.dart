@@ -54,6 +54,7 @@ class SubscriptionPackage extends Equatable {
     this.paidCheckoutEnabled = false,
     this.purchaseAvailable = false,
     this.billingOptions = const [],
+    this.selectedBillingOptionId,
   });
 
   final String id;
@@ -80,11 +81,40 @@ class SubscriptionPackage extends Equatable {
   final bool paidCheckoutEnabled;
   final bool purchaseAvailable;
   final List<BillingOption> billingOptions;
+  final String? selectedBillingOptionId;
 
   /// The billing option a purchase uses: the first one open for purchase.
   /// Null for free plans or when none can be bought right now.
-  BillingOption? get billingOption =>
-      billingOptions.where((o) => o.purchaseAvailable).firstOrNull;
+  BillingOption? get billingOption => billingOptions
+      .where(
+        (o) =>
+            o.purchaseAvailable &&
+            (selectedBillingOptionId == null ||
+                o.id == selectedBillingOptionId),
+      )
+      .firstOrNull;
+
+  SubscriptionPackage withBillingOption(String? id) => SubscriptionPackage(
+    id: this.id,
+    code: code,
+    name: name,
+    description: description,
+    priceMinor: priceMinor,
+    currency: currency,
+    durationDays: durationDays,
+    type: type,
+    status: status,
+    adminGrantEnabled: adminGrantEnabled,
+    packageRequestEnabled: packageRequestEnabled,
+    maxResumes: maxResumes,
+    monthlyApplications: monthlyApplications,
+    features: features,
+    freeSelectionEnabled: freeSelectionEnabled,
+    paidCheckoutEnabled: paidCheckoutEnabled,
+    purchaseAvailable: purchaseAvailable,
+    billingOptions: billingOptions,
+    selectedBillingOptionId: id,
+  );
 
   /// What the user actually pays, in paise: the billing option's amount,
   /// falling back to the package's own price when there's no option.
@@ -110,7 +140,13 @@ class SubscriptionPackage extends Equatable {
   bool get requiresVerification => has(PackageFeature.verificationRequired);
 
   @override
-  List<Object?> get props => [id, priceMinor, features, billingOptions];
+  List<Object?> get props => [
+    id,
+    priceMinor,
+    features,
+    billingOptions,
+    selectedBillingOptionId,
+  ];
 }
 
 /// Known keys in `featuresJson` with their display labels.

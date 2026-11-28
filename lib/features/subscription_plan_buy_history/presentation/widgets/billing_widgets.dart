@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import 'package:curejobs/core/utils/extensions/theme_extensions.dart';
 import 'package:flutter/services.dart';
 
 import '../../../../app/theme/app_colors.dart';
@@ -66,17 +68,17 @@ class PaymentRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final c = PlanColors.of(context);
+    final colors = context.colors;
     final p = payment;
     final ok = p.isSuccess;
     final failed = p.status == PaymentStatus.failed;
     final danger = theme.colorScheme.error;
 
     final (statusText, statusColor) = switch (p.status) {
-      PaymentStatus.success => ('Paid', c.success),
+      PaymentStatus.success => ('Paid', context.successColor),
       PaymentStatus.failed => ('Failed', danger),
       PaymentStatus.pending => ('Pending', AppColors.warning),
-      PaymentStatus.unknown => ('Unknown', c.muted),
+      PaymentStatus.unknown => ('Unknown', colors.onSurfaceVariant),
     };
 
     return InkWell(
@@ -84,7 +86,9 @@ class PaymentRow extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 12),
         decoration: BoxDecoration(
-          border: showDivider ? Border(top: BorderSide(color: c.border)) : null,
+          border: showDivider
+              ? Border(top: BorderSide(color: colors.outlineVariant))
+              : null,
         ),
         child: Row(
           children: [
@@ -92,10 +96,10 @@ class PaymentRow extends StatelessWidget {
               icon: failed
                   ? Icons.error_outline_rounded
                   : Icons.workspace_premium_outlined,
-              color: failed ? danger : c.accentText,
+              color: failed ? danger : colors.primary,
               background: failed
                   ? danger.withValues(alpha: 0.12)
-                  : c.accentSoft,
+                  : colors.primaryContainer,
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -107,7 +111,7 @@ class PaymentRow extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: theme.textTheme.bodyMedium?.copyWith(
-                      color: c.text,
+                      color: colors.onSurface,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -115,7 +119,9 @@ class PaymentRow extends StatelessWidget {
                   Text(
                     '${BillingFormat.dayTime(p.date)} · '
                     '${PackageFormat.duration(p.durationDays)}',
-                    style: theme.textTheme.bodySmall?.copyWith(color: c.muted),
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: colors.onSurfaceVariant,
+                    ),
                   ),
                 ],
               ),
@@ -127,7 +133,7 @@ class PaymentRow extends StatelessWidget {
                 Text(
                   PackageFormat.price(p.amountMinor, currency: p.currency),
                   style: theme.textTheme.bodyMedium?.copyWith(
-                    color: ok ? c.text : c.muted,
+                    color: ok ? colors.onSurface : colors.onSurfaceVariant,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -156,7 +162,7 @@ class PlanHistoryRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final c = PlanColors.of(context);
+    final colors = context.colors;
     final e = entry;
     final isFree = e.packageCode.toUpperCase().contains('FREE');
     final meta = [
@@ -167,7 +173,9 @@ class PlanHistoryRow extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 12),
       decoration: BoxDecoration(
-        border: showDivider ? Border(top: BorderSide(color: c.border)) : null,
+        border: showDivider
+            ? Border(top: BorderSide(color: colors.outlineVariant))
+            : null,
       ),
       child: Row(
         children: [
@@ -175,8 +183,8 @@ class PlanHistoryRow extends StatelessWidget {
             icon: isFree
                 ? Icons.person_outline_rounded
                 : Icons.workspace_premium_outlined,
-            color: c.muted,
-            background: c.panel,
+            color: colors.onSurfaceVariant,
+            background: colors.surfaceContainerHighest,
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -186,14 +194,16 @@ class PlanHistoryRow extends StatelessWidget {
                 Text(
                   PackageFormat.shortName(e.packageName),
                   style: theme.textTheme.bodyMedium?.copyWith(
-                    color: c.text,
+                    color: colors.onSurface,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   meta,
-                  style: theme.textTheme.bodySmall?.copyWith(color: c.muted),
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: colors.onSurfaceVariant,
+                  ),
                 ),
               ],
             ),
@@ -201,7 +211,9 @@ class PlanHistoryRow extends StatelessWidget {
           const SizedBox(width: 8),
           Text(
             e.status.label,
-            style: theme.textTheme.bodySmall?.copyWith(color: c.muted),
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: colors.onSurfaceVariant,
+            ),
           ),
         ],
       ),
@@ -228,7 +240,7 @@ class CurrentPlanHistoryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final c = PlanColors.of(context);
+    final colors = context.colors;
     final e = entry;
     final start = e.startsAt?.toLocal();
     final end = e.endedAt?.toLocal();
@@ -264,7 +276,7 @@ class CurrentPlanHistoryCard extends StatelessWidget {
             _IconTile(
               icon: Icons.workspace_premium_rounded,
               color: AppColors.white,
-              background: c.accentFill,
+              background: AppColors.primary,
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -278,14 +290,14 @@ class CurrentPlanHistoryCard extends StatelessWidget {
                       Text(
                         PackageFormat.shortName(e.packageName),
                         style: theme.textTheme.titleSmall?.copyWith(
-                          color: c.text,
+                          color: colors.onSurface,
                           fontWeight: FontWeight.w700,
                         ),
                       ),
                       PlanTag(
                         label: 'Active',
-                        background: c.successSoft,
-                        foreground: c.success,
+                        background: context.successContainer,
+                        foreground: context.successColor,
                       ),
                     ],
                   ),
@@ -295,7 +307,9 @@ class CurrentPlanHistoryCard extends StatelessWidget {
                       if (e.source.label.isNotEmpty) e.source.label,
                       PackageFormat.duration(e.durationDays),
                     ].where((s) => s.isNotEmpty).join(' · '),
-                    style: theme.textTheme.bodySmall?.copyWith(color: c.muted),
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: colors.onSurfaceVariant,
+                    ),
                   ),
                 ],
               ),
@@ -309,8 +323,8 @@ class CurrentPlanHistoryCard extends StatelessWidget {
             child: LinearProgressIndicator(
               value: progress,
               minHeight: 5,
-              backgroundColor: c.panel,
-              color: c.accentFill,
+              backgroundColor: colors.surfaceContainerHighest,
+              color: AppColors.primary,
             ),
           ),
           const SizedBox(height: 6),
@@ -318,21 +332,25 @@ class CurrentPlanHistoryCard extends StatelessWidget {
             children: [
               Text(
                 '${start.day} ${DateTimeUtils.months[start.month - 1]}',
-                style: theme.textTheme.labelSmall?.copyWith(color: c.muted),
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: colors.onSurfaceVariant,
+                ),
               ),
               const Spacer(),
               if (daysLeft != null)
                 Text(
                   daysLeft == 1 ? '1 day left' : '$daysLeft days left',
                   style: theme.textTheme.labelSmall?.copyWith(
-                    color: c.text,
+                    color: colors.onSurface,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
               const Spacer(),
               Text(
                 '${end.day} ${DateTimeUtils.months[end.month - 1]}',
-                style: theme.textTheme.labelSmall?.copyWith(color: c.muted),
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: colors.onSurfaceVariant,
+                ),
               ),
             ],
           ),
@@ -372,11 +390,11 @@ class _ReceiptSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final c = PlanColors.of(context);
+    final colors = context.colors;
     final p = payment;
     final ok = p.isSuccess;
     final danger = theme.colorScheme.error;
-    final accent = ok ? c.success : danger;
+    final accent = ok ? context.successColor : danger;
     final id = p.providerPaymentId;
 
     return SafeArea(
@@ -389,7 +407,9 @@ class _ReceiptSheet extends StatelessWidget {
             height: 52,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: ok ? c.successSoft : danger.withValues(alpha: 0.12),
+              color: ok
+                  ? context.successContainer
+                  : danger.withValues(alpha: 0.12),
             ),
             child: Icon(
               ok ? Icons.check_rounded : Icons.close_rounded,
@@ -401,7 +421,7 @@ class _ReceiptSheet extends StatelessWidget {
           Text(
             PackageFormat.price(p.amountMinor, currency: p.currency),
             style: theme.textTheme.headlineMedium?.copyWith(
-              color: ok ? c.text : c.muted,
+              color: ok ? colors.onSurface : colors.onSurfaceVariant,
               fontWeight: FontWeight.w700,
             ),
           ),
@@ -411,7 +431,7 @@ class _ReceiptSheet extends StatelessWidget {
                 ? 'Paid · ${BillingFormat.fullDayTime(p.date)}'
                 : 'Payment failed · ${BillingFormat.fullDayTime(p.date)}',
             style: theme.textTheme.bodySmall?.copyWith(
-              color: ok ? c.muted : danger,
+              color: ok ? colors.onSurfaceVariant : danger,
             ),
           ),
           const SizedBox(height: 18),
@@ -445,7 +465,12 @@ class _ReceiptSheet extends StatelessWidget {
           if (id != null)
             DecoratedBox(
               decoration: BoxDecoration(
-                border: Border(top: BorderSide(color: c.band, width: 8)),
+                border: Border(
+                  top: BorderSide(
+                    color: colors.surfaceContainerHighest,
+                    width: 8,
+                  ),
+                ),
               ),
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(20, 14, 20, 16),
@@ -453,8 +478,8 @@ class _ReceiptSheet extends StatelessWidget {
                   onPressed: () => _copy(context, id),
                   style: OutlinedButton.styleFrom(
                     minimumSize: const Size(double.infinity, 48),
-                    foregroundColor: c.text,
-                    side: BorderSide(color: c.border),
+                    foregroundColor: colors.onSurface,
+                    side: BorderSide(color: colors.outlineVariant),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
@@ -493,17 +518,21 @@ class _DetailRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final c = PlanColors.of(context);
+    final colors = context.colors;
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 11),
       decoration: BoxDecoration(
-        border: first ? null : Border(top: BorderSide(color: c.border)),
+        border: first
+            ? null
+            : Border(top: BorderSide(color: colors.outlineVariant)),
       ),
       child: Row(
         children: [
           Text(
             label,
-            style: theme.textTheme.bodyMedium?.copyWith(color: c.muted),
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: colors.onSurfaceVariant,
+            ),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -513,7 +542,7 @@ class _DetailRow extends StatelessWidget {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: theme.textTheme.bodyMedium?.copyWith(
-                color: c.text,
+                color: colors.onSurface,
                 fontFamily: mono ? 'monospace' : null,
                 fontSize: mono ? 13 : null,
               ),
@@ -524,7 +553,11 @@ class _DetailRow extends StatelessWidget {
             InkResponse(
               onTap: onCopy,
               radius: 18,
-              child: Icon(Icons.copy_rounded, size: 16, color: c.muted),
+              child: Icon(
+                Icons.copy_rounded,
+                size: 16,
+                color: colors.onSurfaceVariant,
+              ),
             ),
           ],
         ],
@@ -591,16 +624,17 @@ class _Chip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final c = PlanColors.of(context);
+    final colors = context.colors;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
       decoration: BoxDecoration(
-        color: c.panel,
+        color: colors.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(20),
       ),
       child: Text(
         label,
-        style: Theme.of(context).textTheme.labelSmall?.copyWith(color: c.muted),
+        style: Theme.of(context).textTheme.labelSmall
+            ?.copyWith(color: colors.onSurfaceVariant),
       ),
     );
   }

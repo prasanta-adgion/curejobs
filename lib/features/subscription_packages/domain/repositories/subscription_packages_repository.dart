@@ -25,4 +25,6 @@ abstract interface class SubscriptionPackagesRepository {
   });
 
   Future<Result<void>> selectPlan(String packageId);
+
+  Future<Result<void>> cancelAutoRenew(String subscriptionId);
 }

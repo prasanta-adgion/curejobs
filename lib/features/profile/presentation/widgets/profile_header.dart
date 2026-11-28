@@ -135,7 +135,7 @@ class _CandidateDetails extends StatelessWidget {
                 child: Icon(
                   Icons.verified,
                   size: 20,
-                  color: AppColors.darkPrimary,
+                  color: AppColors.successDark,
                 ),
               ),
             ],

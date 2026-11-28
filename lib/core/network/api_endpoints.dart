@@ -13,6 +13,7 @@ class ApiEndpoints {
   static const String jobsRecommended = 'api/v1/jobs/recommended';
   static const String unreadNotifications = 'api/v1/notifications/unread-count';
   static const String logout = 'api/v1/auth/logout';
+  static const String deleteAccount = "api/v1/me/account";
   static String specializationsByCategory({required String categoryId}) =>
       'api/v1/categories/$categoryId/specializations';
 
@@ -79,7 +80,12 @@ class ApiEndpoints {
 
   //plans
   static const String packages = 'api/v1/packages';
-  static const String currentPlan = 'api/v1/subscriptions/me';
+  static const String currentSubscriptionPlan = 'api/v1/subscriptions/me';
+  static const String me = 'api/v1/me';
+  static String purchase(String id) => '$purchases/$id';
+  static String paymentDetails(String id) => '$subscribeToPlan/$id';
+  static String cancelAutoRenew(String id) =>
+      'api/v1/subscriptions/$id/cancel-autorenew';
 
   static const String subscribeToPlan = 'api/v1/payments/me';
   static const String planHistory = 'api/v1/subscriptions/me/history';
@@ -117,16 +123,27 @@ class ApiEndpoints {
 
   //candidate verification
 
+  static const String verification = "api/v1/verifications";
+  static const String verificationEligible = "api/v1/verifications/eligibility";
+
   static const String documentTypes = 'api/v1/verifications/document-types';
 
-  static String documentTypeById({required String id}) =>
+  static String documentUpload({required String id}) =>
       'api/v1/verifications/$id/documents';
+
+  static String submitDocument({required String id}) =>
+      "api/v1/verifications/$id/submit";
 
   static const String verificationEligibility =
       'api/v1/verifications/eligibility';
 
   static const String candidateVerification = 'api/v1/verifications/me';
 
-  static String rejectionReason({required String id}) =>
+  static String documentVerificationStatus({required String id}) =>
       'api/v1/verifications/$id';
+
+  static String deleteDocument({
+    required String documentDeleteId,
+    required String id,
+  }) => "api/v1/verifications/$id/documents/$documentDeleteId";
 }

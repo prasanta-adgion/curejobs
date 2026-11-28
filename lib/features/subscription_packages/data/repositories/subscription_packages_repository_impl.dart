@@ -62,4 +62,9 @@ class SubscriptionPackagesRepositoryImpl
   Future<Result<void>> selectPlan(String packageId) {
     return Result.guard(() => _remote.selectPlan(packageId));
   }
+
+  @override
+  Future<Result<void>> cancelAutoRenew(String subscriptionId) {
+    return Result.guard(() => _remote.cancelAutoRenew(subscriptionId));
+  }
 }

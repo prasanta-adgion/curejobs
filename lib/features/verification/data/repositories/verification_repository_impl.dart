@@ -1,6 +1,8 @@
 import '../../../../core/result/result.dart';
+import '../../domain/entities/candidate_verification.dart';
 import '../../domain/entities/verification_document_type.dart';
 import '../../domain/entities/verification_eligibility.dart';
+import '../../domain/entities/verification_request_detail.dart';
 import '../../domain/repositories/verification_repository.dart';
 import '../datasources/verification_remote_data_source.dart';
 
@@ -20,7 +22,17 @@ class VerificationRepositoryImpl implements VerificationRepository {
   }
 
   @override
-  Future<Result<void>> submitDocument({
+  Future<Result<CandidateVerification>> getMyVerification() {
+    return Result.guard(_remote.getMyVerification);
+  }
+
+  @override
+  Future<Result<VerificationRequest>> createRequest() {
+    return Result.guard(_remote.createRequest);
+  }
+
+  @override
+  Future<Result<void>> addDocument({
     required String verificationId,
     required String documentTypeId,
     required String fileId,
@@ -30,6 +42,37 @@ class VerificationRepositoryImpl implements VerificationRepository {
         verificationId: verificationId,
         documentTypeId: documentTypeId,
         fileId: fileId,
+      ),
+    );
+  }
+
+  @override
+  Future<Result<VerificationRequestDetail>> getRequestDetail({
+    required String verificationId,
+  }) {
+    return Result.guard(
+      () => _remote.getRequestDetail(verificationId: verificationId),
+    );
+  }
+
+  @override
+  Future<Result<VerificationRequestDetail>> submitForReview({
+    required String verificationId,
+  }) {
+    return Result.guard(
+      () => _remote.submitForReview(verificationId: verificationId),
+    );
+  }
+
+  @override
+  Future<Result<void>> deleteDocument({
+    required String verificationId,
+    required String documentId,
+  }) {
+    return Result.guard(
+      () => _remote.deleteDocument(
+        verificationId: verificationId,
+        documentId: documentId,
       ),
     );
   }
