@@ -18,6 +18,10 @@ class Purchase extends Equatable {
   final String currency;
   final String? providerSubscriptionId;
 
+  bool get isPaid => status.toUpperCase() == 'PAID';
+  bool get isUnsuccessful =>
+      const {'FAILED', 'CANCELLED', 'EXPIRED'}.contains(status.toUpperCase());
+
   @override
   List<Object?> get props => [id, status, providerSubscriptionId];
 }

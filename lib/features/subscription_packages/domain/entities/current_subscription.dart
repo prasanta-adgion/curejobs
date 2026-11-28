@@ -46,8 +46,28 @@ class CurrentSubscription extends Equatable {
   final Map<String, bool> features;
 
   bool get isActive => status == 'ACTIVE';
+  bool get isSelectedPlan => isActive && source != 'SYSTEM_FALLBACK';
+
+  /// A plan the user paid for, so the auto-pay row is shown.
+  bool get isPaidPurchase => isActive && !isFree && source == 'PAID_PURCHASE';
+
+  /// Will be charged again on [expiresAt].
+  bool get isAutoPayOn => autoRenew && !cancelAtPeriodEnd;
+
+  bool get canCancelAutoRenew =>
+      isActive &&
+      !isFree &&
+      source == 'PAID_PURCHASE' &&
+      autoRenew &&
+      !cancelAtPeriodEnd &&
+      id.isNotEmpty &&
+      (providerSubscriptionId?.isNotEmpty ?? false);
 
   bool get isFree => package.isFree;
+
+  /// Users on an active paid plan can't move down to a free plan.
+  bool canSwitchTo(SubscriptionPackage target) =>
+      !(target.isFree && isActive && !isFree);
 
   bool has(String feature) => features[feature] ?? false;
 
@@ -70,6 +90,10 @@ class CurrentSubscription extends Equatable {
     id,
     package,
     status,
+    source,
+    providerSubscriptionId,
+    autoRenew,
+    cancelAtPeriodEnd,
     expiresAt,
     maxResumes,
     monthlyApplications,

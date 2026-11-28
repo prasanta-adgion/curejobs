@@ -1,5 +1,6 @@
 import '../../../../core/result/result.dart';
 import '../../domain/entities/current_subscription.dart';
+import '../../domain/entities/package_request.dart';
 import '../../domain/entities/purchase.dart';
 import '../../domain/entities/subscription_package.dart';
 import '../../domain/repositories/subscription_packages_repository.dart';
@@ -61,5 +62,25 @@ class SubscriptionPackagesRepositoryImpl
   @override
   Future<Result<void>> selectPlan(String packageId) {
     return Result.guard(() => _remote.selectPlan(packageId));
+  }
+
+  @override
+  Future<Result<void>> cancelAutoRenew(String subscriptionId) {
+    return Result.guard(() => _remote.cancelAutoRenew(subscriptionId));
+  }
+
+  @override
+  Future<Result<void>> requestPackage({
+    required String packageId,
+    String? message,
+  }) {
+    return Result.guard(
+      () => _remote.requestPackage(packageId: packageId, message: message),
+    );
+  }
+
+  @override
+  Future<Result<List<PackageRequest>>> getPackageRequests() {
+    return Result.guard(_remote.getPackageRequests);
   }
 }

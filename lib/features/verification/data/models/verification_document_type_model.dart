@@ -19,11 +19,10 @@ class VerificationDocumentTypeModel extends VerificationDocumentType {
   }
 
   /// Reads `{data: [{id, code, name, isRequired}, ...]}`.
-  static List<VerificationDocumentType> listFromJson(Object? json) {
-    final root = JsonParser.map(json);
-    final items = JsonParser.list(
-      root.containsKey('data') ? root['data'] : json,
-    );
+  static List<VerificationDocumentTypeModel> listFromJson(Object? json) {
+    final root = json as Map<String, dynamic>;
+    final items = JsonParser.list(root['data']);
+
     return [
       for (final item in items)
         if (item is Map<String, dynamic>)

@@ -42,6 +42,12 @@ abstract final class SubscriptionPackageModel {
         for (final o in JsonParser.list(json['billingOptions']))
           if (o is Map<String, dynamic>) _billing(o),
       ],
+      billingPeriod: JsonParser.nullableString(json['billingPeriod']),
+      providerPlanConfigured: JsonParser.boolean(
+        json['providerPlanConfigured'],
+      ),
+      requestAvailable: JsonParser.boolean(json['requestAvailable']),
+      contactAvailable: JsonParser.boolean(json['contactAvailable']),
     );
   }
 

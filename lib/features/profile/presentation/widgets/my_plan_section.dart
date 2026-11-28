@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import 'package:curejobs/core/utils/extensions/theme_extensions.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../app/di/injection_container.dart';
@@ -82,7 +84,7 @@ class _PlanCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
-    final c = PlanColors.of(context);
+    final colors = context.colors;
     final s = subscription;
     final end = s.expiresAt;
     final ending = s.isEndingSoon;
@@ -141,7 +143,7 @@ class _PlanCard extends StatelessWidget {
                 TextButton(
                   onPressed: onTap,
                   style: TextButton.styleFrom(
-                    foregroundColor: c.accentText,
+                    foregroundColor: colors.primary,
                     padding: const EdgeInsets.only(left: 8),
                     minimumSize: const Size(0, 32),
                     tapTargetSize: MaterialTapTargetSize.shrinkWrap,
@@ -152,7 +154,7 @@ class _PlanCard extends StatelessWidget {
                       Text(
                         action,
                         style: theme.textTheme.bodyMedium?.copyWith(
-                          color: c.accentText,
+                          color: colors.primary,
                           fontWeight: FontWeight.w600,
                         ),
                       ),

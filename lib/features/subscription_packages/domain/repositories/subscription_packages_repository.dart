@@ -1,5 +1,6 @@
 import '../../../../core/result/result.dart';
 import '../entities/current_subscription.dart';
+import '../entities/package_request.dart';
 import '../entities/purchase.dart';
 import '../entities/subscription_package.dart';
 
@@ -25,4 +26,13 @@ abstract interface class SubscriptionPackagesRepository {
   });
 
   Future<Result<void>> selectPlan(String packageId);
+
+  Future<Result<void>> cancelAutoRenew(String subscriptionId);
+
+  Future<Result<void>> requestPackage({
+    required String packageId,
+    String? message,
+  });
+
+  Future<Result<List<PackageRequest>>> getPackageRequests();
 }

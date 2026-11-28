@@ -1,355 +1,262 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../app/di/injection_container.dart';
-import '../../../../app/theme/app_colors.dart';
-import '../../../../core/error/failure.dart';
-import '../../../../core/services/picked_file.dart';
-import '../../domain/entities/verification_eligibility.dart';
-import '../../domain/usecases/get_document_types_usecase.dart';
-import '../../domain/usecases/get_verification_eligibility_usecase.dart';
-import '../../domain/usecases/submit_verification_documents_usecase.dart';
 import '../../../../core/widgets/app_error_view.dart';
+import '../../../media_preview/presentation/models/media_file_type.dart';
+import '../../../media_preview/presentation/pages/file_viewer_page.dart';
 import '../../../subscription_packages/domain/entities/current_subscription.dart';
 import '../../../subscription_packages/domain/entities/subscription_package.dart';
 import '../../../subscription_packages/presentation/bloc/current_plan_bloc.dart';
 import '../../../subscription_packages/presentation/pages/subscription_packages_page.dart';
 import '../../../subscription_packages/presentation/widgets/package_widgets.dart'
     show PackageFormat;
-import '../../../../shared/widgets/app_back_button.dart';
-import '../../../profile/shared/widgets/profile_section.dart';
 import '../../domain/entities/verification_document_type.dart';
-import '../widgets/document_source_sheet.dart';
-import '../widgets/document_upload_section.dart';
-import '../widgets/verification_parts.dart';
+import '../../domain/entities/verification_request_detail.dart';
+import '../bloc/verification_bloc.dart';
+import '../widgets/common/verification_bottom_bar.dart';
+import '../widgets/common/verification_scaffold.dart';
+import '../widgets/delete_document_dialog.dart';
+import '../widgets/documents/added_document.dart';
+import '../widgets/steps/badge_step.dart';
+import '../widgets/steps/documents_step.dart';
+import '../widgets/steps/plan_step.dart';
+import '../widgets/steps/review_step.dart';
+import '../widgets/steps/start_step.dart';
 import '../widgets/verification_stepper.dart';
 
-/// "Get verified": Plan → Documents → Review → Badge. Loads its own data and
-/// handles its own actions; the fields below get filled once the APIs are
-/// connected.
-class VerificationPage extends StatefulWidget {
+/// "Get verified": Plan → Documents → Review → Badge.
+///
+/// UI only. [CurrentPlanBloc] says whether the user has a plan with the
+/// badge; [VerificationBloc] owns the rest of the flow (API calls, step
+/// rules). This page renders their state, asks for confirmation and
+/// navigates.
+class VerificationPage extends StatelessWidget {
   const VerificationPage({super.key});
 
   @override
-  State<VerificationPage> createState() => _VerificationPageState();
+  Widget build(BuildContext context) {
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider(
+          create: (_) =>
+              sl<CurrentPlanBloc>()..add(const CurrentPlanRequested()),
+        ),
+        BlocProvider(create: (_) => sl<VerificationBloc>()),
+      ],
+      child: const _VerificationView(),
+    );
+  }
 }
 
-class _VerificationPageState extends State<VerificationPage> {
-  late final CurrentPlanBloc _planBloc = sl<CurrentPlanBloc>()
-    ..add(const CurrentPlanRequested());
+/// An active plan that includes the verified badge.
+bool _hasVerificationPlan(CurrentSubscription? s) =>
+    s != null && s.isActive && s.has(PackageFeature.verifiedBadge);
 
-  /// Whether the document types have been loaded. The documents step shows
-  /// the "Start verification" card until they have.
-  final ValueNotifier<_TypesLoad> _typesLoad = ValueNotifier(
-    const _TypesLoad.idle(),
-  );
+String? _date(DateTime? d) => d == null ? null : PackageFormat.date(d);
 
-  @override
-  void dispose() {
-    _planBloc.close();
-    _typesLoad.dispose();
-    super.dispose();
-  }
-
-  /// "Start verification": loads the document types, then the upload form
-  /// replaces the start card. Ignored while a load is already running.
-  Future<void> _startVerification() async {
-    if (_typesLoad.value.isLoading) return;
-    _typesLoad.value = const _TypesLoad.loading();
-    final result = await sl<GetDocumentTypesUseCase>()();
-    if (!mounted) return;
-    result.fold((types) {
-      documentTypes = types;
-      _typesLoad.value = const _TypesLoad.loaded();
-    }, (f) => _typesLoad.value = _TypesLoad.failed(f.message));
-  }
-
-  /// An active plan that includes the verified badge.
-  static bool _hasVerificationPlan(CurrentSubscription? s) =>
-      s != null && s.isActive && s.has(PackageFeature.verifiedBadge);
-
-  // Eligibility is loaded after the plan, only when the plan has the badge.
-  VerificationEligibility? _eligibility;
-  Failure? _eligibilityFailure;
-  bool _loadingEligibility = false;
-
-  Future<void> _loadEligibility() async {
-    setState(() {
-      _loadingEligibility = true;
-      _eligibilityFailure = null;
-    });
-    // Document types load later, when the user taps "Start verification".
-    final result = await sl<GetVerificationEligibilityUseCase>()();
-    if (!mounted) return;
-    setState(() {
-      _loadingEligibility = false;
-      result.fold((e) => _eligibility = e, (f) => _eligibilityFailure = f);
-    });
-    // The review step lists sent documents by type name, so load the types
-    // quietly there; no start card is involved.
-    final e = _eligibility;
-    if (e != null &&
-        _stepFor(e) == VerificationStep.review &&
-        !_typesLoad.value.isLoaded) {
-      _startVerification();
-    }
-  }
-
-  /// Purchase needed → plan; badge live → badge; documents sent or approved
-  /// → review; not sent or rejected → upload documents.
-  static VerificationStep _stepFor(VerificationEligibility e) {
-    if (e.requiresPurchase) return VerificationStep.plan;
-    if (e.badgeActive) return VerificationStep.badge;
-    return switch (e.documentStatus) {
-      VerificationDocumentStatus.pending ||
-      VerificationDocumentStatus.approved => VerificationStep.review,
-      VerificationDocumentStatus.notSubmitted ||
-      VerificationDocumentStatus.rejected => VerificationStep.documents,
-    };
-  }
-
-  String planName = 'Advanced';
-  String planPrice = '₹49';
-  String planPeriod = '30 days';
-  List<String> planBenefits = const [
-    'Verified badge',
-    'Profile and resume visibility',
-    'Job alerts',
-  ];
-  String? planActiveUntil;
-
-  List<VerificationDocumentType> documentTypes = const [];
-
-  /// Files already sent, keyed by document type id (review step).
-  Map<String, PickedFile> submittedFiles = const {};
-  String? submittedAt;
-  String? expectedBy;
-
-  String? verifiedAt;
-  String? profileName;
-  String? profileSubtitle;
-  bool autoRenew = true;
-
-  /// Opens the plans page, then reloads the plan in case it changed.
-  Future<void> onUpgrade() async {
-    await Navigator.of(context).push(SubscriptionPackagesPage.route());
-    if (!mounted) return;
-    // Recheck both: the plan may have changed, and with it eligibility.
-    setState(() => _eligibility = null);
-    _planBloc.add(const CurrentPlanRequested());
-  }
-
-  Future<void> onComparePlans() => onUpgrade();
-
-  // TODO: pick with ImagePickerService / DocumentPickerService.
-  Future<PickedFile?> onPickDocument(
-    VerificationDocumentType type,
-    DocumentSource source,
-  ) async => null;
-
-  bool _submitting = false;
-
-  /// Files are already uploaded when added; this attaches each one to the
-  /// current verification request, then reloads eligibility to move on to
-  /// the review step.
-  Future<void> onSubmit(List<AddedDocument> documents) async {
-    final verificationId = _eligibility?.currentRequest?.id;
-    final messenger = ScaffoldMessenger.of(context);
-    if (verificationId == null) {
-      messenger.showSnackBar(
-        const SnackBar(content: Text('No verification request found.')),
-      );
-      return;
-    }
-    setState(() => _submitting = true);
-    // One call per document; stop at the first failure.
-    final submit = sl<SubmitVerificationDocumentsUseCase>();
-    for (final d in List.of(documents)) {
-      final result = await submit(
-        verificationId: verificationId,
-        documentTypeId: d.type.id,
-        fileId: d.fileId,
-      );
-      if (!mounted) return;
-      final failure = result.failureOrNull;
-      if (failure != null) {
-        setState(() => _submitting = false);
-        messenger.showSnackBar(SnackBar(content: Text(failure.message)));
-        return;
-      }
-      // Sent: drop it so a retry doesn't attach it twice.
-      submittedFiles = {...submittedFiles, d.type.id: d.file};
-      _added.remove(d);
-    }
-    setState(() => _submitting = false);
-    _loadEligibility();
-  }
-
-  // TODO: open the profile page.
-  void onViewProfile() {}
-
-  /// Documents added in the upload step, each with its type.
-  final List<AddedDocument> _added = [];
-
-  List<VerificationDocumentType> get _missingRequired {
-    final addedIds = {for (final d in _added) d.type.id};
-    return documentTypes
-        .where((t) => t.isRequired && !addedIds.contains(t.id))
-        .toList();
-  }
-
-  bool get _canSubmit => _added.isNotEmpty && _missingRequired.isEmpty;
-
-  Future<PickedFile?> _pick(VerificationDocumentType type) async {
-    final source = await showDocumentSourceSheet(
-      context,
-      documentName: type.name,
-    );
-    if (source == null || !mounted) return null;
-    return onPickDocument(type, source);
-  }
+class _VerificationView extends StatelessWidget {
+  const _VerificationView();
 
   @override
   Widget build(BuildContext context) {
-    return BlocConsumer<CurrentPlanBloc, CurrentPlanState>(
-      bloc: _planBloc,
-      listenWhen: (prev, curr) =>
-          curr.status == CurrentPlanStatus.success &&
-          prev.status != CurrentPlanStatus.success,
-      listener: (context, state) {
-        if (_hasVerificationPlan(state.subscription)) _loadEligibility();
-      },
-      builder: (context, state) {
-        final s = state.subscription;
-        if (s == null) {
-          return _scaffold(
-            subtitle: 'Checking your plan',
-            body: state.status == CurrentPlanStatus.failure
-                ? AppErrorView(
-                    failure: state.failure!,
-                    onRetry: () => _planBloc.add(const CurrentPlanRequested()),
-                  )
-                : const Center(child: CircularProgressIndicator()),
-          );
-        }
-        if (!_hasVerificationPlan(s)) return _content(VerificationStep.plan);
-
-        planName = PackageFormat.shortName(s.package.name);
-        final end = s.expiresAt;
-        planActiveUntil = end == null ? null : PackageFormat.date(end);
-        autoRenew = s.autoRenew && !s.cancelAtPeriodEnd;
-
-        final e = _eligibility;
-        if (e == null) {
-          final failure = _eligibilityFailure;
-          return _scaffold(
-            subtitle: 'Checking your verification',
-            body: failure != null && !_loadingEligibility
-                ? AppErrorView(failure: failure, onRetry: _loadEligibility)
-                : const Center(child: CircularProgressIndicator()),
-          );
-        }
-        final sent = e.currentRequest?.submittedAt;
-        submittedAt = sent == null ? null : PackageFormat.date(sent.toLocal());
-        final step = _stepFor(e);
-        if (step != VerificationStep.documents) return _content(step);
-        // Rebuild the documents step as the start card's load state changes.
-        return ValueListenableBuilder<_TypesLoad>(
-          valueListenable: _typesLoad,
-          builder: (context, _, _) => _content(step),
-        );
-      },
-    );
-  }
-
-  Widget _scaffold({
-    required String subtitle,
-    required Widget body,
-    Widget? bottomBar,
-  }) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-
-    return Scaffold(
-      backgroundColor: scheme.surfaceContainerHighest,
-      appBar: AppBar(
-        leading: AppBackButton.leadingOf(context, color: AppColors.white),
-        titleSpacing: 0,
-        backgroundColor: AppColors.logoNavy,
-        surfaceTintColor: Colors.transparent,
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Get verified',
-              style: TextStyle(color: AppColors.white),
-            ),
-            Text(
-              subtitle,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: AppColors.darkTextSecondary,
-              ),
-            ),
-          ],
+    return MultiBlocListener(
+      listeners: [
+        // Plan confirmed → load the verification.
+        BlocListener<CurrentPlanBloc, CurrentPlanState>(
+          listenWhen: (prev, curr) =>
+              curr.status == CurrentPlanStatus.success &&
+              prev.status != CurrentPlanStatus.success,
+          listener: (context, state) {
+            if (_hasVerificationPlan(state.subscription)) {
+              context.read<VerificationBloc>().add(
+                const VerificationLoadRequested(),
+              );
+            }
+          },
         ),
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(1),
-          child: Divider(height: 1, color: scheme.outlineVariant),
+        // One-off errors.
+        BlocListener<VerificationBloc, VerificationState>(
+          listenWhen: (_, curr) => curr.message != null,
+          listener: (context, state) =>
+              ScaffoldMessenger.of(context)
+                  .showSnackBar(SnackBar(content: Text(state.message!))),
         ),
+      ],
+      child: BlocBuilder<CurrentPlanBloc, CurrentPlanState>(
+        builder: (context, planState) {
+          final plan = planState.subscription;
+          if (plan == null) return _PlanLoadingView(state: planState);
+          if (!_hasVerificationPlan(plan)) {
+            return const _StepView(step: VerificationStep.plan);
+          }
+          return BlocBuilder<VerificationBloc, VerificationState>(
+            builder: (context, state) {
+              final step = state.step;
+              if (step == null) return _VerificationLoadingView(state: state);
+              return _StepView(step: step, plan: plan);
+            },
+          );
+        },
       ),
-      body: body,
-      bottomNavigationBar: bottomBar,
     );
   }
+}
 
-  Widget _content(VerificationStep step) {
-    final scheme = Theme.of(context).colorScheme;
+class _PlanLoadingView extends StatelessWidget {
+  const _PlanLoadingView({required this.state});
 
-    final (subtitle, sections, bar) = switch (step) {
+  final CurrentPlanState state;
+
+  @override
+  Widget build(BuildContext context) {
+    final failure = state.failure;
+    return VerificationScaffold(
+      subtitle: 'Checking your plan',
+      body: state.status == CurrentPlanStatus.failure && failure != null
+          ? AppErrorView(
+              failure: failure,
+              onRetry: () => context.read<CurrentPlanBloc>().add(
+                const CurrentPlanRequested(),
+              ),
+            )
+          : const Center(child: CircularProgressIndicator()),
+    );
+  }
+}
+
+class _VerificationLoadingView extends StatelessWidget {
+  const _VerificationLoadingView({required this.state});
+
+  final VerificationState state;
+
+  @override
+  Widget build(BuildContext context) {
+    final failure = state.failure;
+    return VerificationScaffold(
+      subtitle: 'Checking your verification',
+      body: state.status == VerificationStatus.failure && failure != null
+          ? AppErrorView(
+              failure: failure,
+              onRetry: () => context.read<VerificationBloc>().add(
+                const VerificationLoadRequested(),
+              ),
+            )
+          : const Center(child: CircularProgressIndicator()),
+    );
+  }
+}
+
+/// Stepper + the step's body + its bottom-bar action, in the shared frame.
+class _StepView extends StatelessWidget {
+  const _StepView({required this.step, this.plan});
+
+  final VerificationStep step;
+
+  /// The user's plan; null on the plan step (they have none with the badge).
+  final CurrentSubscription? plan;
+
+  @override
+  Widget build(BuildContext context) {
+    // The plan step needs no verification data.
+    final state = step == VerificationStep.plan
+        ? const VerificationState()
+        : context.watch<VerificationBloc>().state;
+    final actions = _Actions(context, state);
+
+    // Already started: skip the start card, spin until the form is ready.
+    // On failure the start card shows the error and Retry.
+    final load = state.typesLoad;
+    if (step == VerificationStep.documents &&
+        state.alreadyStarted &&
+        !load.isLoaded &&
+        load.error == null) {
+      return const VerificationScaffold(
+        subtitle: 'Upload documents for review',
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    final planName = plan == null
+        ? null
+        : PackageFormat.shortName(plan!.package.name);
+    final planActiveUntil = _date(plan?.expiresAt);
+
+    final (subtitle, body, bar) = switch (step) {
       VerificationStep.plan => (
         'Upgrade to unlock your badge',
-        _planSections(),
-        VerificationBottomBar(label: 'Upgrade plan', onPressed: onUpgrade),
-      ),
-      VerificationStep.documents when !_typesLoad.value.isLoaded => (
-        'Upload documents for review',
-        _startSections(),
+        PlanStep(onComparePlans: actions.upgrade),
         VerificationBottomBar(
-          label: _typesLoad.value.isLoading
+          label: 'Upgrade plan',
+          onPressed: actions.upgrade,
+        ),
+      ),
+      VerificationStep.documents when !load.isLoaded => (
+        'Upload documents for review',
+        StartStep(
+          planName: planName,
+          planActiveUntil: planActiveUntil,
+          error: load.error,
+          onRetry: actions.start,
+        ),
+        VerificationBottomBar(
+          label: load.isLoading
               ? 'Getting things ready…'
               : 'Start verification',
-          loading: _typesLoad.value.isLoading,
+          loading: load.isLoading,
           trailingIcon: Icons.arrow_forward_rounded,
-          onPressed: _typesLoad.value.isLoading ? null : _startVerification,
-          helper: _typesLoad.value.isLoading
+          onPressed: load.isLoading ? null : actions.start,
+          helper: load.isLoading
               ? 'Loading document types'
               : 'You can stop and come back anytime',
         ),
       ),
       VerificationStep.documents => (
         'Upload documents for review',
-        _documentSections(),
+        DocumentsStep(
+          planName: planName,
+          planActiveUntil: planActiveUntil,
+          types: state.documentTypes,
+          documents: state.documents,
+          isDraft: state.request?.isDraft ?? false,
+          rejectionReason: state.request?.rejectionReason,
+          fileNames: state.fileNames,
+          deletingIds: state.deletingIds,
+          onView: actions.view,
+          onDelete: actions.delete,
+          onUpload: actions.attach,
+        ),
+        // Off until a document is attached to the request.
         VerificationBottomBar(
-          label: _submitting
-              ? 'Submitting…'
-              : _added.isEmpty
-              ? 'Submit for review'
-              : 'Submit ${_added.length} '
-                    '${_added.length == 1 ? 'document' : 'documents'}',
-          onPressed: _canSubmit && !_submitting
-              ? () => onSubmit(List.of(_added))
+          label: state.submitting ? 'Submitting…' : 'Submit for review',
+          loading: state.submitting,
+          onPressed: state.hasActiveDocument && !state.submitting
+              ? actions.submit
               : null,
-          helper: _canSubmit
+          helper: state.hasActiveDocument
               ? 'Review usually takes up to 2 working days'
-              : _missingRequired.isNotEmpty
-              ? 'Add ${_missingRequired.map((t) => t.name).join(', ')} '
-                    'to continue'
-              : 'Add a document to continue',
+              : 'Upload a document to continue',
         ),
       ),
       VerificationStep.review => (
         'Waiting for admin review',
-        _reviewSections(),
+        ReviewStep(
+          types: state.documentTypes,
+          documents: state.documents,
+          rejectionReason: state.request?.rejectionReason,
+          fileNames: state.fileNames,
+          deletingIds: state.deletingIds,
+          onView: actions.view,
+          onDelete: actions.delete,
+          reviewedAt: _date(state.request?.reviewedAt?.toLocal()),
+          submittedAt: _date(
+            (state.request?.submittedAt ??
+                    state.eligibility?.currentRequest?.submittedAt)
+                ?.toLocal(),
+          ),
+        ),
         VerificationBottomBar(
           label: 'Back to profile',
           outlined: true,
@@ -358,418 +265,88 @@ class _VerificationPageState extends State<VerificationPage> {
       ),
       VerificationStep.badge => (
         'Your badge is active',
-        _badgeSections(),
+        BadgeStep(
+          autoRenew:
+              (plan?.autoRenew ?? false) && !(plan?.cancelAtPeriodEnd ?? false),
+          verifiedAt: _date(
+            state.myVerification?.documentVerifiedAt?.toLocal(),
+          ),
+          planActiveUntil: planActiveUntil,
+        ),
+        // TODO: open the profile page.
         VerificationBottomBar(
           label: 'View my profile',
-          onPressed: onViewProfile,
+          onPressed: () => Navigator.of(context).maybePop(),
         ),
       ),
     };
 
-    return _scaffold(
+    return VerificationScaffold(
       subtitle: subtitle,
       body: ListView(
         padding: const EdgeInsets.only(bottom: 24),
-        // Each section on white; the grey page shows as the bands.
         children: [
-          for (final section in [
-            VerificationStepper(current: step),
-            ...sections,
-          ])
-            Material(color: scheme.surface, child: section),
+          VerificationSections(children: [VerificationStepper(current: step)]),
+          body,
         ],
       ),
       bottomBar: bar,
     );
   }
-
-  // ── Step 1: plan ──────────────────────────────────────────────────────────
-
-  List<Widget> _planSections() {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-
-    return [
-      ProfileSection(
-        title: 'Why verify',
-        child: const VerificationHero(
-          icon: Icons.verified_outlined,
-          title: 'Stand out to recruiters',
-          subtitle: 'Verified profiles get a badge on every application.',
-        ),
-      ),
-      ProfileSection(
-        title: 'Recommended plan',
-        action: TextButton(
-          onPressed: onComparePlans,
-          child: const Text('Compare plans'),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Container(
-              padding: const EdgeInsets.only(bottom: 10),
-              decoration: BoxDecoration(
-                border: Border(
-                  bottom: BorderSide(color: scheme.outlineVariant),
-                ),
-              ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    planName,
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const Spacer(),
-                  Text(
-                    planPrice,
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  Text(
-                    ' / ${planPeriod}',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: scheme.onSurfaceVariant,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 6),
-            for (final b in planBenefits) VerificationCheckLine(b),
-          ],
-        ),
-      ),
-    ];
-  }
-
-  // ── Step 2: documents ─────────────────────────────────────────────────────
-
-  /// Green "plan active" note at the top of the documents step.
-  Widget _planActiveNote() {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
-      child: VerificationNote(
-        icon: Icons.check_circle_outline_rounded,
-        text: planActiveUntil == null
-            ? '${planName} plan active'
-            : '${planName} plan active · until '
-                  '${planActiveUntil}',
-        color: isDark ? AppColors.successDark : const Color(0xFF166534),
-        background: isDark
-            ? AppColors.success.withValues(alpha: 0.12)
-            : AppColors.successLight,
-      ),
-    );
-  }
-
-  /// Before "Start verification": plan note, start card, privacy.
-  List<Widget> _startSections() {
-    final load = _typesLoad.value;
-    return [
-      _planActiveNote(),
-      ProfileSection(
-        title: 'Before you start',
-        child: VerificationStartCard(
-          error: load.error,
-          onRetry: _startVerification,
-        ),
-      ),
-      _privacySection(),
-    ];
-  }
-
-  List<Widget> _documentSections() {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-    final types = documentTypes;
-
-    return [
-      _planActiveNote(),
-      if (types.isNotEmpty)
-        ProfileSection(
-          title: 'What to upload',
-          child: DocumentChecklist(types: types, added: _added),
-        ),
-      if (_added.isNotEmpty)
-        ProfileSection(
-          title: 'Added documents',
-          count: _added.length,
-          child: AddedDocumentList(
-            documents: _added,
-            onRemove: (d) => setState(() => _added.remove(d)),
-          ),
-        ),
-      ProfileSection(
-        title: 'Add a document',
-        child: types.isEmpty
-            ? Text(
-                'No document types are available right now.',
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: scheme.onSurfaceVariant,
-                ),
-              )
-            : AddDocumentForm(
-                types: types,
-                onPickFile: _pick,
-                onAdd: (d) => setState(() => _added.add(d)),
-              ),
-      ),
-      _privacySection(),
-    ];
-  }
-
-  Widget _privacySection() {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-    return ProfileSection(
-      title: 'Privacy',
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(
-            Icons.lock_outline_rounded,
-            size: 16,
-            color: scheme.onSurfaceVariant,
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              'Only our verification team sees your documents.',
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: scheme.onSurfaceVariant,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ── Step 3: review ────────────────────────────────────────────────────────
-
-  List<Widget> _reviewSections() {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-    final isDark = theme.brightness == Brightness.dark;
-    final amber = isDark ? AppColors.warning : const Color(0xFFB45309);
-    final amberBg = isDark
-        ? AppColors.warning.withValues(alpha: 0.15)
-        : AppColors.warningLight;
-    final sent = documentTypes
-        .where((t) => submittedFiles.containsKey(t.id))
-        .toList();
-
-    return [
-      ProfileSection(
-        title: 'Status',
-        child: VerificationHero(
-          icon: Icons.hourglass_top_rounded,
-          color: amber,
-          background: amberBg,
-          title: 'Under review',
-          subtitle: "Usually within 2 working days. We'll notify you.",
-        ),
-      ),
-      if (sent.isNotEmpty)
-        ProfileSection(
-          title: 'Submitted documents',
-          child: Column(
-            children: [
-              for (var i = 0; i < sent.length; i++)
-                Container(
-                  padding: const EdgeInsets.symmetric(vertical: 10),
-                  decoration: BoxDecoration(
-                    border: i < sent.length - 1
-                        ? Border(
-                            bottom: BorderSide(color: scheme.outlineVariant),
-                          )
-                        : null,
-                  ),
-                  child: Row(
-                    children: [
-                      const ProfileIconTile(icon: Icons.description_outlined),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              sent[i].name,
-                              style: theme.textTheme.bodyLarge?.copyWith(
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            Text(
-                              submittedFiles[sent[i].id]!.name,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: scheme.onSurfaceVariant,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      VerificationTag(
-                        label: 'In review',
-                        color: amber,
-                        background: amberBg,
-                      ),
-                    ],
-                  ),
-                ),
-            ],
-          ),
-        ),
-      if (submittedAt != null || expectedBy != null)
-        ProfileSection(
-          title: 'Timeline',
-          child: Column(
-            children: [
-              if (submittedAt != null)
-                VerificationInfoRow(
-                  label: 'Submitted',
-                  value: submittedAt!,
-                  showDivider: expectedBy != null,
-                ),
-              if (expectedBy != null)
-                VerificationInfoRow(
-                  label: 'Expected by',
-                  value: expectedBy!,
-                  showDivider: false,
-                ),
-            ],
-          ),
-        ),
-    ];
-  }
-
-  // ── Step 4: badge ─────────────────────────────────────────────────────────
-
-  List<Widget> _badgeSections() {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-    final isDark = theme.brightness == Brightness.dark;
-    final green = isDark ? AppColors.successDark : AppColors.success;
-    final greenBg = isDark
-        ? AppColors.success.withValues(alpha: 0.12)
-        : AppColors.successLight;
-
-    final details = [
-      if (verifiedAt != null) ('Verified on', verifiedAt!, null),
-      if (planActiveUntil != null) ('Active until', planActiveUntil!, null),
-      ('Renews', autoRenew ? 'Automatically' : 'Off', autoRenew ? green : null),
-    ];
-
-    return [
-      ProfileSection(
-        title: 'Badge',
-        child: VerificationHero(
-          icon: Icons.verified_outlined,
-          color: green,
-          background: greenBg,
-          title: "You're verified",
-          subtitle: 'Your badge shows on your profile and applications.',
-        ),
-      ),
-      if (profileName != null)
-        ProfileSection(
-          title: 'How recruiters see you',
-          child: Row(
-            children: [
-              CircleAvatar(
-                radius: 20,
-                backgroundColor: scheme.primaryContainer,
-                child: Text(
-                  _initials(profileName!),
-                  style: theme.textTheme.labelLarge?.copyWith(
-                    color: scheme.onPrimaryContainer,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Flexible(
-                          child: Text(
-                            profileName!,
-                            overflow: TextOverflow.ellipsis,
-                            style: theme.textTheme.bodyLarge?.copyWith(
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 4),
-                        Icon(Icons.verified, size: 18, color: scheme.primary),
-                      ],
-                    ),
-                    if (profileSubtitle != null)
-                      Text(
-                        profileSubtitle!,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: scheme.onSurfaceVariant,
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ProfileSection(
-        title: 'Details',
-        child: Column(
-          children: [
-            for (var i = 0; i < details.length; i++)
-              VerificationInfoRow(
-                label: details[i].$1,
-                value: details[i].$2,
-                valueColor: details[i].$3,
-                showDivider: i < details.length - 1,
-              ),
-          ],
-        ),
-      ),
-    ];
-  }
-
-  static String _initials(String name) {
-    final parts = name
-        .replaceFirst(RegExp(r'^Dr\.?\s*', caseSensitive: false), '')
-        .trim()
-        .split(RegExp(r'\s+'))
-        .where((p) => p.isNotEmpty)
-        .toList();
-    if (parts.isEmpty) return '';
-    if (parts.length == 1) return parts.first[0].toUpperCase();
-    return (parts.first[0] + parts.last[0]).toUpperCase();
-  }
 }
 
-/// Load state of the document types behind the "Start verification" card.
-class _TypesLoad {
-  const _TypesLoad.idle() : isLoading = false, isLoaded = false, error = null;
-  const _TypesLoad.loading() : isLoading = true, isLoaded = false, error = null;
-  const _TypesLoad.loaded() : isLoading = false, isLoaded = true, error = null;
-  const _TypesLoad.failed(String this.error)
-    : isLoading = false,
-      isLoaded = false;
+/// What the user can do on the page: UI work (dialogs, navigation) here,
+/// everything else forwarded to [VerificationBloc].
+class _Actions {
+  const _Actions(this.context, this.state);
 
-  final bool isLoading;
-  final bool isLoaded;
+  final BuildContext context;
+  final VerificationState state;
 
-  /// Set when the last load failed; shown on the start card.
-  final String? error;
+  VerificationBloc get _bloc => context.read<VerificationBloc>();
+
+  void start() => _bloc.add(const VerificationStartRequested());
+
+  void submit() => _bloc.add(const VerificationSubmitRequested());
+
+  /// Completes with whether the document was attached, so the upload form
+  /// knows to clear itself.
+  Future<bool> attach(AddedDocument document) {
+    final result = Completer<bool>();
+    _bloc.add(VerificationDocumentAttached(document, result));
+    return result.future;
+  }
+
+  Future<void> delete(VerificationDocument document) async {
+    final bloc = _bloc;
+    final confirmed = await showDeleteDocumentDialog(context);
+    if (confirmed) bloc.add(VerificationDocumentDeleted(document));
+  }
+
+  /// Opens the plans page, then rechecks the plan and the verification.
+  Future<void> upgrade() async {
+    final planBloc = context.read<CurrentPlanBloc>();
+    final bloc = _bloc;
+    await Navigator.of(context).push(SubscriptionPackagesPage.route());
+    planBloc.add(const CurrentPlanRequested());
+    bloc.add(const VerificationLoadRequested());
+  }
+
+  /// Opens the document full screen (PDF or image).
+  void view(VerificationDocument document) {
+    final fileName = state.fileNames[document.fileId];
+    final typeName = state.documentTypes
+        .where((t) => t.id == document.documentTypeId)
+        .firstOrNull
+        ?.name;
+    Navigator.of(context).push(
+      FileViewerPage.route(
+        fileId: document.fileId,
+        title: typeName ?? fileName ?? 'Document',
+        // Known for files uploaded in this session; otherwise the viewer
+        // works it out from the file URL.
+        type: fileName == null ? null : MediaFileType.fromName(fileName),
+      ),
+    );
+  }
 }

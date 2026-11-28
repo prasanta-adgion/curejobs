@@ -1,5 +1,6 @@
 import '../../../../core/utils/json_parser.dart';
 import '../../domain/entities/verification_eligibility.dart';
+import 'verification_request_model.dart';
 
 class VerificationEligibilityModel extends VerificationEligibility {
   const VerificationEligibilityModel({
@@ -14,52 +15,53 @@ class VerificationEligibilityModel extends VerificationEligibility {
     super.currentRequest,
   });
 
-  /// Reads `{data: {eligible, documentStatus, ..., currentVerificationRequest}}`.
-  factory VerificationEligibilityModel.fromJson(Object? json) {
-    final root = JsonParser.map(json);
-    final data = root.containsKey('data') ? JsonParser.map(root['data']) : root;
-    final request = JsonParser.map(data['currentVerificationRequest']);
-
+  factory VerificationEligibilityModel.fromJson(Map<String, dynamic> json) {
     return VerificationEligibilityModel(
-      eligible: JsonParser.boolean(data['eligible']),
-      documentStatus: _documentStatus(
-        JsonParser.nullableString(data['documentStatus']),
+      eligible: JsonParser.boolean(json['eligible']),
+      documentStatus: documentStatusFrom(
+        JsonParser.nullableString(json['documentStatus']),
       ),
-      badgeActive: JsonParser.boolean(data['badgeActive']),
-      requiresPurchase: JsonParser.boolean(data['requiresPurchase']),
+      badgeActive: JsonParser.boolean(json['badgeActive']),
+      requiresPurchase: JsonParser.boolean(json['requiresPurchase']),
       requiresDocumentReview: JsonParser.boolean(
-        data['requiresDocumentReview'],
+        json['requiresDocumentReview'],
       ),
-      action: JsonParser.nullableString(data['action']),
-      badgeKind: JsonParser.nullableString(data['badgeKind']),
-      badgeCollegeName: JsonParser.nullableString(data['badgeCollegeName']),
-      currentRequest: request.isEmpty
-          ? null
-          : VerificationRequestModel.fromJson(request),
+      action: _action(JsonParser.nullableString(json['action'])),
+      badgeKind: JsonParser.nullableString(json['badgeKind']),
+      badgeCollegeName: JsonParser.nullableString(json['badgeCollegeName']),
+      currentRequest: VerificationRequestModel.currentFromJson(
+        json['currentVerificationRequest'],
+      ),
     );
   }
 
-  static VerificationDocumentStatus _documentStatus(String? value) =>
+  /// Reads `{data: {eligible, documentStatus, action, ...}}`
+  /// (`GET verifications/eligibility`).
+  static VerificationEligibilityModel dataFromJson(Object? json) {
+    final root = json as Map<String, dynamic>;
+    return VerificationEligibilityModel.fromJson(JsonParser.map(root['data']));
+  }
+
+  /// `NOT_SUBMITTED | PENDING | NEEDS_CHANGES | APPROVED | REJECTED | REVOKED`.
+  /// Also used by `CandidateVerificationModel`.
+  static VerificationDocumentStatus documentStatusFrom(String? value) =>
       switch (value?.toUpperCase()) {
         'PENDING' => VerificationDocumentStatus.pending,
+        'NEEDS_CHANGES' => VerificationDocumentStatus.needsChanges,
         'APPROVED' => VerificationDocumentStatus.approved,
         'REJECTED' => VerificationDocumentStatus.rejected,
+        'REVOKED' => VerificationDocumentStatus.revoked,
         _ => VerificationDocumentStatus.notSubmitted,
       };
-}
 
-class VerificationRequestModel extends VerificationRequest {
-  const VerificationRequestModel({
-    required super.id,
-    required super.status,
-    super.submittedAt,
-  });
-
-  factory VerificationRequestModel.fromJson(Map<String, dynamic> json) {
-    return VerificationRequestModel(
-      id: JsonParser.string(json['id']),
-      status: JsonParser.string(json['status']),
-      submittedAt: JsonParser.dateTime(json['submittedAt']),
-    );
-  }
+  /// `FIRST_TIME_VERIFICATION | REVERIFICATION | PENDING_REVIEW | RENEW`.
+  static VerificationEligibilityAction? _action(String? value) =>
+      switch (value?.toUpperCase()) {
+        'FIRST_TIME_VERIFICATION' =>
+          VerificationEligibilityAction.firstTimeVerification,
+        'REVERIFICATION' => VerificationEligibilityAction.reverification,
+        'PENDING_REVIEW' => VerificationEligibilityAction.pendingReview,
+        'RENEW' => VerificationEligibilityAction.renew,
+        _ => null,
+      };
 }

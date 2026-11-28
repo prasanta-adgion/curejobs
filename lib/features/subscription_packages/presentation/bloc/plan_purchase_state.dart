@@ -3,7 +3,13 @@ part of 'plan_purchase_bloc.dart';
 enum PlanPurchaseStatus {
   idle,
 
-  /// Calling `purchases` and the Razorpay subscription endpoint.
+  /// Free plan: calling `subscriptions/select`.
+  selectingFreePlan,
+
+  /// Free plan is now the active plan.
+  freePlanSelected,
+
+  /// Paid plan: calling `purchases` and the Razorpay subscription endpoint.
   creating,
 
   /// [PlanPurchaseState.checkout] is ready; the page opens Razorpay.
@@ -12,10 +18,10 @@ enum PlanPurchaseStatus {
   /// Razorpay is open.
   inCheckout,
 
-  /// Payment done on Razorpay; waiting for the server to activate the plan.
+  /// Paid on Razorpay; verifying the payment and selecting the plan.
   verifying,
 
-  /// The server shows the new plan as active.
+  /// Payment verified and the paid plan is selected.
   success,
 
   /// Paid, but the server hasn't activated it yet (webhook delay).
@@ -40,8 +46,9 @@ class PlanPurchaseState extends Equatable {
   final String? planName;
   final String? message;
 
-  /// True while the Buy button must stay disabled and back is blocked.
+  /// True while the plan button must stay disabled and back is blocked.
   bool get isBusy =>
+      status == PlanPurchaseStatus.selectingFreePlan ||
       status == PlanPurchaseStatus.creating ||
       status == PlanPurchaseStatus.checkoutReady ||
       status == PlanPurchaseStatus.inCheckout ||

@@ -7,7 +7,18 @@ sealed class PlanPurchaseEvent extends Equatable {
   List<Object?> get props => [];
 }
 
-/// Buy tapped: create the purchase + Razorpay subscription.
+/// "Continue with …" tapped on a FREE plan: select it straight away.
+final class FreePlanSelected extends PlanPurchaseEvent {
+  const FreePlanSelected(this.package);
+
+  final SubscriptionPackage package;
+
+  @override
+  List<Object?> get props => [package.id];
+}
+
+/// "Upgrade to …" tapped on a PAID plan: create the purchase + Razorpay
+/// subscription, then open checkout.
 final class PlanPurchaseStarted extends PlanPurchaseEvent {
   const PlanPurchaseStarted(this.package);
 

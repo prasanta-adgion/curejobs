@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'package:curejobs/core/utils/extensions/theme_extensions.dart';
+
 import '../../../../shared/widgets/app_back_button.dart';
 
 import 'package:flutter/services.dart';
@@ -67,7 +69,7 @@ class _BillingView extends StatelessWidget {
                   labelColor: scheme.onSurface,
                   unselectedLabelColor: scheme.onSurfaceVariant,
                   labelStyle: const TextStyle(fontWeight: FontWeight.w600),
-                  indicatorColor: PlanColors.of(context).accentText,
+                  indicatorColor: context.colors.primary,
                   indicatorWeight: 2.5,
                   indicatorSize: TabBarIndicatorSize.label,
                   dividerHeight: 0,
@@ -173,7 +175,7 @@ class _PaymentsTab extends StatelessWidget {
                           .fold(0, (sum, p) => sum + p.amountMinor),
                     ),
                     style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      color: PlanColors.of(context).muted,
+                      color: context.colors.onSurfaceVariant,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -222,7 +224,7 @@ class _Stats extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final c = PlanColors.of(context);
+    final colors = context.colors;
 
     Widget stat(String value, String label, {Color? color}) => Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -230,11 +232,16 @@ class _Stats extends StatelessWidget {
         Text(
           value,
           style: theme.textTheme.titleMedium?.copyWith(
-            color: color ?? c.text,
+            color: color ?? colors.onSurface,
             fontWeight: FontWeight.w700,
           ),
         ),
-        Text(label, style: theme.textTheme.bodySmall?.copyWith(color: c.muted)),
+        Text(
+          label,
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: colors.onSurfaceVariant,
+          ),
+        ),
       ],
     );
 
@@ -244,7 +251,7 @@ class _Stats extends StatelessWidget {
         child: Row(
           children: [
             Expanded(child: stat('$successful', 'Successful')),
-            VerticalDivider(width: 1, color: c.border),
+            VerticalDivider(width: 1, color: colors.outlineVariant),
             const SizedBox(width: 16),
             Expanded(
               child: stat(
@@ -312,7 +319,7 @@ class _PlanHistoryTab extends StatelessWidget {
 
         final current = state.current;
         final past = state.past;
-        final c = PlanColors.of(context);
+        final colors = context.colors;
 
         return NotificationListener<ScrollNotification>(
           onNotification: (n) => _onScroll(context, n),
@@ -337,7 +344,7 @@ class _PlanHistoryTab extends StatelessWidget {
                     trailing: Text(
                       '${state.pastTotal}',
                       style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        color: c.muted,
+                        color: colors.onSurfaceVariant,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -406,10 +413,12 @@ class _Footer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final c = PlanColors.of(context);
+    final colors = context.colors;
     return DecoratedBox(
       decoration: BoxDecoration(
-        border: Border(top: BorderSide(color: c.band, width: 8)),
+        border: Border(
+          top: BorderSide(color: colors.surfaceContainerHighest, width: 8),
+        ),
       ),
       child: Padding(
         padding: const EdgeInsets.fromLTRB(20, 14, 20, 24),
@@ -417,7 +426,7 @@ class _Footer extends StatelessWidget {
           child: Text(
             text,
             style: Theme.of(context).textTheme.labelSmall
-                ?.copyWith(color: c.muted),
+                ?.copyWith(color: colors.onSurfaceVariant),
           ),
         ),
       ),
@@ -435,19 +444,19 @@ class _Message extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final c = PlanColors.of(context);
+    final colors = context.colors;
     return Center(
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 44, color: c.muted),
+            Icon(icon, size: 44, color: colors.onSurfaceVariant),
             const SizedBox(height: 12),
             Text(
               text,
               textAlign: TextAlign.center,
-              style: TextStyle(color: c.text),
+              style: TextStyle(color: colors.onSurface),
             ),
             if (onRetry != null) ...[
               const SizedBox(height: 16),

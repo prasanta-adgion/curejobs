@@ -5,7 +5,9 @@ import '../../../../core/network/api_endpoints.dart';
 import '../../domain/entities/current_subscription.dart';
 import '../../domain/entities/purchase.dart';
 import '../../domain/entities/subscription_package.dart';
+import '../../domain/entities/package_request.dart';
 import '../models/current_subscription_model.dart';
+import '../models/package_request_model.dart';
 import '../models/purchase_model.dart';
 import '../models/subscription_package_model.dart';
 
@@ -35,6 +37,16 @@ abstract interface class SubscriptionPackagesRemoteDataSource {
 
   /// Makes [packageId] the active plan after it has been paid for.
   Future<void> selectPlan(String packageId);
+
+  /// Stops auto-pay for our subscription [subscriptionId]. The plan stays
+  /// active until it expires.
+  Future<void> cancelAutoRenew(String subscriptionId);
+
+  /// Asks admin to grant [packageId] (for plans that can't be paid online).
+  Future<void> requestPackage({required String packageId, String? message});
+
+  /// The user's package requests, newest first.
+  Future<List<PackageRequest>> getPackageRequests();
 }
 
 class SubscriptionPackagesRemoteDataSourceImpl
@@ -55,7 +67,7 @@ class SubscriptionPackagesRemoteDataSourceImpl
   @override
   Future<CurrentSubscription> getCurrentPlan() {
     return _client.get<CurrentSubscription>(
-      ApiEndpoints.currentPlan,
+      ApiEndpoints.currentSubscriptionPlan,
       decoder: CurrentSubscriptionModel.fromJson,
     );
   }
@@ -65,7 +77,6 @@ class SubscriptionPackagesRemoteDataSourceImpl
     required String billingOptionId,
     required String idempotencyKey,
   }) {
-    print("purchases api call");
     return _client.post<Purchase>(
       ApiEndpoints.purchases,
       body: {'billingOptionId': billingOptionId},
@@ -76,8 +87,6 @@ class SubscriptionPackagesRemoteDataSourceImpl
 
   @override
   Future<RazorpayCheckout> createRazorpaySubscription(String purchaseId) {
-    print("create razorpay subscription");
-
     return _client.post<RazorpayCheckout>(
       ApiEndpoints.razorpaySubscription(purchaseId: purchaseId),
       decoder: RazorpayCheckoutModel.fromJson,
@@ -91,12 +100,6 @@ class SubscriptionPackagesRemoteDataSourceImpl
     required String subscriptionId,
     required String signature,
   }) {
-    print("-------------------------------------------------");
-    print("purchaseId: $purchaseId");
-    print("paymentId: $paymentId");
-    print("subscriptionId: $subscriptionId");
-    print("signature: $signature");
-    print("-------------------------------------------------");
     return _client.post<PaymentVerification>(
       ApiEndpoints.verifyRazorpayPayment,
       body: {
@@ -111,11 +114,36 @@ class SubscriptionPackagesRemoteDataSourceImpl
 
   @override
   Future<void> selectPlan(String packageId) {
-    print("select plan api call");
     return _client.post<void>(
       ApiEndpoints.selectPlan,
       body: {'packageId': packageId},
       decoder: (_) {},
+    );
+  }
+
+  @override
+  Future<void> cancelAutoRenew(String subscriptionId) {
+    return _client.post<void>(
+      ApiEndpoints.cancelAutoRenew(subscriptionId),
+      decoder: (_) {},
+    );
+  }
+
+  @override
+  Future<void> requestPackage({required String packageId, String? message}) {
+    final text = message?.trim() ?? '';
+    return _client.post<void>(
+      ApiEndpoints.packageRequests,
+      body: {'packageId': packageId, if (text.isNotEmpty) 'message': text},
+      decoder: (_) {},
+    );
+  }
+
+  @override
+  Future<List<PackageRequest>> getPackageRequests() {
+    return _client.get<List<PackageRequest>>(
+      ApiEndpoints.packageRequests,
+      decoder: PackageRequestModel.listFromJson,
     );
   }
 }
